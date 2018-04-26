@@ -1,0 +1,15 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - npm install
+      - export PATH="$PATH:./node_modules/.bin"
+      - echo $PATH
+      - truffle install
+  build:
+    commands:
+      - npm run test-cov
+  post_build:
+    commands:
+      - echo Build completed on `date`
