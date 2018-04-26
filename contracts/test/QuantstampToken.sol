@@ -70,6 +70,8 @@ contract QuantstampToken is StandardToken, BurnableToken, Ownable {
         // tokens; hence, this requirement
         require(msg.sender != _admin);
 
+	// the latest version of BasicToken in zepplin-solidity is incompatible with our deployed Token code,
+	// since totalSupply is now a function. Renamed here to reference the state variable totalSupply_.
         totalSupply_ = INITIAL_SUPPLY;
         crowdSaleAllowance = CROWDSALE_ALLOWANCE;
         adminAllowance = ADMIN_ALLOWANCE;
