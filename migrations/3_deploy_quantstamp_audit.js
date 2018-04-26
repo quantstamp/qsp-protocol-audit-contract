@@ -1,0 +1,62 @@
+const QuantstampToken = artifacts.require('test/QuantstampToken');
+const QuantstampAudit = artifacts.require('QuantstampAudit');
+const AWS = require('aws-sdk');
+const s3 = new AWS.S3({
+  region: 'us-east-1'
+});
+
+const QSP_TOKEN_ADDRESS_MAINNET = "0x99ea4db9ee77acd40b119bd1dc4e33e1c070b80d";
+const QSP_TOKEN_ADDRESS_ROPSTEN = "0xc1220b0bA0760817A9E8166C114D3eb2741F5949";
+
+module.exports = async function(deployer, network, accounts) {
+  
+  let stage = null;
+  let tokenAddress = null;
+  
+  if ("stage_dev" === network) {
+    stage = "dev";
+    tokenAddress = QSP_TOKEN_ADDRESS_ROPSTEN;
+  } else if ("stage_prod" === network) {
+    stage = "prod";
+    tokenAddress = QSP_TOKEN_ADDRESS_ROPSTEN;
+    // TODO: set this to QSP_TOKEN_ADDRESS_MAINNET once Prod is connected to the mainnet 
+  } else {
+    tokenAddress = QuantstampToken.address;
+  }
+
+  await deployer.deploy(QuantstampAudit, tokenAddress);
+  
+  if (stage) {    
+    const networkConfig = require('../truffle.js').networks[network];
+    const metaUpdateResponse = await s3.putObject({
+      Bucket: `qsp-network-contract-abi-${stage}`,
+      Key: "QuantstampInterface.meta.json",
+      ContentType: "application/json",
+      Body: new Buffer(JSON.stringify({
+        "contractAddress": QuantstampAudit.address,
+        "creatorAddress": networkConfig.account
+      }, null, 2))
+    }).promise();
+    console.log('Interface metadata update response:', metaUpdateResponse);
+
+    const auditAbiUpdateResponse = await s3.putObject({
+      Bucket: `qsp-network-contract-abi-${stage}`,
+      Key: "QuantstampInterface.abi.json",
+      ContentType: "application/json",
+      Body: new Buffer(JSON.stringify(
+        require('../build/contracts/QuantstampAudit.json').abi, null, 2
+      ))
+    }).promise();
+    console.log('Audit contract ABI update response:', auditAbiUpdateResponse);
+
+    const tokenAbiUpdateResponse = await s3.putObject({
+      Bucket: `qsp-network-contract-abi-${stage}`,
+      Key: "QuantstampToken.abi.json",
+      ContentType: "application/json",
+      Body: new Buffer(JSON.stringify(
+        require('../build/contracts/QuantstampToken.json').abi, null, 2
+      ))
+    }).promise();
+    console.log('Token contract ABI update response:', tokenAbiUpdateResponse);    
+  }
+};
