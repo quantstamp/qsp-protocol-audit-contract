@@ -1,4 +1,4 @@
-pragma solidity ^0.4.19;
+pragma solidity ^0.4.23;
 
 import "zeppelin-solidity/contracts/math/SafeMath.sol";
 import "zeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
@@ -72,6 +72,7 @@ contract QuantstampAudit is Ownable {
   event LogPayAuditor(uint256 requestId, address auditor, uint256 amount);
   event LogRefund(uint256 requestId, address requestor, uint256 amount);
   event LogTransactionFeeChanged(uint256 oldFee, uint256 newFee);
+
 
   // error handling events
   // payment is requested for an audit that is already already paid or does not exist
