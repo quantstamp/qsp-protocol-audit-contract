@@ -7,21 +7,18 @@
       "test": "test"
    },
    "scripts": {
-      "test": "echo \"Error: no test specified\" && exit 1",
-      "test-cov": "./node_modules/.bin/solidity-coverage",
-      "gas": "node gas.js"
+      "test": "./node_modules/.bin/truffle test",
+      "test-cov": "./node_modules/.bin/solidity-coverage"
    },
    "author": "",
    "license": "ISC",
    "dependencies": {
       "aws-sdk": "2.194.0",
-      "ethereumjs-testrpc": "^6.0.3",
-      "solc": "^0.4.23",
-      "solidity-coverage": "0.4.14",
-      "superagent": "^3.8.2",
-      "truffle": "^4.1.7",
-      "truffle-hdwallet-provider": "^0.0.3",
-      "web3": "^1.0.0-beta.30",
-      "zeppelin-solidity": "^1.8.0"
+      "ganache-cli": "6.1.0",
+      "solidity-coverage": "0.5.0",
+      "truffle": "4.1.7",
+      "truffle-hdwallet-provider": "0.0.3",
+      "web3": "1.0.0-beta.30",
+      "openzeppelin-solidity": "1.9.0"
    }
 }
