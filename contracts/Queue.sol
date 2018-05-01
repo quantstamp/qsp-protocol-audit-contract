@@ -1,4 +1,4 @@
-pragma solidity 0.4.19;
+pragma solidity ^0.4.19;
 
 ////////////////////////////////////////////////////////////
 // Based on: https://github.com/chriseth/solidity-examples/blob/master/queue.sol
@@ -22,7 +22,7 @@ contract Uint256Queue {
     QueueIsFull
   }
 
-  function Uint256Queue(uint capacity) public {
+  constructor(uint capacity) public {
     data.length = capacity;
   }
 
@@ -40,7 +40,7 @@ contract Uint256Queue {
 
   function push(uint256 item) public returns (PushResult) {
     if ((back + 1) % data.length == front) {
-      LogQueueIsFullError(capacity(), item);
+      emit LogQueueIsFullError(capacity(), item);
       return PushResult.QueueIsFull;
     }
     data[back] = item;
@@ -58,7 +58,7 @@ contract Uint256Queue {
 
   function peek() public returns (PopResult result, uint256 item) {
     if (back == front) {
-      LogQueueIsEmptyError();
+      emit LogQueueIsEmptyError();
       result = PopResult.QueueIsEmpty;
       return;
     }

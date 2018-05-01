@@ -63,7 +63,7 @@ contract QuantstampToken is StandardToken, BurnableToken, Ownable {
      * Constructor - instantiates token supply and allocates balanace of
      * to the owner (msg.sender).
      */
-    function QuantstampToken(address _admin) public {
+    constructor (address _admin) public {
         // the owner is a custodian of tokens that can
         // give an allowance of tokens for crowdsales
         // or to the admin, but cannot itself transfer
@@ -78,7 +78,7 @@ contract QuantstampToken is StandardToken, BurnableToken, Ownable {
 
         // mint all tokens
         balances[msg.sender] = totalSupply();
-        Transfer(address(0x0), msg.sender, totalSupply());
+        emit Transfer(address(0x0), msg.sender, totalSupply());
 
         adminAddr = _admin;
         approve(adminAddr, adminAllowance);
@@ -156,6 +156,6 @@ contract QuantstampToken is StandardToken, BurnableToken, Ownable {
         require(transferEnabled || msg.sender == owner);
         require(balances[msg.sender] >= _value);
         super.burn(_value);
-        Transfer(msg.sender, address(0x0), _value);
+        emit Transfer(msg.sender, address(0x0), _value);
     }
 }

@@ -1,4 +1,4 @@
-pragma solidity 0.4.19;
+pragma solidity ^0.4.19;
 
 import "zeppelin-solidity/contracts/math/SafeMath.sol";
 import "zeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
@@ -38,11 +38,11 @@ contract QuantstampAudit is Ownable {
   mapping(uint256 => Audit) public audits;
 
   // TODO: figure out what a reasonable value for timeout is. For now 10 blocks.
-  uint public auditTimeoutInBlocks = 10;
+  uint256 public auditTimeoutInBlocks = 10;
 
   Uint256Queue requestQueue;
   Uint256Queue assignedQueue;
-  uint constant REQUEST_QUEUE_CAPACITY = 30000;
+  uint256 constant REQUEST_QUEUE_CAPACITY = 30000;
 
   // token used to pay for audits. This contract assumes that the owner of the contract trusts token's code and
   // that transfer function (such as transferFrom, transfer) do the right thing
@@ -56,7 +56,7 @@ contract QuantstampAudit is Ownable {
     uint256 requestId,
     string reportUri,
     string reportHash,
-    uint reportTimestamp
+    uint256 reportTimestamp
   );
 
   event LogAuditQueued(uint256 requestId, address requestor, string uri, uint256 price);
@@ -83,7 +83,7 @@ contract QuantstampAudit is Ownable {
    * @dev The constructor creates an audit contract.
    * @param tokenAddress The address of a StandardToken that will be used to pay auditor nodes.
    */
-  function QuantstampAudit(address tokenAddress) public {
+  constructor (address tokenAddress) public {
     require(tokenAddress != address(0));
     token = StandardToken(tokenAddress);
     requestQueue = new Uint256Queue(REQUEST_QUEUE_CAPACITY);
@@ -110,10 +110,10 @@ contract QuantstampAudit is Ownable {
     audits[requestId] = Audit(msg.sender, contractUri, price, transactionFee, block.timestamp, AuditState.Queued, address(0), 0, "", "", 0);
 
     if (requestQueue.push(requestId) != Uint256Queue.PushResult.Success) {
-      LogUnableToQueueAudit(requestId, requestor, contractUri);
+      emit LogUnableToQueueAudit(requestId, requestor, contractUri);
       return;
     }
-    LogAuditQueued(requestId, requestor, contractUri, price);
+    emit LogAuditQueued(requestId, requestor, contractUri, price);
 
     return requestId;
   }
@@ -128,13 +128,13 @@ contract QuantstampAudit is Ownable {
   function submitReport(uint256 requestId, AuditState auditResult, string reportUri, string reportHash) public {
     Audit storage audit = audits[requestId];
     if (audit.state != AuditState.Assigned && audit.state != AuditState.Timeout) {
-      LogReportSubmissionError_InvalidState(requestId, audit.state);
+      emit LogReportSubmissionError_InvalidState(requestId, audit.state);
       return;
     }
 
     // the sender must be the auditor
     if (msg.sender != audit.auditor)  {
-      LogReportSubmissionError_InvalidAuditor(requestId, msg.sender);
+      emit LogReportSubmissionError_InvalidAuditor(requestId, msg.sender);
       return;
     }
 
@@ -146,19 +146,19 @@ contract QuantstampAudit is Ownable {
 
     // validate the audit state
     require(isAuditFinished(requestId));
-    LogAuditFinished(requestId, reportUri, reportHash, block.timestamp);
+    emit LogAuditFinished(requestId, reportUri, reportHash, block.timestamp);
 
     // if the analysis timeouts, the auditor address is set to 0
     address auditor = auditResult == AuditState.Timeout ? address(0) : msg.sender;
-    LogReportSubmitted(requestId, auditor, auditResult, reportUri, reportHash);
+    emit LogReportSubmitted(requestId, auditor, auditResult, reportUri, reportHash);
 
     bool isRefund = AuditState.Completed != auditResult;
     // pay the requestor in case of a refund; pay the auditor node otherwise
     token.transfer(isRefund ? audit.requestor : auditor, audit.price);
     if (isRefund) {
-      LogRefund(requestId, audit.requestor, audit.price);
+      emit LogRefund(requestId, audit.requestor, audit.price);
     } else {
-      LogPayAuditor(requestId, auditor, audit.price);
+      emit LogPayAuditor(requestId, auditor, audit.price);
     }
   }
 
@@ -168,18 +168,18 @@ contract QuantstampAudit is Ownable {
 
     (popResult, requestId) = requestQueue.pop();
     if (popResult == Uint256Queue.PopResult.QueueIsEmpty) {
-      LogAuditQueueIsEmpty(); // TODO should this contain msg.sender as an argument?
+      emit LogAuditQueueIsEmpty(); // TODO should this contain msg.sender as an argument?
       return;
     }
     if (assignedQueue.push(requestId) != Uint256Queue.PushResult.Success) {
-      LogUnableToAssignAudit(requestId);
+      emit LogUnableToAssignAudit(requestId);
       return;
     }
     audits[requestId].state = AuditState.Assigned;
     audits[requestId].auditor = msg.sender;
     audits[requestId].assignTimestamp = block.number;
 
-    LogAuditAssigned(
+    emit LogAuditAssigned(
       requestId,
       audits[requestId].auditor,
       audits[requestId].requestor,
@@ -193,7 +193,7 @@ contract QuantstampAudit is Ownable {
    * @param fee Transaction fee in Wei.
    */
   function setTransactionFee(uint256 fee) external onlyOwner {
-    LogTransactionFeeChanged(transactionFee, fee);
+    emit LogTransactionFeeChanged(transactionFee, fee);
     transactionFee = fee;
   }
 
@@ -266,7 +266,7 @@ contract QuantstampAudit is Ownable {
     return requestQueue.capacity();
   }
 
-  function setAuditTimeout(uint timeoutInBlocks) public {
+  function setAuditTimeout(uint256 timeoutInBlocks) public {
     auditTimeoutInBlocks = timeoutInBlocks;
   }
 }
