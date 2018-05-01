@@ -8,15 +8,15 @@ QSP Protocol audit contract.
 
 The addresses of the deployed contracts could be fetched from these locations that persist across deployments:
 
-### Dev
-1. Metadata (owner and address): https://s3.amazonaws.com/qsp-protocol-contract-abi-dev/QuantstampAudit.meta.json
+### Dev (Ropsten)
+1. Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract-abi-dev/QuantstampAudit.meta.json
 1. ABI: https://s3.amazonaws.com/qsp-protocol-contract-abi-dev/QuantstampAudit.abi.json
+1. Querying: https://ropsten.etherscan.io/address/{address}#readContract , where `{address}` is `contractAddress` copied from the metadata file.
 
-### Prod
-1. Metadata (owner and address): https://s3.amazonaws.com/qsp-protocol-contract-abi-prod/QuantstampAudit.meta.json
+### Prod (Main Net)
+1. Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract-abi-prod/QuantstampAudit.meta.json
 1. ABI: https://s3.amazonaws.com/qsp-protocol-contract-abi-prod/QuantstampAudit.abi.json
-
-To make queries, go to: https://ropsten.etherscan.io/address/{address}#readContract , where `{address}` is `contractAddress` copied from the `*.meta.json` file of the corresponding stage.
+1. Querying: https://etherscan.io/address/{address}#readContract , where `{address}` is `contractAddress` copied from the metadata file.
 
 ## Run locally
 ### Requirements
@@ -31,16 +31,18 @@ To make queries, go to: https://ropsten.etherscan.io/address/{address}#readContr
     1. [UI version](http://truffleframework.com/ganache/) or
     1. Console version: `npm install -g ganache-cli@6.1.0` and then (from another terminal tab): `testrpc -p 7545`
 1. `truffle compile`
-1. `npm test`
+1. `npm test`. To also generate a code coverage report, run `npm run test-cov` instead.
 
-To run tests and also generate a code coverage report, run `npm run test-cov`.
+## Deploy to Ropsten or Main Net (through MetaMask)
 
-## Deploy to Ropsten (through MetaMask)
+First-time only: manually create the S3 buckets `qsp-protocol-contract-abi-dev` and `qsp-protocol-contract-abi-prod` that will store the ABI and metadata for the deployed contracts. These are necessary so that the audit node and tests can pull this information regardless of when the contract was deployed and to what address.
+
 1. If you haven't, install MetaMask (https://metamask.io).
 1. Start MetaMask in the browser (Chrome, Chromium, or Brave) and log in with our credentials.
 1. Point MetaMask to Ropsten network.
 1. Make sure MetaMask is running throughout the deployment process.
 1. Place the secret mnemonic phrase and the infura API token into `credentials.js`.
+1. Make sure you have AWS credentials that allow write access to the bucket `qsp-protocol-contract-abi-<stage>`. If deployment is successful, the new address will be written automatically
 1. Deploy the contracts with: `truffle migrate --network stage_dev` (Dev stage) or `truffle migrate --network stage_prod` (Prod stage).
 
 ## Deploy to Ganache
