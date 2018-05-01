@@ -1,18 +1,20 @@
-## qsp-network-contract-interface
+## qsp-protocol-audit-contract
 
-Interface smart contract for QSP Network.
+![Build status](https://codebuild.us-east-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiZmNQeU81OEExcy8zZS9vdkpWU3NNQUJDNnVYYTRTbHQvaGE4TExaZXhVcnFFWXY3VjdJRGxyU3IrTk9UNTQzMWJJNk5rdThNZEE4SVUxS3h0QkNPZG0wPSIsIml2UGFyYW1ldGVyU3BlYyI6IkhmZUo3c005aHZRdUdjTloiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=develop)
+
+QSP Protocol audit contract.
 
 ## Accessing deployed contracts
 
 The addresses of the deployed contracts could be fetched from these locations that persist across deployments:
 
 ### Dev
-1. Metadata (owner and address): https://s3.amazonaws.com/qsp-network-contract-abi-dev/QuantstampInterface.meta.json
-1. ABI: https://s3.amazonaws.com/qsp-network-contract-abi-dev/QuantstampInterface.abi.json
+1. Metadata (owner and address): https://s3.amazonaws.com/qsp-protocol-contract-abi-dev/QuantstampAudit.meta.json
+1. ABI: https://s3.amazonaws.com/qsp-protocol-contract-abi-dev/QuantstampAudit.abi.json
 
 ### Prod
-1. Metadata (owner and address): https://s3.amazonaws.com/qsp-network-contract-abi-prod/QuantstampInterface.meta.json
-1. ABI: https://s3.amazonaws.com/qsp-network-contract-abi-prod/QuantstampInterface.abi.json
+1. Metadata (owner and address): https://s3.amazonaws.com/qsp-protocol-contract-abi-prod/QuantstampAudit.meta.json
+1. ABI: https://s3.amazonaws.com/qsp-protocol-contract-abi-prod/QuantstampAudit.abi.json
 
 To make queries, go to: https://ropsten.etherscan.io/address/{address}#readContract , where `{address}` is `contractAddress` copied from the `*.meta.json` file of the corresponding stage.
 
@@ -25,10 +27,9 @@ To make queries, go to: https://ropsten.etherscan.io/address/{address}#readContr
 
 1. `npm install`
 1. For convenience, install Truffle globally: `npm install -g truffle@0.0.0`, replacing `0.0.0` by the Truffle version from `package.json`
-1. `truffle install`
 1. Install Ganache (Formerly, `testrpc`), either:
     1. [UI version](http://truffleframework.com/ganache/) or
-    1. Console version: `npm install -g ethereumjs-testrpc` and then (from another terminal tab): `testrpc -p 7545`
+    1. Console version: `npm install -g ganache-cli@6.1.0` and then (from another terminal tab): `testrpc -p 7545`
 1. `truffle compile`
 1. `npm test`
 
@@ -55,13 +56,3 @@ To run tests and also generate a code coverage report, run `npm run test-cov`.
 1. `docker run -d -p 7545:8545 trufflesuite/ganache-cli:latest`
 1. `truffle test --network development`
 1. `truffle migrate --network development`
-
-### Running in Minikube (Docker)
-Follow initial deployment instructions in [this repo](https://github.com/quantstamp/qsp-network-kubernetes).
-1. `minikube start`
-1. `helm install -f values.yaml ganache/`
-1. `minikube service {{ name-of-service }} --url`
-1. Update `minikube` object for your unique host and port in `truffle.js`
-1. `truffle test --network minikube`
-1. Good? If yes, deploy it.
-1. `truffle migrate --network minikube`
