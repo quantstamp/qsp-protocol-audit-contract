@@ -18,8 +18,7 @@ module.exports = async function(deployer, network, accounts) {
     tokenAddress = QSP_TOKEN_ADDRESS_ROPSTEN;
   } else if ("stage_prod" === network) {
     stage = "prod";
-    tokenAddress = QSP_TOKEN_ADDRESS_ROPSTEN;
-    // TODO: set this to QSP_TOKEN_ADDRESS_MAINNET once Prod is connected to the mainnet 
+    tokenAddress = QSP_TOKEN_ADDRESS_MAINNET;
   } else {
     tokenAddress = QuantstampToken.address;
   }
@@ -29,8 +28,8 @@ module.exports = async function(deployer, network, accounts) {
   if (stage) {    
     const networkConfig = require('../truffle.js').networks[network];
     const metaUpdateResponse = await s3.putObject({
-      Bucket: `qsp-network-contract-abi-${stage}`,
-      Key: "QuantstampInterface.meta.json",
+      Bucket: `qsp-protocol-contract-abi-${stage}`,
+      Key: "QuantstampAudit.meta.json",
       ContentType: "application/json",
       Body: new Buffer(JSON.stringify({
         "contractAddress": QuantstampAudit.address,
@@ -40,8 +39,8 @@ module.exports = async function(deployer, network, accounts) {
     console.log('Interface metadata update response:', metaUpdateResponse);
 
     const auditAbiUpdateResponse = await s3.putObject({
-      Bucket: `qsp-network-contract-abi-${stage}`,
-      Key: "QuantstampInterface.abi.json",
+      Bucket: `qsp-protocol-contract-abi-${stage}`,
+      Key: "QuantstampAudit.abi.json",
       ContentType: "application/json",
       Body: new Buffer(JSON.stringify(
         require('../build/contracts/QuantstampAudit.json').abi, null, 2
@@ -50,7 +49,7 @@ module.exports = async function(deployer, network, accounts) {
     console.log('Audit contract ABI update response:', auditAbiUpdateResponse);
 
     const tokenAbiUpdateResponse = await s3.putObject({
-      Bucket: `qsp-network-contract-abi-${stage}`,
+      Bucket: `qsp-protocol-contract-abi-${stage}`,
       Key: "QuantstampToken.abi.json",
       ContentType: "application/json",
       Body: new Buffer(JSON.stringify(
