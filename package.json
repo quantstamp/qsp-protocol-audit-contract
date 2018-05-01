@@ -8,8 +8,7 @@
    },
    "scripts": {
       "test": "echo \"Error: no test specified\" && exit 1",
-      "test-cov": "./node_modules/.bin/solidity-coverage",
-      "gas": "node gas.js"
+      "test-cov": "./node_modules/.bin/solidity-coverage"
    },
    "author": "",
    "license": "ISC",
@@ -21,6 +20,6 @@
       "truffle": "4.1.7",
       "truffle-hdwallet-provider": "0.0.3",
       "web3": "1.0.0-beta.30",
-      "zeppelin-solidity": "1.8.0"
+      "openzeppelin-solidity": "1.9.0"
    }
 }
