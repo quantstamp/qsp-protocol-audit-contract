@@ -6,7 +6,7 @@ phases:
       - npm install
       - export PATH="$PATH:./node_modules/.bin"
       - echo $PATH
-      - truffle install
+      - truffle version
   build:
     commands:
       - npm run test-cov
