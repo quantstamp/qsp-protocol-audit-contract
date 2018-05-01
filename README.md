@@ -4,7 +4,7 @@
 
 QSP Protocol audit contract.
 
-## Accessing deployed contracts
+## Access deployed contracts
 
 The addresses of the deployed contracts could be fetched from these locations that persist across deployments:
 
@@ -35,15 +35,18 @@ The addresses of the deployed contracts could be fetched from these locations th
 
 ## Deploy to Ropsten or Main Net (through MetaMask)
 
-First-time only: manually create the S3 buckets `qsp-protocol-contract-abi-dev` and `qsp-protocol-contract-abi-prod` that will store the ABI and metadata for the deployed contracts. These are necessary so that the audit node and tests can pull this information regardless of when the contract was deployed and to what address.
+First-time only: manually create the S3 buckets `qsp-protocol-contract-abi-dev` and `qsp-protocol-contract-abi-prod` that will store the ABI and metadata for the deployed contracts. These are necessary so that the audit node and tests can work with the contract without having to update the address.
 
 1. If you haven't, install MetaMask (https://metamask.io).
 1. Start MetaMask in the browser (Chrome, Chromium, or Brave) and log in with our credentials.
-1. Point MetaMask to Ropsten network.
+1. Point MetaMask to the right network (Ropsten or Main Net).
 1. Make sure MetaMask is running throughout the deployment process.
 1. Place the secret mnemonic phrase and the infura API token into `credentials.js`.
-1. Make sure you have AWS credentials that allow write access to the bucket `qsp-protocol-contract-abi-<stage>`. If deployment is successful, the new address will be written automatically
-1. Deploy the contracts with: `truffle migrate --network stage_dev` (Dev stage) or `truffle migrate --network stage_prod` (Prod stage).
+1. If you deploy to Dev or Prod stages of the QSP Protocol, make sure you have AWS credentials that allow write access to the bucket `qsp-protocol-contract-abi-<stage>`. If deployment is successful, the new contract address and the owner address will be written to the corresponding S3 file automatically.
+1. Deploy the contract to the desired stage:
+  1. `truffle migrate --network stage_dev` - QSP protocol dev stage.
+  1. `truffle migrate --network stage_prod` - QSP protocol prod stage.
+  1. `truffle migrate --network ropsten` - Ropsten for independent testing (does not write anything to S3).
 
 ## Deploy to Ganache
 

@@ -19,7 +19,14 @@ module.exports = async function(deployer, network, accounts) {
   } else if ("stage_prod" === network) {
     stage = "prod";
     tokenAddress = QSP_TOKEN_ADDRESS_MAINNET;
+  } else if ("ropsten" === network) {
+    // useful for deploying to the Ropsten network separately,
+    // without affecting Dev or Prod
+    tokenAddress = QSP_TOKEN_ADDRESS_ROPSTEN;
   } else {
+    // for other networks (e.g., Ganache), the token contract would need
+    // to be deployed as well (See 2_deploy_quantstamp_token.js) and 
+    // its address to be used for the Audit contract
     tokenAddress = QuantstampToken.address;
   }
 
