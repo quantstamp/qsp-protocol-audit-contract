@@ -44,9 +44,9 @@ First-time only: manually create the S3 buckets `qsp-protocol-contract-abi-dev` 
 1. Place the secret mnemonic phrase and the infura API token into `credentials.js`.
 1. If you deploy to Dev or Prod stages of the QSP Protocol, make sure you have AWS credentials that allow write access to the bucket `qsp-protocol-contract-abi-<stage>`. If deployment is successful, the new contract address and the owner address will be written to the corresponding S3 file automatically.
 1. Deploy the contract to the desired stage:
-  1. `truffle migrate --network stage_dev` - QSP protocol dev stage.
-  1. `truffle migrate --network stage_prod` - QSP protocol prod stage.
-  1. `truffle migrate --network ropsten` - Ropsten for independent testing (does not write anything to S3).
+    * `truffle migrate --network stage_dev` - QSP protocol dev stage.
+    * `truffle migrate --network stage_prod` - QSP protocol prod stage.
+    * `truffle migrate --network ropsten` - Ropsten for independent testing (does not write anything to S3).
 
 ## Deploy to Ganache
 
