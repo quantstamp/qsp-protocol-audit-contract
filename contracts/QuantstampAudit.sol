@@ -4,10 +4,11 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/ownership/Whitelist.sol";
+import "openzeppelin-solidity/contracts/lifecycle/Pausable.sol";
 
 import "./Queue.sol";
 
-contract QuantstampAudit is Ownable, Whitelist {
+contract QuantstampAudit is Ownable, Whitelist, Pausable {
   using SafeMath for uint256;
 
   // state of audit requests submitted to the contract
@@ -105,7 +106,7 @@ contract QuantstampAudit is Ownable, Whitelist {
    * @param contractUri Identifier of the resource to audit.
    * @param price The total amount of tokens that will be paid for the audit.
    */
-  function requestAudit(string contractUri, uint256 price) external payable returns(uint256) {
+  function requestAudit(string contractUri, uint256 price) external payable whenNotPaused returns(uint256) {
     // check if user sends enough pre-paid gas
     require(msg.value >= transactionFee); // TODO: there should be an event if this fails
     // the sender is the requestor

@@ -359,4 +359,12 @@ contract('QuantstampAudit', function(accounts) {
 
     Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor}));
   });
+
+  it("should prevent a requestor to request an audit if owner paused", async function() {
+    // for the sake of dependency, let's ensure the auditor is not in the whitelist
+    await quantstamp_audit.pause();
+
+    Util.assertTxFail(quantstamp_audit.requestAudit(uri, price, {from: requestor}));
+  });
+
 });
