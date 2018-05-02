@@ -1,4 +1,4 @@
-const LinkedListLib = artifacts.require("LinkedListLib.sol");
+const LinkedListLib = artifacts.require("LinkedListLib");
 const QuantstampToken = artifacts.require('test/QuantstampToken');
 const QuantstampAudit = artifacts.require('QuantstampAudit');
 const AWS = require('aws-sdk');
