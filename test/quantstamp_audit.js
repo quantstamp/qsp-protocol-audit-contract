@@ -37,7 +37,8 @@ contract('QuantstampAudit', function(accounts) {
     await quantstamp_token.transfer(requestor, requestorBudget, {from : owner});
     // allow the audit contract use up to 65QSP for audits
     await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(1000), {from : requestor});
-
+    // whitelisting auditor
+    await quantstamp_audit.addAddressToWhitelist(auditor);
   });
 
   function assertEvent({result, name, args}) {
@@ -193,6 +194,9 @@ contract('QuantstampAudit', function(accounts) {
     const requestId = requestCounter++;
     const requestId2 = requestCounter++;
     const timeoutInBlocks = 1;
+    // whitelisting owner
+    await quantstamp_audit.addAddressToWhitelist(owner);
+
     await quantstamp_audit.setAuditTimeout(timeoutInBlocks);
     await quantstamp_audit.requestAudit(uri, price, {from: requestor});
     await quantstamp_audit.getNextAuditRequest({from: auditor});

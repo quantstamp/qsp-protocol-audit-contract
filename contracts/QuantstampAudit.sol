@@ -3,10 +3,11 @@ pragma solidity 0.4.23;
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/ownership/Whitelist.sol";
 
 import "./Queue.sol";
 
-contract QuantstampAudit is Ownable {
+contract QuantstampAudit is Ownable, Whitelist {
   using SafeMath for uint256;
 
   // state of audit requests submitted to the contract
@@ -135,7 +136,7 @@ contract QuantstampAudit is Ownable {
    * @param reportUri URI to the generated report.
    * @param reportHash Hash of the generated report.
    */
-  function submitReport(uint256 requestId, AuditState auditResult, string reportUri, string reportHash) public {
+  function submitReport(uint256 requestId, AuditState auditResult, string reportUri, string reportHash) public onlyWhitelisted {
     Audit storage audit = audits[requestId];
     if (audit.state != AuditState.Assigned && audit.state != AuditState.Timeout) {
       emit LogReportSubmissionError_InvalidState(requestId, msg.sender, audit.state);
@@ -173,7 +174,7 @@ contract QuantstampAudit is Ownable {
   }
 
   // TODO: should this return the requestId, in addition to emitting a log?
-  function getNextAuditRequest() public {
+  function getNextAuditRequest() public onlyWhitelisted {
     Uint256Queue.PopResult popResult;
     uint256 requestId;
 
