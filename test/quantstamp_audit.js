@@ -339,4 +339,24 @@ contract('QuantstampAudit', function(accounts) {
       index: 1
     });
   });
+
+  it("should prevent not-whitelisted auditor to get next audit request", async function() {
+    const auditor = accounts[4];
+    const requestId = requestCounter++;
+
+    // for the sake of dependency, let's ensure the auditor is not in the whitelist
+    await quantstamp_audit.removeAddressFromWhitelist(auditor);
+
+    Util.assertTxFail(quantstamp_audit.getNextAuditRequest({from: auditor}));
+  });
+
+  it("should prevent not-whitelisted auditor to submit a report", async function() {
+    const auditor = accounts[4];
+    const requestId = requestCounter++;
+
+    // for the sake of dependency, let's ensure the auditor is not in the whitelist
+    await quantstamp_audit.removeAddressFromWhitelist(auditor);
+
+    Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor}));
+  });
 });
