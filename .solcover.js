@@ -1,4 +1,5 @@
 module.exports = {
     port: 7545,
-    copyPackages: ['openzeppelin-solidity']
+    copyPackages: ['openzeppelin-solidity'],
+    skipFiles: ['test/QuantstampToken.sol']
 };
