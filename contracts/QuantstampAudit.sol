@@ -54,18 +54,26 @@ contract QuantstampAudit is Ownable {
 
   event LogAuditFinished(
     uint256 requestId,
+    address auditor,
+    AuditState auditResult,
     string reportUri,
     string reportHash,
     uint256 reportTimestamp
   );
 
-  event LogAuditQueued(uint256 requestId, address requestor, string uri, uint256 price);
-  event LogAuditAssigned(uint256 requestId, address auditor, address requestor, string uri, uint256 price);
-  event LogReportSubmitted(uint256 requestId, address auditor, AuditState auditResult, string reportUri, string reportHash);
+  event LogAuditRequested(uint256 requestId, 
+    address requestor, 
+    string uri, 
+    uint256 price, 
+    uint256 transactionFee, 
+    uint256 requestTimestamp
+  );
+
+  event LogAuditAssigned(uint256 requestId, address auditor);
   event LogReportSubmissionError_InvalidAuditor(uint256 requestId, address auditor);
-  event LogReportSubmissionError_InvalidState(uint256 requestId, AuditState state);
+  event LogReportSubmissionError_InvalidState(uint256 requestId, address auditor, AuditState state);
   event LogErrorAlreadyAudited(uint256 requestId, address requestor, string uri);
-  event LogUnableToQueueAudit(uint256 requestId, address requestor, string uri);
+  event LogUnableToRequestAudit(uint256 requestId, address requestor, string uri);
   event LogUnableToAssignAudit(uint256 requestId);
   event LogAuditQueueIsEmpty();
 
@@ -98,7 +106,7 @@ contract QuantstampAudit is Ownable {
    */
   function requestAudit(string contractUri, uint256 price) external payable returns(uint256) {
     // check if user sends enough pre-paid gas
-    require(msg.value >= transactionFee);
+    require(msg.value >= transactionFee); // TODO: there should be an event if this fails
     // the sender is the requestor
     address requestor = msg.sender;
     // transfer transaction fee (in Wei) to the contract owner to offset gas cost
@@ -110,11 +118,12 @@ contract QuantstampAudit is Ownable {
     // store the audit
     audits[requestId] = Audit(msg.sender, contractUri, price, transactionFee, block.timestamp, AuditState.Queued, address(0), 0, "", "", 0);
 
+    // TODO: we are still adding to audits and incrementing requestId if we fail here
     if (requestQueue.push(requestId) != Uint256Queue.PushResult.Success) {
-      emit LogUnableToQueueAudit(requestId, requestor, contractUri);
+      emit LogUnableToRequestAudit(requestId, requestor, contractUri);
       return;
     }
-    emit LogAuditQueued(requestId, requestor, contractUri, price);
+    emit LogAuditRequested(requestId, requestor, contractUri, price, transactionFee, block.timestamp);
 
     return requestId;
   }
@@ -129,7 +138,7 @@ contract QuantstampAudit is Ownable {
   function submitReport(uint256 requestId, AuditState auditResult, string reportUri, string reportHash) public {
     Audit storage audit = audits[requestId];
     if (audit.state != AuditState.Assigned && audit.state != AuditState.Timeout) {
-      emit LogReportSubmissionError_InvalidState(requestId, audit.state);
+      emit LogReportSubmissionError_InvalidState(requestId, msg.sender, audit.state);
       return;
     }
 
@@ -147,11 +156,11 @@ contract QuantstampAudit is Ownable {
 
     // validate the audit state
     require(isAuditFinished(requestId));
-    emit LogAuditFinished(requestId, reportUri, reportHash, block.timestamp);
 
     // if the analysis timeouts, the auditor address is set to 0
     address auditor = auditResult == AuditState.Timeout ? address(0) : msg.sender;
-    emit LogReportSubmitted(requestId, auditor, auditResult, reportUri, reportHash);
+
+    emit LogAuditFinished(requestId,  auditor, auditResult, reportUri, reportHash, block.timestamp);
 
     bool isRefund = AuditState.Completed != auditResult;
     // pay the requestor in case of a refund; pay the auditor node otherwise
@@ -163,6 +172,7 @@ contract QuantstampAudit is Ownable {
     }
   }
 
+  // TODO: should this return the requestId, in addition to emitting a log?
   function getNextAuditRequest() public {
     Uint256Queue.PopResult popResult;
     uint256 requestId;
@@ -182,10 +192,7 @@ contract QuantstampAudit is Ownable {
 
     emit LogAuditAssigned(
       requestId,
-      audits[requestId].auditor,
-      audits[requestId].requestor,
-      audits[requestId].contractUri,
-      audits[requestId].price
+      audits[requestId].auditor
     );
   }
 
