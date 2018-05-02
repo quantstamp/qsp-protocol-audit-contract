@@ -1,6 +1,7 @@
 ## qsp-protocol-audit-contract
 
 ![Build status](https://codebuild.us-east-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiZmNQeU81OEExcy8zZS9vdkpWU3NNQUJDNnVYYTRTbHQvaGE4TExaZXhVcnFFWXY3VjdJRGxyU3IrTk9UNTQzMWJJNk5rdThNZEE4SVUxS3h0QkNPZG0wPSIsIml2UGFyYW1ldGVyU3BlYyI6IkhmZUo3c005aHZRdUdjTloiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=develop)
+[![Coverage Status](https://coveralls.io/repos/github/quantstamp/qsp-protocol-audit-contract/badge.svg?t=kDg4aW)](https://coveralls.io/github/quantstamp/qsp-protocol-audit-contract)
 
 QSP Protocol audit contract.
 
@@ -28,10 +29,15 @@ The addresses of the deployed contracts could be fetched from these locations th
 1. `npm install`
 1. For convenience, install Truffle globally: `npm install -g truffle@0.0.0`, replacing `0.0.0` by the Truffle version from `package.json`
 1. Install Ganache (Formerly, `testrpc`), either:
-    1. [UI version](http://truffleframework.com/ganache/) or
+    1. [UI version](http://truffleframework.com/ganache/) of version `1.1.0` or
     1. Console version: `npm install -g ganache-cli@6.1.0` and then (from another terminal tab): `testrpc -p 7545`
 1. `truffle compile`
 1. `npm test`. To also generate a code coverage report, run `npm run test-cov` instead.
+
+## CI Tests
+
+The file `buildspec-ci.yml` contains the commands to run on each push.
+This includes running Truffle tests and collecting coverage report for [Coveralls](https://coveralls.io/github/quantstamp/qsp-protocol-audit-contract).
 
 ## Deploy to Ropsten or Main Net (through MetaMask)
 
