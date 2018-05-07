@@ -205,16 +205,13 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
     // picks the tail of price buckets
     (exists, price) = priceList.getAdjacent(HEAD, PREV);
 
-    if (exists) {
-      // picks the oldest audit request
-      uint256 result = auditsByPrice[price].pop(NEXT);
-      // removes the price bucket if it contains no requests
-      if (auditsByPrice[price].sizeOf() == 0) {
-        priceList.remove(price);
-      }
-      return result;
+    // picks the oldest audit request
+    uint256 result = auditsByPrice[price].pop(NEXT);
+    // removes the price bucket if it contains no requests
+    if (auditsByPrice[price].sizeOf() == 0) {
+      priceList.remove(price);
     }
-    return 0;
+    return result;
   }
 
   /**
