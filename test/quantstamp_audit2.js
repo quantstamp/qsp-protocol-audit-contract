@@ -131,6 +131,14 @@ contract('QuantstampAudit2', function(accounts) {
 
     const result2 = await quantstamp_audit.getNextAuditRequest({from: auditor});
     const requestId2 = extractRequestId(result2);
+    assertEvent({
+      result: result2,
+      name: "LogAuditAssigned",
+      args: (args) => {
+        assert.equal(args.requestId.toNumber(), requestId2);
+        assert.equal(args.auditor, auditor);
+      }
+    });
 
     const result3 = await quantstamp_audit.submitReport(requestId2, AuditState.Completed, reportUri, sha256emptyFile, {from : auditor});
 
