@@ -244,14 +244,14 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
     return token.transfer(audits[requestId].requestor, audits[requestId].price);
   }
 
-  function getAuditState(uint256 requestId) public constant returns(AuditState) {
+  function getAuditState(uint256 requestId) public view returns(AuditState) {
     return audits[requestId].state;
   }
 
   /**
    * @dev Returns the number of unassigned audit requests in the queue.
    */
-  function getQueueLength() public constant returns(uint256 numElements) {
+  function getQueueLength() public view returns(uint256 numElements) {
     bool exists;
     uint256 price;
     // iterate over the price list
