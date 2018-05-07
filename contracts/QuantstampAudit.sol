@@ -232,7 +232,7 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
    */
   function isAuditFinished(uint256 requestId) view public returns(bool) {
     return audits[requestId].state == AuditState.Completed
-    || audits[requestId].state == AuditState.Error;
+      || audits[requestId].state == AuditState.Error;
   }
 
   /**

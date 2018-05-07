@@ -60,6 +60,11 @@ contract('QuantstampAudit', function(accounts) {
     const requestId3 = requestCounter++;
 
     assert(await quantstamp_audit.getQueueLength.call(), 0);
+    assertEvent({
+        result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
+      name: "LogAuditQueueIsEmpty",
+      args: (args) => {}
+    });
 
     assertEvent({
       result: await quantstamp_audit.requestAudit(uri, price, {from:requestor}),
