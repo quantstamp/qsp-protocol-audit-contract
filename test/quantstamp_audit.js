@@ -39,6 +39,8 @@ contract('QuantstampAudit', function(accounts) {
     await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(1000), {from : requestor});
     // whitelisting auditor
     await quantstamp_audit.addAddressToWhitelist(auditor);
+    // relaxing the requirement for other tests
+    await quantstamp_audit.setMaxAssignedRequests(100);
   });
 
   function assertEvent({result, name, args}) {
@@ -51,8 +53,6 @@ contract('QuantstampAudit', function(accounts) {
     assert.equal(result.logs[index].event, name);
     args(result.logs[index].args);
   }
-
-
 
   it("queues new audits and assigns them in the right order", async function() {
     const requestId1 = requestCounter++;
@@ -216,49 +216,15 @@ contract('QuantstampAudit', function(accounts) {
     await quantstamp_audit.pause();
 
     Util.assertTxFail(quantstamp_audit.requestAudit(uri, price, {from: requestor}));
+    await quantstamp_audit.unpause();
   });
 
-  it("does not get another request before finish the previous one", async function() {
-    const requestId = requestCounter++;
+  it("does not get another request before finishes the previous one", async function() {
+    const auditor = accounts[4];
+    const pendingAuditsNum = (await quantstamp_audit.getAssignedRequestsNum.call(auditor)).toNumber();
 
-    await quantstamp_audit.setMaxAssignedRequests(1);
-
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
-
-    await quantstamp_audit.getNextAuditRequest({from: auditor});
-  });
-
-  it("should get a request after finish the previous one", async function() {
-    const requestId1 = requestCounter++;
-    const requestId2 = requestCounter++;
-
-    await quantstamp_audit.setMaxAssignedRequests(1);
-
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
-
-    await quantstamp_audit.getNextAuditRequest({from: auditor});
-    await quantstamp_audit.submitReport(requestId1, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor});
-
-    assertEvent({
-        result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
-        name: "LogAuditAssigned",
-        args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId2);
-        assert.equal(args.auditor, auditor);
-      }
-    });
-  });
-
-  it("does not get another request before finish the previous one even if it submitted a report before", async function() {
-    const requestId = requestCounter++;
-
-    await quantstamp_audit.setMaxAssignedRequests(1);
-
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
-    await quantstamp_audit.getNextAuditRequest({from: auditor});
-    await quantstamp_audit.submitReport(requestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor});
+    await quantstamp_audit.setMaxAssignedRequests(pendingAuditsNum + 1);
+    await quantstamp_audit.addAddressToWhitelist(auditor);
 
     await quantstamp_audit.requestAudit(uri, price, {from: requestor});
     await quantstamp_audit.requestAudit(uri, price, {from: requestor});
@@ -267,6 +233,60 @@ contract('QuantstampAudit', function(accounts) {
     Util.assertTxFail(quantstamp_audit.getNextAuditRequest({from: auditor}));
   });
 
+  it("should get a request after finish the previous one", async function() {
+    const auditor = accounts[4];
 
+    await quantstamp_audit.addAddressToWhitelist(auditor);
+    const pendingAuditsNum = (await quantstamp_audit.getAssignedRequestsNum.call(auditor)).toNumber();
+    await quantstamp_audit.setMaxAssignedRequests(pendingAuditsNum + 1);
+
+    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
+    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
+
+    const result = await quantstamp_audit.getNextAuditRequest({from: auditor});
+
+    assertEvent({
+        result: result,
+        name: "LogAuditAssigned",
+        args: (args) => {}
+    });
+
+    const grantedRequestId = result.logs[0].args.requestId.toNumber();
+    await quantstamp_audit.submitReport(grantedRequestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor});
+
+    assertEvent({
+        result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
+        name: "LogAuditAssigned",
+        args: (args) => {}
+    });
+
+  });
+
+  it("does not get another request before finish the previous one even if it submitted a report before", async function() {
+    const auditor = accounts[4];
+
+    await quantstamp_audit.addAddressToWhitelist(auditor);
+    const pendingAuditsNum = (await quantstamp_audit.getAssignedRequestsNum.call(auditor)).toNumber();
+    await quantstamp_audit.setMaxAssignedRequests(pendingAuditsNum + 1);
+
+    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
+    const result = await quantstamp_audit.getNextAuditRequest({from: auditor});
+
+    assertEvent({
+      result: result,
+      name: "LogAuditAssigned",
+      args: (args) => {}
+    });
+
+    const grantedRequestId = result.logs[0].args.requestId.toNumber();
+    await quantstamp_audit.submitReport(grantedRequestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor});
+
+    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
+    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
+
+    await quantstamp_audit.getNextAuditRequest({from: auditor});
+
+    Util.assertTxFail(quantstamp_audit.getNextAuditRequest({from: auditor}));
+  });
 
 });

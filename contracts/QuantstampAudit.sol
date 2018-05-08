@@ -93,6 +93,8 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   event LogTransactionFeeChanged(uint256 oldFee, uint256 newFee);
   event LogAuditQueueIsEmpty();
 
+  event Log(uint256 a, uint256 b);
+
   uint256 private requestCounter;
 
   /**
@@ -175,6 +177,7 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   function getNextAuditRequest() public onlyWhitelisted {
 
     uint256 assignedRequests = assignedRequestsNum[msg.sender];
+//    emit Log(assignedRequests, maxAssignedRequests);
     require(assignedRequests < maxAssignedRequests);
 
     uint256 requestId = dequeueAudit();
@@ -283,5 +286,9 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
    */
   function setMaxAssignedRequests(uint256 maxAssignments) public onlyOwner {
     maxAssignedRequests = maxAssignments;
+  }
+
+  function getAssignedRequestsNum(address auditor) public returns(uint256 assignedRequests){
+    return assignedRequestsNum[auditor];
   }
 }
