@@ -201,7 +201,7 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   /**
    * @dev Checks if the list of audits has any elements
    */
-  function auditQueueExists() internal returns(bool) {
+  function auditQueueExists() view internal returns(bool) {
     return priceList.listExists();
   }
 
