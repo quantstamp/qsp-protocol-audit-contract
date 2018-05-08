@@ -54,6 +54,9 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   // the fee is used to offset the gas cost needed to invoke submitReport()
   uint256 public transactionFee;
 
+  // map audit nodes to their minimum prices. Defaults to zero: the node accepts all requests.
+  mapping(address => uint256) minAuditPrice; 
+
   event LogAuditFinished(
     uint256 requestId,
     address auditor,
@@ -82,7 +85,7 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   event LogPayAuditor(uint256 requestId, address auditor, uint256 amount);
   event LogRefund(uint256 requestId, address requestor, uint256 amount);
   event LogTransactionFeeChanged(uint256 oldFee, uint256 newFee);
-
+  event LogAuditNodePriceChanged(address auditor, uint256 price);
 
   // error handling events
   // payment is requested for an audit that is already already paid or does not exist
@@ -196,6 +199,15 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
       requestId,
       audits[requestId].auditor
     );
+  }
+
+  /**
+   * @dev Allows the audit node to set its minimum price per audit
+   * @param price The minimum price.  
+   */
+  function setAuditNodePrice(uint256 price) public onlyWhitelisted {
+    minAuditPrice[msg.sender] = price;
+    emit LogAuditNodePriceChanged(msg.sender, price);
   }
 
   /**
