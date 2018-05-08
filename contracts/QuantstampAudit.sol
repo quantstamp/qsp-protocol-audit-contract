@@ -48,6 +48,11 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   bool constant PREV = false;
   bool constant NEXT = true;
 
+  // maximum number of assigned audits per each auditor
+  uint256 public maxAssignedRequests = 1;
+  // mapping from an auditor address to the number of requests that it currently processes
+  mapping(address => uint256) assignedRequestsNum;
+
   // increasingly sorted linked list of prices
   LinkedListLib.LinkedList priceList;
   // map from price to a list of request IDs
@@ -158,6 +163,8 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
 
     emit LogAuditFinished(requestId,  msg.sender, auditResult, reportUri, reportHash, block.timestamp);
 
+    assignedRequestsNum[msg.sender] = assignedRequestsNum[msg.sender].sub(1);
+
     token.transfer(msg.sender, audit.price);
     emit LogPayAuditor(requestId, msg.sender, audit.price);
   }
@@ -166,6 +173,10 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
    * @dev Finds a list of most expensive audits and assigns the oldest one to the auditor node.
    */
   function getNextAuditRequest() public onlyWhitelisted {
+
+    uint256 assignedRequests = assignedRequestsNum[msg.sender];
+    require(assignedRequests < maxAssignedRequests);
+
     uint256 requestId = dequeueAudit();
 
     if (requestId == 0) {
@@ -176,6 +187,8 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
     audits[requestId].state = AuditState.Assigned;
     audits[requestId].auditor = msg.sender;
     audits[requestId].assignTimestamp = block.number;
+
+    assignedRequestsNum[msg.sender] = assignedRequests.add(1);
 
     emit LogAuditAssigned(requestId, audits[requestId].auditor);
   }
@@ -262,5 +275,13 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
 
   function setAuditTimeout(uint256 timeoutInBlocks) public {
     auditTimeoutInBlocks = timeoutInBlocks;
+  }
+
+  /**
+   * @dev set the maximum requests that an audit node is allowed to concurrently process.
+   * @param maxAssignments maximum number of audit requests for each auditor
+   */
+  function setMaxAssignedRequests(uint256 maxAssignments) public onlyOwner {
+    maxAssignedRequests = maxAssignments;
   }
 }

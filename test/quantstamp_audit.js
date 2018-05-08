@@ -218,4 +218,55 @@ contract('QuantstampAudit', function(accounts) {
     Util.assertTxFail(quantstamp_audit.requestAudit(uri, price, {from: requestor}));
   });
 
+  it("does not get another request before finish the previous one", async function() {
+    const requestId = requestCounter++;
+
+    await quantstamp_audit.setMaxAssignedRequests(1);
+
+    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
+    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
+
+    await quantstamp_audit.getNextAuditRequest({from: auditor});
+  });
+
+  it("should get a request after finish the previous one", async function() {
+    const requestId1 = requestCounter++;
+    const requestId2 = requestCounter++;
+
+    await quantstamp_audit.setMaxAssignedRequests(1);
+
+    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
+    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
+
+    await quantstamp_audit.getNextAuditRequest({from: auditor});
+    await quantstamp_audit.submitReport(requestId1, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor});
+
+    assertEvent({
+        result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
+        name: "LogAuditAssigned",
+        args: (args) => {
+        assert.equal(args.requestId.toNumber(), requestId2);
+        assert.equal(args.auditor, auditor);
+      }
+    });
+  });
+
+  it("does not get another request before finish the previous one even if it submitted a report before", async function() {
+    const requestId = requestCounter++;
+
+    await quantstamp_audit.setMaxAssignedRequests(1);
+
+    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
+    await quantstamp_audit.getNextAuditRequest({from: auditor});
+    await quantstamp_audit.submitReport(requestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor});
+
+    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
+    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
+
+    await quantstamp_audit.getNextAuditRequest({from: auditor});
+    Util.assertTxFail(quantstamp_audit.getNextAuditRequest({from: auditor}));
+  });
+
+
+
 });
