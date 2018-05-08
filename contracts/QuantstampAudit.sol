@@ -95,6 +95,9 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   // payment is requested for an audit that is already already paid or does not exist
   event LogErrorAuditNotPending(uint256 requestId, address auditor);
   event LogAuditQueueIsEmpty();
+  
+  // the audit queue has elements, but none satisfy the minPrice of the audit node
+  event LogAuditNodePriceHigherThanRequests(address auditor, uint256 price);
 
   uint256 private requestCounter;
 
@@ -171,13 +174,19 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   }
 
   /**
-   * @dev Finds a list of most expensive audits and assigns the oldest one to the auditor node.
+   * @dev Finds a list of most expensive audits and assigns the oldest one to the auditor node. 
+   
    */
   function getNextAuditRequest() public onlyWhitelisted {
-    uint256 requestId = dequeueAudit();
-
-    if (requestId == 0) {
+    if(!auditQueueExists()){
       emit LogAuditQueueIsEmpty();
+      return;
+    }
+
+    uint256 minPrice = minAuditPrice[msg.sender];
+    uint256 requestId = dequeueAudit(minPrice);
+    if (requestId == 0) {
+      emit LogAuditNodePriceHigherThanRequests(msg.sender, minPrice);
       return;
     }
 
@@ -186,6 +195,13 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
     audits[requestId].assignTimestamp = block.number;
 
     emit LogAuditAssigned(requestId, audits[requestId].auditor);
+  }
+
+  /**
+   * @dev Checks if the list of audits has any elements
+   */
+  function auditQueueExists() internal returns(bool) {
+    return priceList.listExists();
   }
 
   /**
@@ -204,14 +220,19 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   }
 
   /**
-   * @dev Finds a list of most expensive audits and returns the oldest one.
+   * @dev Finds a list of most expensive audits and returns the oldest one that has a price > minPrice
+   * @param minPrice The minimum audit price.
    */
-  function dequeueAudit() internal returns(uint256) {
+  function dequeueAudit(uint256 minPrice) internal returns(uint256) {
     bool exists;
     uint256 price;
 
     // picks the tail of price buckets
     (exists, price) = priceList.getAdjacent(HEAD, PREV);
+    
+    if(price < minPrice){
+      return 0;
+    }
 
     // picks the oldest audit request
     uint256 result = auditsByPrice[price].pop(NEXT);
