@@ -6,10 +6,11 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/ownership/Whitelist.sol";
 import "openzeppelin-solidity/contracts/lifecycle/Pausable.sol";
 
-import "./Queue.sol";
+import "./LinkedListLib.sol";
 
 contract QuantstampAudit is Ownable, Whitelist, Pausable {
   using SafeMath for uint256;
+  using LinkedListLib for LinkedListLib.LinkedList;
 
   // state of audit requests submitted to the contract
   enum AuditState {
@@ -17,8 +18,7 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
     Queued,
     Assigned,
     Completed,  // automated audit finished successfully and the report is available
-    Error,      // automated audit failed to finish; the report contains detailed information about the error
-    Timeout     // automated audit timed out, as no auditor node returned the report
+    Error       // automated audit failed to finish; the report contains detailed information about the error
   }
 
   // structure representing an audit
@@ -39,12 +39,19 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   // map audits (requestId, Audit)
   mapping(uint256 => Audit) public audits;
 
-  // TODO: figure out what a reasonable value for timeout is. For now 10 blocks.
+  // 10 blocks seems like a reasonable default timeout
   uint256 public auditTimeoutInBlocks = 10;
 
-  Uint256Queue requestQueue;
-  Uint256Queue assignedQueue;
-  uint256 constant REQUEST_QUEUE_CAPACITY = 30000;
+  // constants used by LinedListLib
+  uint256 constant NULL = 0;
+  uint256 constant HEAD = 0;
+  bool constant PREV = false;
+  bool constant NEXT = true;
+
+  // increasingly sorted linked list of prices
+  LinkedListLib.LinkedList priceList;
+  // map from price to a list of request IDs
+  mapping(uint256 => LinkedListLib.LinkedList) auditsByPrice;
 
   // token used to pay for audits. This contract assumes that the owner of the contract trusts token's code and
   // that transfer function (such as transferFrom, transfer) do the right thing
@@ -52,6 +59,7 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
 
   // transaction fee is required to pay auditors their reward or refund the tokens to the requestor
   // the fee is used to offset the gas cost needed to invoke submitReport()
+  // TODO: remove
   uint256 public transactionFee;
 
   // map audit nodes to their minimum prices. Defaults to zero: the node accepts all requests.
@@ -66,30 +74,30 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
     uint256 reportTimestamp
   );
 
-  event LogAuditRequested(uint256 requestId, 
-    address requestor, 
-    string uri, 
-    uint256 price, 
-    uint256 transactionFee, 
+  event LogAuditRequested(uint256 requestId,
+    address requestor,
+    string uri,
+    uint256 price,
+    uint256 transactionFee,
     uint256 requestTimestamp
   );
 
   event LogAuditAssigned(uint256 requestId, address auditor);
   event LogReportSubmissionError_InvalidAuditor(uint256 requestId, address auditor);
   event LogReportSubmissionError_InvalidState(uint256 requestId, address auditor, AuditState state);
-  event LogErrorAlreadyAudited(uint256 requestId, address requestor, string uri);
-  event LogUnableToRequestAudit(uint256 requestId, address requestor, string uri);
-  event LogUnableToAssignAudit(uint256 requestId);
-  event LogAuditQueueIsEmpty();
 
   event LogPayAuditor(uint256 requestId, address auditor, uint256 amount);
   event LogRefund(uint256 requestId, address requestor, uint256 amount);
   event LogTransactionFeeChanged(uint256 oldFee, uint256 newFee);
+<<<<<<< HEAD
   event LogAuditNodePriceChanged(address auditor, uint256 price);
 
   // error handling events
   // payment is requested for an audit that is already already paid or does not exist
   event LogErrorAuditNotPending(uint256 requestId, address auditor);
+=======
+  event LogAuditQueueIsEmpty();
+>>>>>>> develop
 
   uint256 private requestCounter;
 
@@ -100,8 +108,6 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   constructor (address tokenAddress) public {
     require(tokenAddress != address(0));
     token = StandardToken(tokenAddress);
-    requestQueue = new Uint256Queue(REQUEST_QUEUE_CAPACITY);
-    assignedQueue = new Uint256Queue(REQUEST_QUEUE_CAPACITY);
   }
 
   /**
@@ -114,6 +120,7 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
     require(msg.value >= transactionFee); // TODO: there should be an event if this fails
     // the sender is the requestor
     address requestor = msg.sender;
+    // TODO: remove and make the function non-payable
     // transfer transaction fee (in Wei) to the contract owner to offset gas cost
     owner.transfer(msg.value);
     // transfer tokens to this contract
@@ -123,11 +130,9 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
     // store the audit
     audits[requestId] = Audit(msg.sender, contractUri, price, transactionFee, block.timestamp, AuditState.Queued, address(0), 0, "", "", 0);
 
-    // TODO: we are still adding to audits and incrementing requestId if we fail here
-    if (requestQueue.push(requestId) != Uint256Queue.PushResult.Success) {
-      emit LogUnableToRequestAudit(requestId, requestor, contractUri);
-      return;
-    }
+    // TODO: use existing price instead of HEAD (optimization)
+    queueAudit(requestId, HEAD);
+
     emit LogAuditRequested(requestId, requestor, contractUri, price, transactionFee, block.timestamp);
 
     return requestId;
@@ -142,7 +147,7 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
    */
   function submitReport(uint256 requestId, AuditState auditResult, string reportUri, string reportHash) public onlyWhitelisted {
     Audit storage audit = audits[requestId];
-    if (audit.state != AuditState.Assigned && audit.state != AuditState.Timeout) {
+    if (audit.state != AuditState.Assigned) {
       emit LogReportSubmissionError_InvalidState(requestId, msg.sender, audit.state);
       return;
     }
@@ -162,46 +167,32 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
     // validate the audit state
     require(isAuditFinished(requestId));
 
-    // if the analysis timeouts, the auditor address is set to 0
-    address auditor = auditResult == AuditState.Timeout ? address(0) : msg.sender;
+    emit LogAuditFinished(requestId,  msg.sender, auditResult, reportUri, reportHash, block.timestamp);
 
-    emit LogAuditFinished(requestId,  auditor, auditResult, reportUri, reportHash, block.timestamp);
-
-    bool isRefund = AuditState.Completed != auditResult;
-    // pay the requestor in case of a refund; pay the auditor node otherwise
-    token.transfer(isRefund ? audit.requestor : auditor, audit.price);
-    if (isRefund) {
-      emit LogRefund(requestId, audit.requestor, audit.price);
-    } else {
-      emit LogPayAuditor(requestId, auditor, audit.price);
-    }
+    token.transfer(msg.sender, audit.price);
+    emit LogPayAuditor(requestId, msg.sender, audit.price);
   }
 
-  // TODO: should this return the requestId, in addition to emitting a log?
+  /**
+   * @dev Finds a list of most expensive audits and assigns the oldest one to the auditor node.
+   */
   function getNextAuditRequest() public onlyWhitelisted {
-    Uint256Queue.PopResult popResult;
-    uint256 requestId;
+    uint256 requestId = dequeueAudit();
 
-    (popResult, requestId) = requestQueue.pop();
-    if (popResult == Uint256Queue.PopResult.QueueIsEmpty) {
-      emit LogAuditQueueIsEmpty(); // TODO should this contain msg.sender as an argument?
+    if (requestId == 0) {
+      emit LogAuditQueueIsEmpty();
       return;
     }
-    if (assignedQueue.push(requestId) != Uint256Queue.PushResult.Success) {
-      emit LogUnableToAssignAudit(requestId);
-      return;
-    }
+
     audits[requestId].state = AuditState.Assigned;
     audits[requestId].auditor = msg.sender;
     audits[requestId].assignTimestamp = block.number;
 
-    emit LogAuditAssigned(
-      requestId,
-      audits[requestId].auditor
-    );
+    emit LogAuditAssigned(requestId, audits[requestId].auditor);
   }
 
   /**
+<<<<<<< HEAD
    * @dev Allows the audit node to set its minimum price per audit
    * @param price The minimum price.  
    */
@@ -213,58 +204,57 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   /**
    * @dev Sets transaction fee in Wei
    * @param fee Transaction fee in Wei.
+=======
+   * @dev Adds an audit request to the queue
+   * @param requestId Request ID.
+   * @param existingPrice price of an existing audit in the queue (makes insertion O(1))
+>>>>>>> develop
+   */
+  function queueAudit(uint256 requestId, uint256 existingPrice) internal {
+    uint256 price = audits[requestId].price;
+    if (!priceList.nodeExists(price)) {
+      // if a price bucket doesn't exist, create it next to an existing one
+      priceList.insert(priceList.getSortedSpot(existingPrice, price, NEXT), price, PREV);
+    }
+    // push to the tail
+    auditsByPrice[price].push(requestId, PREV);
+  }
+
+  /**
+   * @dev Finds a list of most expensive audits and returns the oldest one.
+   */
+  function dequeueAudit() internal returns(uint256) {
+    bool exists;
+    uint256 price;
+
+    // picks the tail of price buckets
+    (exists, price) = priceList.getAdjacent(HEAD, PREV);
+
+    // picks the oldest audit request
+    uint256 result = auditsByPrice[price].pop(NEXT);
+    // removes the price bucket if it contains no requests
+    if (auditsByPrice[price].sizeOf() == 0) {
+      priceList.remove(price);
+    }
+    return result;
+  }
+
+  /**
+   * @dev Sets transaction fee in Wei
+   * @param fee Transaction fee in Wei.
    */
   function setTransactionFee(uint256 fee) external onlyOwner {
     emit LogTransactionFeeChanged(transactionFee, fee);
     transactionFee = fee;
   }
 
-  // Loops over front audits in the assigned queue to detect timeouts. If an audit is finished, removes it from the queue.
-  function detectAuditTimeouts() public {
-    Uint256Queue.PopResult popResult;
-    uint256 requestId;
-
-    // loops over the queue while not empty
-    while(!assignedQueue.isEmpty()) {
-      // looks at the front of the queue
-      (popResult, requestId) = assignedQueue.peek();
-      detectTimeout(requestId);
-      // if the audit at the front is still pending, return
-      if (!isAuditFinished(requestId)) {
-        return;
-      }
-      // otherwise, remove the element and keep looping
-      assignedQueue.pop();
-    }
-  }
-
-  /**
-   * @dev Detects if a given audit request timed out. If so, it sets requests' status to timeout and submits the report.
-   * @param requestId Unique ID of the audit request.
-   */
-  function detectTimeout(uint256 requestId) public {
-    Audit storage audit = audits[requestId];
-
-    // conditions for detecting a timeout
-    if (!isAuditFinished(requestId) &&
-      ((audit.assignTimestamp + auditTimeoutInBlocks) < block.number)) {
-      // updates the status
-      audit.state = AuditState.Timeout;
-      audit.auditor = msg.sender;
-      // submits a report for timeout
-      submitReport(requestId, AuditState.Timeout, "", "");
-    }
-  }
-
-
   /**
    * @dev Checks if an audit is finished. It is considered finished when the audit is either completed or failed.
    * @param requestId Unique ID of the audit request.
    */
   function isAuditFinished(uint256 requestId) view public returns(bool) {
-    return audits[requestId].state == AuditState.Completed 
-    || audits[requestId].state == AuditState.Error 
-    || audits[requestId].state == AuditState.Timeout;
+    return audits[requestId].state == AuditState.Completed
+      || audits[requestId].state == AuditState.Error;
   }
 
   /**
@@ -276,16 +266,23 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
     return token.transfer(audits[requestId].requestor, audits[requestId].price);
   }
 
-  function getAuditState(uint256 requestId) public constant returns(AuditState) {
+  function getAuditState(uint256 requestId) public view returns(AuditState) {
     return audits[requestId].state;
   }
 
-  function getQueueLength() public constant returns(uint) {
-    return requestQueue.length();
-  }
-
-  function getQueueCapacity() public constant returns(uint) {
-    return requestQueue.capacity();
+  /**
+   * @dev Returns the number of unassigned audit requests in the queue.
+   */
+  function getQueueLength() public view returns(uint256 numElements) {
+    bool exists;
+    uint256 price;
+    // iterate over the price list
+    (exists, price) = priceList.getAdjacent(HEAD, NEXT);
+    while (price != HEAD) {
+      (exists, price) = priceList.getAdjacent(price, NEXT);
+      numElements += auditsByPrice[price].sizeOf();
+    }
+    return numElements;
   }
 
   function setAuditTimeout(uint256 timeoutInBlocks) public {

@@ -128,7 +128,7 @@ contract('QuantstampAudit2', function(accounts) {
       },
       index: 0
     });
-    
+
     const result2 = await quantstamp_audit.getNextAuditRequest({from: auditor});
     const requestId2 = extractRequestId(result2);
     assertEvent({
@@ -256,76 +256,6 @@ contract('QuantstampAudit2', function(accounts) {
     assert.equal(result3.logs[0].event, "LogReportSubmissionError_InvalidState");
     assert.equal(result3.logs[0].args.requestId.toNumber(), bogusId);
     assert.equal(result3.logs[0].args.auditor, auditor);
-  });
-
-  it("should refund the tokens if the audit is not completed successfully", async function () {
-    const price = Util.toQsp(35);
-    // clear any requests still in the queue
-    const r1 = await quantstamp_audit.getNextAuditRequest({from: auditor});
-    const id1 = extractRequestId(r1);
-    await quantstamp_audit.submitReport(id1, AuditState.Error, reportUri, sha256emptyFile, {from : auditor});
-    const r2 = await quantstamp_audit.getNextAuditRequest({from: auditor});
-    const id2 = extractRequestId(r2);
-    await quantstamp_audit.submitReport(id2, AuditState.Error, reportUri, sha256emptyFile, {from : auditor});
-    const r3 = await quantstamp_audit.getNextAuditRequest({from: auditor});
-    const id3 = extractRequestId(r3);
-    await quantstamp_audit.submitReport(id3, AuditState.Error, reportUri, sha256emptyFile, {from : auditor});
-
-    const requestorBalance = (await balanceOf(requestor));
-    await quantstamp_audit.requestAudit(uri, price, {value : fee, from : requestor});
-    const result = await quantstamp_audit.getNextAuditRequest({from: auditor});
-    const requestId = extractRequestId(result);
-    const result2 = await quantstamp_audit.submitReport(requestId, AuditState.Error, reportUri, sha256emptyFile, {from : auditor});
-    const requestId2 = extractRequestId(result2);
-
-    assertEventAtIndex({
-      result: result2,
-      name: "LogAuditFinished",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId2);
-        assert.equal(args.auditor, auditor);
-        assert.equal(args.auditResult, AuditState.Error);
-        assert.equal(args.reportUri, reportUri);
-        assert.equal(args.reportHash, sha256emptyFile);
-      },
-      index: 0
-    });
-
-    assertEventAtIndex({
-      result: result2,
-      name: "LogRefund",
-      args: (args) => {
-        assert.equal(args.requestor, requestor);
-        assert.equal(args.amount.toNumber(), price);
-      },
-      index: 1
-    });
-
-    assert.equal(await quantstamp_audit.isAuditFinished(requestId), true);
-    assert.equal(await getReportUri(requestId), reportUri);
-    assert.equal(await balanceOf(requestor), requestorBalance);
-
-  });
-
-  it("should refund the tokens if the audit times out", async function () {
-    const price = Util.toQsp(35);
-    const requestorBalance = (await balanceOf(requestor));
-    await quantstamp_audit.requestAudit(uri, price, {value : fee, from : requestor});
-    const requestResult = await quantstamp_audit.getNextAuditRequest({from: auditor});
-    const requestId = extractRequestId(requestResult);
-    
-    const result = await quantstamp_audit.submitReport(requestId, AuditState.Timeout, reportUri, sha256emptyFile, {from : auditor}); 
-    assertEventAtIndex({
-      result: result,
-      name: "LogRefund",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId);
-      },
-      index: 1
-    });  
-    assert.equal(await quantstamp_audit.isAuditFinished(requestId), true);
-    assert.equal(await getReportUri(requestId), reportUri);
-    assert.equal(await balanceOf(requestor), requestorBalance);
   });
 
   it("should allow for manual refunds", async function () {

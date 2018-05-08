@@ -60,6 +60,11 @@ contract('QuantstampAudit', function(accounts) {
     const requestId3 = requestCounter++;
 
     assert(await quantstamp_audit.getQueueLength.call(), 0);
+    assertEvent({
+        result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
+      name: "LogAuditQueueIsEmpty",
+      args: (args) => {}
+    });
 
     assertEvent({
       result: await quantstamp_audit.requestAudit(uri, price, {from:requestor}),
@@ -70,6 +75,7 @@ contract('QuantstampAudit', function(accounts) {
     });
 
     assert(await quantstamp_audit.getQueueLength.call(), 1);
+
     assertEvent({
       result: await quantstamp_audit.requestAudit(uri, price, {from:requestor}),
       name: "LogAuditRequested",
@@ -159,7 +165,7 @@ contract('QuantstampAudit', function(accounts) {
   it("does not submit a report when already audited", async function() {
     const requestId = requestCounter++;
     await quantstamp_audit.requestAudit(uri, price, {from: requestor});
-    await quantstamp_audit.getNextAuditRequest({from: auditor}); 
+    await quantstamp_audit.getNextAuditRequest({from: auditor});
     await quantstamp_audit.submitReport(requestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor});
 
     assertEvent({
@@ -183,161 +189,6 @@ contract('QuantstampAudit', function(accounts) {
   it("getQueueLength() returns queue length", async function() {
     const length = await quantstamp_audit.getQueueLength.call();
     assert.equal(length.toNumber(), 0); // queue should be empty by the end of each test
-  });
-
-  it("getQueueCapacity() returns default queue capacity", async function() {
-    const capacity = await quantstamp_audit.getQueueCapacity.call();
-    assert.equal(capacity.toNumber(), 30000); // intenionally hard-coded to spot changes to capacity
-  });
-
-  it("detects timeout for a given request ID", async function() {
-    const requestId = requestCounter++;
-    const requestId2 = requestCounter++;
-    const timeoutInBlocks = 1;
-    // whitelisting owner
-    await quantstamp_audit.addAddressToWhitelist(owner);
-
-    await quantstamp_audit.setAuditTimeout(timeoutInBlocks);
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
-    await quantstamp_audit.getNextAuditRequest({from: auditor});
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
-
-    const result = await quantstamp_audit.detectTimeout(requestId);
-    assertEventAtIndex({
-      result: result,
-      name: "LogAuditFinished",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId);
-        assert.equal(args.auditor, 0);
-        assert.equal(args.auditResult, AuditState.Timeout);
-        assert.equal(args.reportUri, "");
-        assert.equal(args.reportHash, "");
-      },
-      index: 0
-    });
-
-    assertEventAtIndex({
-      result: result,
-      name: "LogRefund",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId);
-        assert.equal(args.requestor, requestor);
-        assert.equal(args.amount, price);
-      },
-      index: 1
-    });
-
-    // remove the next request from the queue
-    await quantstamp_audit.getNextAuditRequest({from: auditor});
-    await quantstamp_audit.submitReport(requestCounter, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor});
-  });
-
-  it("detects multiple timeouts in a row", async function() {
-    const requestId = requestCounter++;
-    const requestId2 = requestCounter++;
-    const requestId3 = requestCounter++;
-
-    const timeoutInBlocks = 1;
-    // cleanup the queue first
-    await quantstamp_audit.detectAuditTimeouts();
-    await quantstamp_audit.setAuditTimeout(timeoutInBlocks);
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
-    await quantstamp_audit.getNextAuditRequest({from: auditor});
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
-    await quantstamp_audit.getNextAuditRequest({from: auditor});
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
-    const result = await quantstamp_audit.detectAuditTimeouts();
-    assertEventAtIndex({
-      result: result,
-      name: "LogAuditFinished",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId);
-        assert.equal(args.auditor, 0);
-        assert.equal(args.auditResult, AuditState.Timeout);
-        assert.equal(args.reportUri, "");
-        assert.equal(args.reportHash, "");
-      },
-      index: 0
-    });
-    assertEventAtIndex({
-      result: result,
-      name: "LogRefund",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId);
-        assert.equal(args.requestor, requestor);
-        assert.equal(args.amount, price);
-      },
-      index: 1
-    });
-    assertEventAtIndex({
-      result: result,
-      name: "LogAuditFinished",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId2);
-        assert.equal(args.auditor, 0);
-        assert.equal(args.auditResult, AuditState.Timeout);
-        assert.equal(args.reportUri, "");
-        assert.equal(args.reportHash, "");
-      },
-      index: 2
-    });
-    assertEventAtIndex({
-      result: result,
-      name: "LogRefund",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId2);
-        assert.equal(args.requestor, requestor);
-        assert.equal(args.amount, price);
-      },
-      index: 3
-    });
-
-    // remove from the queue
-    await quantstamp_audit.getNextAuditRequest({from: auditor});
-    await quantstamp_audit.submitReport(requestId3, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor});
-  });
-
-  it("detects the timeout if it occurs before the next completed audits", async function() {
-    const requestId = requestCounter++;
-    const requestId2 = requestCounter++;
-    const requestId3 = requestCounter++;
-
-    const timeoutInBlocks = 1;
-    // cleanup the queue first
-    await quantstamp_audit.detectAuditTimeouts();
-    await quantstamp_audit.setAuditTimeout(timeoutInBlocks);
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
-    await quantstamp_audit.getNextAuditRequest({from: auditor});
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
-    await quantstamp_audit.getNextAuditRequest({from: auditor});
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
-    await quantstamp_audit.getNextAuditRequest({from: auditor});
-    await quantstamp_audit.submitReport(requestId2, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor});
-    await quantstamp_audit.submitReport(requestId3, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor});
-  
-    const result = await quantstamp_audit.detectTimeout(requestId);
-    assertEventAtIndex({
-      result: result,
-      name: "LogAuditFinished",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId);
-        assert.equal(args.auditor, 0);
-        assert.equal(args.auditResult, AuditState.Timeout);
-        assert.equal(args.reportUri, "");
-        assert.equal(args.reportHash, "");
-      },
-      index: 0
-    });
-    assertEventAtIndex({
-      result: result,
-      name: "LogRefund",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId);
-        assert.equal(args.requestor, requestor);
-        assert.equal(args.amount, price);
-      },
-      index: 1
-    });
   });
 
   it("should prevent not-whitelisted auditor to get next audit request", async function() {
