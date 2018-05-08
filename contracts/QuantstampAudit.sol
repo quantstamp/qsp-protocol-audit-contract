@@ -89,15 +89,12 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   event LogPayAuditor(uint256 requestId, address auditor, uint256 amount);
   event LogRefund(uint256 requestId, address requestor, uint256 amount);
   event LogTransactionFeeChanged(uint256 oldFee, uint256 newFee);
-<<<<<<< HEAD
   event LogAuditNodePriceChanged(address auditor, uint256 price);
 
   // error handling events
   // payment is requested for an audit that is already already paid or does not exist
   event LogErrorAuditNotPending(uint256 requestId, address auditor);
-=======
   event LogAuditQueueIsEmpty();
->>>>>>> develop
 
   uint256 private requestCounter;
 
@@ -192,23 +189,9 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   }
 
   /**
-<<<<<<< HEAD
-   * @dev Allows the audit node to set its minimum price per audit
-   * @param price The minimum price.  
-   */
-  function setAuditNodePrice(uint256 price) public onlyWhitelisted {
-    minAuditPrice[msg.sender] = price;
-    emit LogAuditNodePriceChanged(msg.sender, price);
-  }
-
-  /**
-   * @dev Sets transaction fee in Wei
-   * @param fee Transaction fee in Wei.
-=======
    * @dev Adds an audit request to the queue
    * @param requestId Request ID.
    * @param existingPrice price of an existing audit in the queue (makes insertion O(1))
->>>>>>> develop
    */
   function queueAudit(uint256 requestId, uint256 existingPrice) internal {
     uint256 price = audits[requestId].price;
@@ -237,6 +220,15 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
       priceList.remove(price);
     }
     return result;
+  }
+
+  /**
+   * @dev Allows the audit node to set its minimum price per audit
+   * @param price The minimum price.  
+   */
+  function setAuditNodePrice(uint256 price) public onlyWhitelisted {
+    minAuditPrice[msg.sender] = price;
+    emit LogAuditNodePriceChanged(msg.sender, price);
   }
 
   /**
