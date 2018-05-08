@@ -175,14 +175,15 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
 
   /**
    * @dev Finds a list of most expensive audits and assigns the oldest one to the auditor node. 
-   
    */
   function getNextAuditRequest() public onlyWhitelisted {
+    // there are no audits in the queue
     if(!auditQueueExists()){
       emit LogAuditQueueIsEmpty();
       return;
     }
 
+    // there are no audits in the queue with a price high enough for the audit node
     uint256 minPrice = minAuditPrice[msg.sender];
     uint256 requestId = dequeueAudit(minPrice);
     if (requestId == 0) {
