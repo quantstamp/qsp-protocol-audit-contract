@@ -51,7 +51,7 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   // maximum number of assigned audits per each auditor
   uint256 public maxAssignedRequests = 1;
   // mapping from an auditor address to the number of requests that it currently processes
-  mapping(address => uint256) assignedRequestsNum;
+  mapping(address => uint256) public assignedRequestsNum;
 
   // increasingly sorted linked list of prices
   LinkedListLib.LinkedList priceList;
@@ -188,7 +188,7 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
     audits[requestId].auditor = msg.sender;
     audits[requestId].assignTimestamp = block.number;
 
-    assignedRequestsNum[msg.sender] = assignedRequests.add(1);
+    assignedRequestsNum[msg.sender] = assignedRequests + 1;
 
     emit LogAuditAssigned(requestId, audits[requestId].auditor);
   }
@@ -283,13 +283,5 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
    */
   function setMaxAssignedRequests(uint256 maxAssignments) public onlyOwner {
     maxAssignedRequests = maxAssignments;
-  }
-
-  /**
-   * @dev return maximum processing request allowance
-   * @param auditor address
-   */
-  function getAssignedRequestsNum(address auditor) public returns(uint256 assignedRequests){
-    return assignedRequestsNum[auditor];
   }
 }

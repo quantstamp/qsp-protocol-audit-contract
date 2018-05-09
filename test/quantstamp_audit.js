@@ -221,7 +221,7 @@ contract('QuantstampAudit', function(accounts) {
 
   it("does not get another request before finishes the previous one", async function() {
     const auditor = accounts[4];
-    const pendingAuditsNum = (await quantstamp_audit.getAssignedRequestsNum.call(auditor)).toNumber();
+    const pendingAuditsNum = (await quantstamp_audit.assignedRequestsNum.call(auditor)).toNumber();
 
     await quantstamp_audit.setMaxAssignedRequests(pendingAuditsNum + 1);
     await quantstamp_audit.addAddressToWhitelist(auditor);
@@ -233,11 +233,11 @@ contract('QuantstampAudit', function(accounts) {
     Util.assertTxFail(quantstamp_audit.getNextAuditRequest({from: auditor}));
   });
 
-  it("should get a request after finish the previous one", async function() {
+  it("should get a request after finishing the previous one", async function() {
     const auditor = accounts[4];
 
     await quantstamp_audit.addAddressToWhitelist(auditor);
-    const pendingAuditsNum = (await quantstamp_audit.getAssignedRequestsNum.call(auditor)).toNumber();
+    const pendingAuditsNum = (await quantstamp_audit.assignedRequestsNum.call(auditor)).toNumber();
     await quantstamp_audit.setMaxAssignedRequests(pendingAuditsNum + 1);
 
     await quantstamp_audit.requestAudit(uri, price, {from: requestor});
@@ -262,11 +262,11 @@ contract('QuantstampAudit', function(accounts) {
 
   });
 
-  it("does not get another request before finishes the previous one even if it submitted a report before", async function() {
+  it("does not get another request before finishing the previous one even if it submitted a report before", async function() {
     const auditor = accounts[4];
 
     await quantstamp_audit.addAddressToWhitelist(auditor);
-    const pendingAuditsNum = (await quantstamp_audit.getAssignedRequestsNum.call(auditor)).toNumber();
+    const pendingAuditsNum = (await quantstamp_audit.assignedRequestsNum.call(auditor)).toNumber();
     await quantstamp_audit.setMaxAssignedRequests(pendingAuditsNum + 1);
 
     await quantstamp_audit.requestAudit(uri, price, {from: requestor});
