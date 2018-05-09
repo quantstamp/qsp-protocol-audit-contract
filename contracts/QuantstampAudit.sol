@@ -63,7 +63,7 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   uint256 public transactionFee;
 
   // map audit nodes to their minimum prices. Defaults to zero: the node accepts all requests.
-  mapping(address => uint256) minAuditPrice; 
+  mapping(address => uint256) public minAuditPrice;
 
   event LogAuditFinished(
     uint256 requestId,
@@ -294,8 +294,8 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
     // iterate over the price list
     (exists, price) = priceList.getAdjacent(HEAD, NEXT);
     while (price != HEAD) {
-      (exists, price) = priceList.getAdjacent(price, NEXT);
       numElements += auditsByPrice[price].sizeOf();
+      (exists, price) = priceList.getAdjacent(price, NEXT);
     }
     return numElements;
   }

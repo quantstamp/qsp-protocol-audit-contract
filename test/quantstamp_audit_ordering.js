@@ -27,8 +27,8 @@ contract('QuantstampAudit_ordering', function(accounts) {
   // submits a request for each price in order, returning the array of ids of the requests
   async function submitMultipleRequests(prices){
     var ids = []
-    for(i in prices){
-      await quantstamp_audit.requestAudit(uri, price, {from:requestor});
+    for(var i = 0; i < prices.length; i++){
+      await quantstamp_audit.requestAudit(uri, prices[i], {from:requestor});
       ids.push(requestCounter++);
     }
     return ids;
@@ -80,7 +80,6 @@ contract('QuantstampAudit_ordering', function(accounts) {
     }
   }
 
-
   beforeEach(async function () {
     quantstamp_audit = await QuantstampAudit.deployed();
     quantstamp_token = await QuantstampToken.deployed();
@@ -93,7 +92,6 @@ contract('QuantstampAudit_ordering', function(accounts) {
     // whitelisting auditor
     await quantstamp_audit.addAddressToWhitelist(auditor);
   });
-
 
   it("queues requests with different prices in the correct order", async function() {
     await check_ordering([price + 1, price]);
@@ -114,13 +112,57 @@ contract('QuantstampAudit_ordering', function(accounts) {
 
   it("can handle a large number of audit requests", async function() {
     var prices = [];
-    const NUM_REQUESTS = 100;
+    const NUM_REQUESTS = 50;
     for(let i = 0; i < NUM_REQUESTS; i++){
       prices.push(i+1);
     }
     await check_ordering(prices);
   });
 
+  it("should allow the auditor to set their min price", async function(){
+    assert.equal(await quantstamp_audit.minAuditPrice.call(auditor), 0);
+    assertEvent({
+      result: await quantstamp_audit.setAuditNodePrice(price, {from:auditor}),
+      name: "LogAuditNodePriceChanged",
+      args: (args) => {
+        assert.equal(args.auditor, auditor);
+        assert.equal(args.amount, price);
+      }
+    });
+    assert.equal(await quantstamp_audit.minAuditPrice.call(auditor), price);
+  });
 
+  it("should only get audits that meet the audit node minimum price", async function(){
+    // the audit node should only get requests at indices [7, 3, 1, 5], in that order
+    const request_ids = await submitMultipleRequests([1, price, 2, price+1, 3, price, 3, price+1000]);
+    const audit_ids = await getMultipleRequests(4);
+    const expected_ids = [request_ids[7], request_ids[3], request_ids[1], request_ids[5]];
+    assert.deepEqual(audit_ids, expected_ids);
+  });
+
+  it("should not give audits below the set price to the audit node", async function(){
+    assertEvent({
+      result: await quantstamp_audit.getNextAuditRequest({from:auditor}),
+      name: "LogAuditNodePriceHigherThanRequests",
+      args: (args) => {
+        assert.equal(args.auditor, auditor);
+        assert.equal(args.amount, price);
+      }
+    });
+  });
+
+  it("should allow audit nodes to lower their price to get more audits", async function(){
+    // the queue should still contain prices [1, 2, 3, 3]
+    assert.equal(await quantstamp_audit.getQueueLength.call(), 4);
+    await quantstamp_audit.setAuditNodePrice(3, {from:auditor});
+    const audit_ids = await getMultipleRequests(2);
+    const expected_ids = [requestCounter - 4, requestCounter - 2];
+    assert.deepEqual(audit_ids, expected_ids);
+
+    await quantstamp_audit.setAuditNodePrice(0, {from:auditor});
+    const audit_ids2 = await getMultipleRequests(2);
+    const expected_ids2 = [requestCounter - 6, requestCounter - 8];
+    assert.deepEqual(audit_ids2, expected_ids2);
+  });
 
 });
