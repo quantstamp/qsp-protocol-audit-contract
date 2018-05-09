@@ -278,7 +278,7 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   }
 
   /**
-   * @dev set the maximum requests that an audit node is allowed to concurrently process.
+   * @dev set the maximum number of audits any audit node can handle at any time.
    * @param maxAssignments maximum number of audit requests for each auditor
    */
   function setMaxAssignedRequests(uint256 maxAssignments) public onlyOwner {
