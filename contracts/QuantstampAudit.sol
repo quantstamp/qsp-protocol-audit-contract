@@ -93,8 +93,6 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   event LogTransactionFeeChanged(uint256 oldFee, uint256 newFee);
   event LogAuditQueueIsEmpty();
 
-  event Log(uint256 a, uint256 b);
-
   uint256 private requestCounter;
 
   /**
@@ -288,6 +286,10 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
     maxAssignedRequests = maxAssignments;
   }
 
+  /**
+   * @dev return maximum processing request allowance
+   * @param auditor address
+   */
   function getAssignedRequestsNum(address auditor) public returns(uint256 assignedRequests){
     return assignedRequestsNum[auditor];
   }
