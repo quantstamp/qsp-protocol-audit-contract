@@ -262,7 +262,7 @@ contract('QuantstampAudit', function(accounts) {
 
   });
 
-  it("does not get another request before finish the previous one even if it submitted a report before", async function() {
+  it("does not get another request before finishes the previous one even if it submitted a report before", async function() {
     const auditor = accounts[4];
 
     await quantstamp_audit.addAddressToWhitelist(auditor);

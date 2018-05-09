@@ -175,7 +175,6 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   function getNextAuditRequest() public onlyWhitelisted {
 
     uint256 assignedRequests = assignedRequestsNum[msg.sender];
-//    emit Log(assignedRequests, maxAssignedRequests);
     require(assignedRequests < maxAssignedRequests);
 
     uint256 requestId = dequeueAudit();
