@@ -89,7 +89,7 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   event LogPayAuditor(uint256 requestId, address auditor, uint256 amount);
   event LogRefund(uint256 requestId, address requestor, uint256 amount);
   event LogTransactionFeeChanged(uint256 oldFee, uint256 newFee);
-  event LogAuditNodePriceChanged(address auditor, uint256 price);
+  event LogAuditNodePriceChanged(address auditor, uint256 amount);
 
   // error handling events
   // payment is requested for an audit that is already already paid or does not exist
@@ -97,7 +97,8 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   event LogAuditQueueIsEmpty();
   
   // the audit queue has elements, but none satisfy the minPrice of the audit node
-  event LogAuditNodePriceHigherThanRequests(address auditor, uint256 price);
+  // amount corresponds to the current minPrice of the auditor
+  event LogAuditNodePriceHigherThanRequests(address auditor, uint256 amount);
 
   uint256 private requestCounter;
 

@@ -218,4 +218,33 @@ contract('QuantstampAudit', function(accounts) {
     Util.assertTxFail(quantstamp_audit.requestAudit(uri, price, {from: requestor}));
   });
 
+  it("should allow the auditor to set their min price", async function(){
+    assert.equal(await quantstamp_audit.minAuditPrice.call(auditor), 0);
+    assertEvent({
+      result: await quantstamp_audit.setAuditNodePrice(price, {from:auditor}),
+      name: "LogAuditNodePriceChanged",
+      args: (args) => {
+        assert.equal(args.auditor, auditor);
+        assert.equal(args.amount, price);
+      }
+    });
+    assert.equal(await quantstamp_audit.minAuditPrice.call(auditor), price);
+  });
+
+
+  it("should only get audits that meet the audit node minimum price", async function(){
+    console.log(auditor + "--- " + auditor.address);
+    console.log(await quantstamp_audit.auditTimeoutInBlocks);
+    assert.equal(await quantstamp_audit.minAuditPrice.call(auditor), 0);
+    assertEvent({
+      result: await quantstamp_audit.setAuditNodePrice(price, {from:auditor}),
+      name: "LogAuditNodePriceChanged",
+      args: (args) => {
+        assert.equal(args.auditor, auditor);
+        assert.equal(args.amount, price);
+      }
+    });
+    assert.equal(await quantstamp_audit.minAuditPrice.call(auditor), price);
+  });
+
 });
