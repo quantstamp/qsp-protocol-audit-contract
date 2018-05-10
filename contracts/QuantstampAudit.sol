@@ -51,6 +51,11 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   bool constant PREV = false;
   bool constant NEXT = true;
 
+  // maximum number of assigned audits per each auditor
+  uint256 public maxAssignedRequests = 1;
+  // mapping from an auditor address to the number of requests that it currently processes
+  mapping(address => uint256) public assignedRequestIds;
+
   // increasingly sorted linked list of prices
   LinkedListLib.LinkedList priceList;
   // map from price to a list of request IDs
@@ -88,6 +93,8 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   event LogAuditAssigned(uint256 requestId, address auditor);
   event LogReportSubmissionError_InvalidAuditor(uint256 requestId, address auditor);
   event LogReportSubmissionError_InvalidState(uint256 requestId, address auditor, AuditState state);
+
+  event LogAuditAssignmentError_ExceededMaxAssignedRequests(address auditor);
 
   event LogPayAuditor(uint256 requestId, address auditor, uint256 amount);
   event LogTransactionFeeChanged(uint256 oldFee, uint256 newFee);
@@ -177,6 +184,8 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
 
     emit LogAuditFinished(requestId,  msg.sender, auditResult, reportUri, reportHash, block.timestamp);
 
+    assignedRequestIds[msg.sender] = assignedRequestIds[msg.sender].sub(1);
+
     token.transfer(msg.sender, audit.price);
     emit LogPayAuditor(requestId, msg.sender, audit.price);
   }
@@ -191,6 +200,13 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
       return;
     }
 
+    // check if the auditor's assignment is not exceeded.
+    uint256 assignedRequests = assignedRequestIds[msg.sender];
+    if (assignedRequests >= maxAssignedRequests) {
+      emit LogAuditAssignmentError_ExceededMaxAssignedRequests(msg.sender);
+      return;
+    }
+
     // there are no audits in the queue with a price high enough for the audit node
     uint256 minPrice = minAuditPrice[msg.sender];
     uint256 requestId = dequeueAudit(minPrice);
@@ -202,6 +218,8 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
     audits[requestId].state = AuditState.Assigned;
     audits[requestId].auditor = msg.sender;
     audits[requestId].assignTimestamp = block.number;
+
+    assignedRequestIds[msg.sender] = assignedRequests + 1;
 
     emit LogAuditAssigned(requestId, audits[requestId].auditor);
   }
@@ -352,5 +370,13 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
 
   function setAuditTimeout(uint256 timeoutInBlocks) public onlyOwner {
     auditTimeoutInBlocks = timeoutInBlocks;
+  }
+
+  /**
+   * @dev set the maximum number of audits any audit node can handle at any time.
+   * @param maxAssignments maximum number of audit requests for each auditor
+   */
+  function setMaxAssignedRequests(uint256 maxAssignments) public onlyOwner {
+    maxAssignedRequests = maxAssignments;
   }
 }

@@ -91,6 +91,8 @@ contract('QuantstampAudit_ordering', function(accounts) {
     await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(1000), {from : requestor});
     // whitelisting auditor
     await quantstamp_audit.addAddressToWhitelist(auditor);
+    // allow audit nodes to perform many audits at once
+    await quantstamp_audit.setMaxAssignedRequests(1000);
   });
 
   it("queues requests with different prices in the correct order", async function() {
