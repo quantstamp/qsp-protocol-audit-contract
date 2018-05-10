@@ -45,7 +45,7 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   // After that, the requestor can asks for a refund.
   uint256 public auditTimeoutInBlocks = 10;
 
-  // constants used by LinedListLib
+  // constants used by LinkedListLib
   uint256 constant NULL = 0;
   uint256 constant HEAD = 0;
   bool constant PREV = false;
