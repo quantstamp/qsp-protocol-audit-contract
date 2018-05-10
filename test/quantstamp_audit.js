@@ -8,9 +8,9 @@ const AuditState = Object.freeze({
   None : 0,
   Queued : 1,
   Assigned : 2,
-  Completed : 3,
-  Error : 4,
-  Timeout : 5
+  Refunded : 3,
+  Completed : 4,
+  Error : 5
 });
 
 contract('QuantstampAudit', function(accounts) {

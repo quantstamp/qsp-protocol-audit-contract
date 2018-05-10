@@ -17,6 +17,7 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
     None,
     Queued,
     Assigned,
+    Refunded,
     Completed,  // automated audit finished successfully and the report is available
     Error       // automated audit failed to finish; the report contains detailed information about the error
   }
@@ -40,6 +41,8 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   mapping(uint256 => Audit) public audits;
 
   // 10 blocks seems like a reasonable default timeout
+  // Once an audit node gets an audit request, the audit price is locked for this many blocks.
+  // After that, the requestor can asks for a refund.
   uint256 public auditTimeoutInBlocks = 10;
 
   // constants used by LinedListLib
@@ -87,9 +90,13 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   event LogReportSubmissionError_InvalidState(uint256 requestId, address auditor, AuditState state);
 
   event LogPayAuditor(uint256 requestId, address auditor, uint256 amount);
-  event LogRefund(uint256 requestId, address requestor, uint256 amount);
   event LogTransactionFeeChanged(uint256 oldFee, uint256 newFee);
   event LogAuditNodePriceChanged(address auditor, uint256 amount);
+
+  event LogRefund(uint256 requestId, address requestor, uint256 amount);
+  event LogRefundInvalidRequestor(uint256 requestId, address requestor);
+  event LogRefundInvalidState(uint256 requestId, AuditState state);
+  event LogRefundInvalidFundsLocked(uint256 requestId, uint256 currentBlock, uint256 fundLockEndBlock);
 
   // error handling events
   // payment is requested for an audit that is already already paid or does not exist
@@ -276,8 +283,25 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
    * @dev Returns funds to the requestor.
    * @param requestId Unique ID of the audit request.
    */
-  function refund(uint256 requestId) external onlyOwner returns(bool) {
-    require(audits[requestId].requestor != address(0));
+  function refund(uint256 requestId) external returns(bool) {
+    // check that the audit exists and is in a valid state
+    Audit storage audit = audits[requestId];
+    if(audit.requestor != msg.sender){
+      emit LogRefundInvalidSender(requestId, msg.sender);
+      return;
+    }
+    if(audit.state != AuditState.Queued && audit.state != AuditState.Assigned){
+      emit LogRefundInvalidState(requestId, audit.state);
+      return;
+    }
+    // check that the auditor has not recently started the audit (locking the funds)
+    if(audit.state == AuditState.Assigned && block.number < audit.assignTimestamp + auditTimeoutInBlocks){
+      emit LogRefundInvalidFundsLocked(requestId, block.number, audit.assignTimestamp + auditTimeoutInBlocks);
+      return;
+    }
+    // set the audit state the refunded
+    audit.state = AuditState.Refunded;
+    // return the funds to the user
     return token.transfer(audits[requestId].requestor, audits[requestId].price);
   }
 
@@ -300,7 +324,7 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
     return numElements;
   }
 
-  function setAuditTimeout(uint256 timeoutInBlocks) public {
+  function setAuditTimeout(uint256 timeoutInBlocks) public onlyOwner {
     auditTimeoutInBlocks = timeoutInBlocks;
   }
 }
