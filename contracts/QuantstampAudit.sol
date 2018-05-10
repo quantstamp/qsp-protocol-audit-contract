@@ -51,7 +51,7 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   // maximum number of assigned audits per each auditor
   uint256 public maxAssignedRequests = 1;
   // mapping from an auditor address to the number of requests that it currently processes
-  mapping(address => uint256) public assignedRequestsNum;
+  mapping(address => uint256) public assignedRequestIds;
 
   // increasingly sorted linked list of prices
   LinkedListLib.LinkedList priceList;
@@ -87,6 +87,8 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   event LogAuditAssigned(uint256 requestId, address auditor);
   event LogReportSubmissionError_InvalidAuditor(uint256 requestId, address auditor);
   event LogReportSubmissionError_InvalidState(uint256 requestId, address auditor, AuditState state);
+
+  event LogAuditAssignmentError_ExceededMaxAssignedRequests(address auditor);
 
   event LogPayAuditor(uint256 requestId, address auditor, uint256 amount);
   event LogRefund(uint256 requestId, address requestor, uint256 amount);
@@ -163,7 +165,7 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
 
     emit LogAuditFinished(requestId,  msg.sender, auditResult, reportUri, reportHash, block.timestamp);
 
-    assignedRequestsNum[msg.sender] = assignedRequestsNum[msg.sender].sub(1);
+    assignedRequestIds[msg.sender] = assignedRequestIds[msg.sender].sub(1);
 
     token.transfer(msg.sender, audit.price);
     emit LogPayAuditor(requestId, msg.sender, audit.price);
@@ -174,8 +176,12 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
    */
   function getNextAuditRequest() public onlyWhitelisted {
 
-    uint256 assignedRequests = assignedRequestsNum[msg.sender];
-    require(assignedRequests < maxAssignedRequests);
+    // check if the auditor's assignment is not exceeded.
+    uint256 assignedRequests = assignedRequestIds[msg.sender];
+    if (assignedRequests >= maxAssignedRequests) {
+      emit LogAuditAssignmentError_ExceededMaxAssignedRequests(msg.sender);
+      return;
+    }
 
     uint256 requestId = dequeueAudit();
 
@@ -188,7 +194,7 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
     audits[requestId].auditor = msg.sender;
     audits[requestId].assignTimestamp = block.number;
 
-    assignedRequestsNum[msg.sender] = assignedRequests + 1;
+    assignedRequestIds[msg.sender] = assignedRequests + 1;
 
     emit LogAuditAssigned(requestId, audits[requestId].auditor);
   }

@@ -221,7 +221,7 @@ contract('QuantstampAudit', function(accounts) {
 
   it("does not get another request before finishes the previous one", async function() {
     const auditor2 = accounts[4];
-    const pendingAuditsNum = (await quantstamp_audit.assignedRequestsNum.call(auditor2)).toNumber();
+    const pendingAuditsNum = (await quantstamp_audit.assignedRequestIds.call(auditor2)).toNumber();
 
     await quantstamp_audit.setMaxAssignedRequests(pendingAuditsNum + 1);
     await quantstamp_audit.addAddressToWhitelist(auditor2);
@@ -230,14 +230,21 @@ contract('QuantstampAudit', function(accounts) {
     await quantstamp_audit.requestAudit(uri, price, {from: requestor});
 
     await quantstamp_audit.getNextAuditRequest({from: auditor2});
-    Util.assertTxFail(quantstamp_audit.getNextAuditRequest({from: auditor2}));
+
+    assertEvent({
+        result: await quantstamp_audit.getNextAuditRequest({from: auditor2}),
+        name: "LogAuditAssignmentError_ExceededMaxAssignedRequests",
+        args: (args) => {
+        assert.equal(args.auditor, auditor2);
+      }
+    });
   });
 
   it("should get a request after finishing the previous one", async function() {
     const auditor2 = accounts[4];
 
     await quantstamp_audit.addAddressToWhitelist(auditor2);
-    const pendingAuditsNum = (await quantstamp_audit.assignedRequestsNum.call(auditor2)).toNumber();
+    const pendingAuditsNum = (await quantstamp_audit.assignedRequestIds.call(auditor2)).toNumber();
     await quantstamp_audit.setMaxAssignedRequests(pendingAuditsNum + 1);
 
     await quantstamp_audit.requestAudit(uri, price, {from: requestor});
@@ -266,7 +273,7 @@ contract('QuantstampAudit', function(accounts) {
     const auditor2 = accounts[4];
 
     await quantstamp_audit.addAddressToWhitelist(auditor2);
-    const pendingAuditsNum = (await quantstamp_audit.assignedRequestsNum.call(auditor2)).toNumber();
+    const pendingAuditsNum = (await quantstamp_audit.assignedRequestIds.call(auditor2)).toNumber();
     await quantstamp_audit.setMaxAssignedRequests(pendingAuditsNum + 1);
 
     await quantstamp_audit.requestAudit(uri, price, {from: requestor});
@@ -286,7 +293,13 @@ contract('QuantstampAudit', function(accounts) {
 
     await quantstamp_audit.getNextAuditRequest({from: auditor2});
 
-    Util.assertTxFail(quantstamp_audit.getNextAuditRequest({from: auditor2}));
+    assertEvent({
+        result: await quantstamp_audit.getNextAuditRequest({from: auditor2}),
+        name: "LogAuditAssignmentError_ExceededMaxAssignedRequests",
+        args: (args) => {
+        assert.equal(args.auditor, auditor2);
+      }
+    });
   });
 
 });
