@@ -253,6 +253,23 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   }
 
   /**
+   * @dev Remove an element from the list
+   * @param requestId The Id of the request to be removed
+   */
+  function removeQueueElement(uint256 requestId) internal {
+    uint256 price = audits[requestId].price;
+
+    // the node must exist in the list
+    require(priceList.nodeExists(price));
+    require(auditsByPrice[price].nodeExists(requestId));
+
+    auditsByPrice[price].remove(requestId);
+    if (auditsByPrice[price].sizeOf() == 0) {
+      priceList.remove(price);
+    }
+  }
+
+  /**
    * @dev Allows the audit node to set its minimum price per audit
    * @param price The minimum price.  
    */
@@ -286,23 +303,32 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   function refund(uint256 requestId) external returns(bool) {
     // check that the audit exists and is in a valid state
     Audit storage audit = audits[requestId];
-    if(audit.requestor != msg.sender){
-      emit LogRefundInvalidSender(requestId, msg.sender);
-      return;
-    }
     if(audit.state != AuditState.Queued && audit.state != AuditState.Assigned){
       emit LogRefundInvalidState(requestId, audit.state);
       return;
     }
+    if(audit.requestor != msg.sender){
+      emit LogRefundInvalidRequestor(requestId, msg.sender);
+      return;
+    }
     // check that the auditor has not recently started the audit (locking the funds)
-    if(audit.state == AuditState.Assigned && block.number < audit.assignTimestamp + auditTimeoutInBlocks){
+    if(audit.state == AuditState.Assigned && block.number <= audit.assignTimestamp + auditTimeoutInBlocks){
       emit LogRefundInvalidFundsLocked(requestId, block.number, audit.assignTimestamp + auditTimeoutInBlocks);
       return;
     }
+
+    // remove the request from the queue
+    // note that if an audit node is currently assigned the request, it is already removed from the queue
+    if(audit.state == AuditState.Queued){
+      removeQueueElement(requestId);
+    }
+
     // set the audit state the refunded
     audit.state = AuditState.Refunded;
+
     // return the funds to the user
-    return token.transfer(audits[requestId].requestor, audits[requestId].price);
+    emit LogRefund(requestId, audit.requestor, audit.price);
+    return token.transfer(audit.requestor, audit.price);
   }
 
   function getAuditState(uint256 requestId) public view returns(AuditState) {

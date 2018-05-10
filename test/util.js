@@ -46,13 +46,12 @@ const AuditState = Object.freeze({
   Error : 5
 });
 
-
-async function balanceOf (user) {
-  return (await quantstamp_token.balanceOf(user)).toNumber();
+async function balanceOf (token, user) {
+  return (await token.balanceOf(user)).toNumber();
 }
 
-async function allowance (owner, spender) {
-  return (await quantstamp_token.allowance(owner, spender)).toNumber();
+async function allowance (token, owner, spender) {
+  return (await token.allowance(owner, spender)).toNumber();
 }
 
 async function getReportUri (requestId) {

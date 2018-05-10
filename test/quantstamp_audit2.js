@@ -257,19 +257,4 @@ contract('QuantstampAudit2', function(accounts) {
     assert.equal(result3.logs[0].args.requestId.toNumber(), bogusId);
     assert.equal(result3.logs[0].args.auditor, auditor);
   });
-
-  it("should allow for manual refunds", async function () {
-    const price = Util.toQsp(35);
-    const requestorBalance = await balanceOf(requestor);
-    const result = await quantstamp_audit.requestAudit(uri, price, {value : fee, from : requestor});
-    const requestId = extractRequestId(result);
-    // submitReport() was not called, so do the refund manually
-    await quantstamp_audit.refund(requestId);
-    assert.equal(await balanceOf(requestor), requestorBalance);
-  });
-
-  it("should disallow for manual refunds for bogus request IDs", async function () {
-    const bogusId = 123456;
-    Util.assertTxFail(quantstamp_audit.refund(bogusId));
-  });
 });
