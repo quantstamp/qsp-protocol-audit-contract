@@ -58,6 +58,8 @@ contract('QuantstampAudit_refunds', function(accounts) {
     const sizeBeforeRefund = await quantstamp_audit.getQueueLength.call();
     assert.equal(await Util.balanceOf(quantstamp_token, requestor), requestorBalance - price);
     const requestId = extractRequestId(result);
+    assert.equal(await Util.getAuditState(quantstamp_audit, requestId), AuditState.Queued);
+
     assertEvent({
       result: await quantstamp_audit.refund(requestId, {from: requestor}),
       name: "LogRefund",
@@ -68,6 +70,7 @@ contract('QuantstampAudit_refunds', function(accounts) {
       }
     });
     assert.equal(await quantstamp_audit.getQueueLength.call(), sizeBeforeRefund - 1);
+    assert.equal(await Util.getAuditState(quantstamp_audit, requestId), AuditState.Refunded);
     assert.equal(await Util.balanceOf(quantstamp_token, requestor), requestorBalance);
   });
 

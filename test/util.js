@@ -54,9 +54,14 @@ async function allowance (token, owner, spender) {
   return (await token.allowance(owner, spender)).toNumber();
 }
 
-async function getReportUri (requestId) {
+async function getReportUri (quantstamp_audit, requestId) {
   const reportUriIndex = 8;
   return (await quantstamp_audit.audits.call(requestId))[reportUriIndex];
+}
+
+async function getAuditState (quantstamp_audit, requestId) {
+  const stateIndex = 5;
+  return (await quantstamp_audit.audits.call(requestId))[stateIndex];
 }
 
 async function getOwnerBalance () {
@@ -84,6 +89,7 @@ module.exports = {
   balanceOf : balanceOf,
   allowance : allowance,
   getReportUri : getReportUri,
+  getAuditState : getAuditState,
   getOwnerBalance : getOwnerBalance,
   extractRequestId : extractRequestId
 };
