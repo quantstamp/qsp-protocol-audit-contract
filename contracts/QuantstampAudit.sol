@@ -93,6 +93,7 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   event LogAuditAssigned(uint256 requestId, address auditor);
   event LogReportSubmissionError_InvalidAuditor(uint256 requestId, address auditor);
   event LogReportSubmissionError_InvalidState(uint256 requestId, address auditor, AuditState state);
+  event LogAuditQueueIsEmpty();
 
   event LogAuditAssignmentError_ExceededMaxAssignedRequests(address auditor);
 
@@ -105,10 +106,7 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   event LogRefundInvalidState(uint256 requestId, AuditState state);
   event LogRefundInvalidFundsLocked(uint256 requestId, uint256 currentBlock, uint256 fundLockEndBlock);
 
-  // error handling events
-  // payment is requested for an audit that is already already paid or does not exist
-  event LogErrorAuditNotPending(uint256 requestId, address auditor);
-  event LogAuditQueueIsEmpty();
+  
   
   // the audit queue has elements, but none satisfy the minPrice of the audit node
   // amount corresponds to the current minPrice of the auditor
