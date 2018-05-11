@@ -269,7 +269,7 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   }
 
   /**
-   * @dev Remove an element from the list
+   * @dev Removes an element from the list
    * @param requestId The Id of the request to be removed
    */
   function removeQueueElement(uint256 requestId) internal {

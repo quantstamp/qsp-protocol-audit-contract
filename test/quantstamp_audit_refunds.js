@@ -148,22 +148,11 @@ contract('QuantstampAudit_refunds', function(accounts) {
     const id1 = extractRequestId(result);
     const result2 = await quantstamp_audit.requestAudit(uri, price, {from : requestor});
     const id2 = extractRequestId(result2);
-    const result3 = await quantstamp_audit.requestAudit(uri, price, {from : requestor});
-    const id3 = extractRequestId(result3);
     assertEvent({
       result: await quantstamp_audit.refund(id2, {from: requestor}),
       name: "LogRefund",
       args: (args) => {
         assert.equal(args.requestId, id2);
-        assert.equal(args.requestor, requestor);
-        assert.equal(args.amount, price);
-      }
-    });
-    assertEvent({
-      result: await quantstamp_audit.refund(id3, {from: requestor}),
-      name: "LogRefund",
-      args: (args) => {
-        assert.equal(args.requestId, id3);
         assert.equal(args.requestor, requestor);
         assert.equal(args.amount, price);
       }
@@ -179,8 +168,6 @@ contract('QuantstampAudit_refunds', function(accounts) {
     });
   });
 
-
-  
   it("should allow the auditor to submit an audit after the lock period", async function () {
     assert(await quantstamp_audit.getQueueLength.call(), 0);
     await quantstamp_audit.requestAudit(uri, price, {from : requestor});
