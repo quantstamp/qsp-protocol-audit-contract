@@ -48,11 +48,11 @@ contract('QuantstampAudit_ordering', function(accounts) {
   // given an array, returns the stable sort of indices rather than values
   // example: requestAuditPrices = [1, 3, 3, 2]
   // output (indices in the order audit nodes should pick from the queue): [0, 3, 1, 2]
-  function getSortedIndices(l){
+  function getSortedIndices(array){
     var indexed_elements = [];
     var indices = [];
-    for(let i = 0; i < l.length; i++){
-      indexed_elements.push({index: i, value: l[i]});
+    for(let i = 0; i < array.length; i++){
+      indexed_elements.push({index: i, value: array[i]});
     }
     indexed_elements.sort( (p1, p2) => {
       if (p1.value > p2.value || (p1.value === p2.value && p1.index < p2.index)) return -1;

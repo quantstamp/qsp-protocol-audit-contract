@@ -56,6 +56,7 @@ async function allowance (token, owner, spender) {
 }
 
 async function getReportUri (requestId) {
+  // the reportUri is at this index in the QuantstampAudit.Audit struct
   const reportUriIndex = 8;
   return (await quantstamp_audit.audits.call(requestId))[reportUriIndex];
 }
