@@ -22,6 +22,7 @@ contract('QuantstampAudit_ordering', function(accounts) {
   let requestCounter = 1;
   let quantstamp_audit;
   let quantstamp_token;
+  let requestQueue;
 
 
   // submits a request for each price in order, returning the array of ids of the requests
@@ -139,6 +140,8 @@ contract('QuantstampAudit_ordering', function(accounts) {
     const request_ids = await submitMultipleRequests([1, price, 2, price+1, 3, price, 3, price+1000]);
     const audit_ids = await getMultipleRequests(4);
     const expected_ids = [request_ids[7], request_ids[3], request_ids[1], request_ids[5]];
+    // the remaining set of request_ids is stored for a later test
+    global_request_ids = [request_ids[0], request_ids[2], request_ids[4], request_ids[6]];
     assert.deepEqual(audit_ids, expected_ids);
   });
 
@@ -154,17 +157,20 @@ contract('QuantstampAudit_ordering', function(accounts) {
   });
 
   it("should allow audit nodes to lower their price to get more audits", async function(){
-    // the queue should still contain prices [1, 2, 3, 3]
+    // the request queue should still contain prices [1, 2, 3, 3]
+    // their request IDs are stored in global_request_ids in an earlier test
     assert.equal(await quantstamp_audit.getQueueLength.call(), 4);
     await quantstamp_audit.setAuditNodePrice(3, {from:auditor});
     const audit_ids = await getMultipleRequests(2);
-    const expected_ids = [requestCounter - 4, requestCounter - 2];
+    const expected_ids = [global_request_ids[2], global_request_ids[3]];
     assert.deepEqual(audit_ids, expected_ids);
 
     await quantstamp_audit.setAuditNodePrice(0, {from:auditor});
     const audit_ids2 = await getMultipleRequests(2);
-    const expected_ids2 = [requestCounter - 6, requestCounter - 8];
+    const expected_ids2 = [global_request_ids[1], global_request_ids[0]];
     assert.deepEqual(audit_ids2, expected_ids2);
+
+    global_request_ids = [];
   });
 
 });
