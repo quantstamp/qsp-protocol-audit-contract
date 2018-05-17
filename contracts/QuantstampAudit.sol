@@ -432,9 +432,9 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Given an whitelisted address, returns the next whitelisted address
+   * @dev Given a whitelisted address, returns the next address from the whitelist
    * @param addr address
-   * @return next address of the param
+   * @return next address of the given param
    */
   function getNextWhitelistedAddress(address addr) public returns(address) {
     if (whitelist.listExists()) {
