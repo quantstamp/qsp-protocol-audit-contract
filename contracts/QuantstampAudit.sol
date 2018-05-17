@@ -396,7 +396,7 @@ contract QuantstampAudit is Ownable, Pausable {
   /**
    * @dev Adds an address to the whitelist
    * @param addr address
-   * @return true if the address was added to the whitelist, false if the address was already in the whitelist
+   * @return true if the address was added to the whitelist
    */
   function addAddressToWhitelist(address addr) onlyOwner public returns(bool success) {
     if (!whitelist.nodeExists(uint256(addr))) {
@@ -410,10 +410,9 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Removes an address from the whitelist
+   * @dev Removes an address from the whitelist and updates the whitelist linked-list head
    * @param addr address
    * @return true if the address was removed from the whitelist,
-   * false if the address wasn't in the whitelist in the first place
    */
   function removeAddressFromWhitelist(address addr) onlyOwner public returns(bool success) {
     if (whitelist.nodeExists(uint256(addr))) {
@@ -435,6 +434,7 @@ contract QuantstampAudit is Ownable, Pausable {
   /**
    * @dev Given an whitelisted address, returns the next whitelisted address
    * @param addr address
+   * @return next address of the param
    */
   function getNextWhitelistedAddress(address addr) public returns(address) {
     if (whitelist.listExists()) {
