@@ -159,7 +159,7 @@ contract QuantstampAudit is Ownable, Pausable {
     audits[requestId] = Audit(msg.sender, contractUri, price, transactionFee, block.timestamp, AuditState.Queued, address(0), 0, "", "", 0);
 
     // TODO: use existing price instead of HEAD (optimization)
-    queueAudit(requestId, HEAD);
+    queueAuditRequest(requestId, HEAD);
 
     emit LogAuditRequested(requestId, requestor, contractUri, price, transactionFee, block.timestamp);
 
@@ -208,7 +208,7 @@ contract QuantstampAudit is Ownable, Pausable {
    */
   function getNextAuditRequest() public onlyWhitelisted {
     // there are no audits in the queue
-    if(!auditQueueExists()){
+    if (! auditQueueExists()) {
       emit LogAuditQueueIsEmpty();
       return;
     }
@@ -222,7 +222,7 @@ contract QuantstampAudit is Ownable, Pausable {
 
     // there are no audits in the queue with a price high enough for the audit node
     uint256 minPrice = minAuditPrice[msg.sender];
-    uint256 requestId = dequeueAudit(minPrice);
+    uint256 requestId = dequeueAuditRequest(minPrice);
     if (requestId == 0) {
       emit LogAuditNodePriceHigherThanRequests(msg.sender, minPrice);
       return;
@@ -249,7 +249,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param requestId Request ID.
    * @param existingPrice price of an existing audit in the queue (makes insertion O(1))
    */
-  function queueAudit(uint256 requestId, uint256 existingPrice) internal {
+  function queueAuditRequest(uint256 requestId, uint256 existingPrice) internal {
     uint256 price = audits[requestId].price;
     if (!priceList.nodeExists(price)) {
       // if a price bucket doesn't exist, create it next to an existing one
@@ -260,10 +260,10 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Finds a list of most expensive audits and returns the oldest one that has a price > minPrice
+   * @dev Finds a list of most expensive audits and returns the oldest one that has a price >= minPrice
    * @param minPrice The minimum audit price.
    */
-  function dequeueAudit(uint256 minPrice) internal returns(uint256) {
+  function dequeueAuditRequest(uint256 minPrice) internal returns(uint256) {
     bool exists;
     uint256 price;
 
@@ -332,8 +332,8 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param requestId Unique ID of the audit request.
    */
   function refund(uint256 requestId) external returns(bool) {
-    // check that the audit exists and is in a valid state
     Audit storage audit = audits[requestId];
+    // check that the audit exists and is in a valid state
     if(audit.state != AuditState.Queued && audit.state != AuditState.Assigned){
       emit LogRefundInvalidState(requestId, audit.state);
       return;
