@@ -8,7 +8,7 @@ import "openzeppelin-solidity/contracts/lifecycle/Pausable.sol";
 
 import "./LinkedListLib.sol";
 
-contract QuantstampAudit is Ownable, Whitelist, Pausable {
+contract QuantstampAudit is Ownable, Pausable {
   using SafeMath for uint256;
   using LinkedListLib for LinkedListLib.LinkedList;
 
@@ -51,6 +51,9 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   bool constant PREV = false;
   bool constant NEXT = true;
 
+  // head of the whitelist linked-list
+  uint256 public HeadWhitelist;
+
   // maximum number of assigned audits per each auditor
   uint256 public maxAssignedRequests = 1;
   // mapping from an auditor address to the number of requests that it currently processes
@@ -60,6 +63,9 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   LinkedListLib.LinkedList priceList;
   // map from price to a list of request IDs
   mapping(uint256 => LinkedListLib.LinkedList) auditsByPrice;
+
+  // whitelist audit nodes
+  LinkedListLib.LinkedList whitelist;
 
   // token used to pay for audits. This contract assumes that the owner of the contract trusts token's code and
   // that transfer function (such as transferFrom, transfer) do the right thing
@@ -105,12 +111,13 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   event LogRefundInvalidRequestor(uint256 requestId, address requestor);
   event LogRefundInvalidState(uint256 requestId, AuditState state);
   event LogRefundInvalidFundsLocked(uint256 requestId, uint256 currentBlock, uint256 fundLockEndBlock);
-
-  
   
   // the audit queue has elements, but none satisfy the minPrice of the audit node
   // amount corresponds to the current minPrice of the auditor
   event LogAuditNodePriceHigherThanRequests(address auditor, uint256 amount);
+
+  event WhitelistedAddressAdded(address addr);
+  event WhitelistedAddressRemoved(address addr);
 
   uint256 private requestCounter;
 
@@ -121,6 +128,14 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   constructor (address tokenAddress) public {
     require(tokenAddress != address(0));
     token = StandardToken(tokenAddress);
+  }
+
+  /**
+   * @dev Throws if called by any account that's not whitelisted.
+   */
+  modifier onlyWhitelisted() {
+    require(whitelist.nodeExists(uint256(msg.sender)));
+    _;
   }
 
   /**
@@ -371,10 +386,62 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   }
 
   /**
-   * @dev set the maximum number of audits any audit node can handle at any time.
+   * @dev Sets the maximum number of audits any audit node can handle at any time.
    * @param maxAssignments maximum number of audit requests for each auditor
    */
   function setMaxAssignedRequests(uint256 maxAssignments) public onlyOwner {
     maxAssignedRequests = maxAssignments;
+  }
+
+  /**
+   * @dev Adds an address to the whitelist
+   * @param addr address
+   * @return true if the address was added to the whitelist, false if the address was already in the whitelist
+   */
+  function addAddressToWhitelist(address addr) onlyOwner public returns(bool success) {
+    if (!whitelist.nodeExists(uint256(addr))) {
+      if (!whitelist.listExists()) {
+        HeadWhitelist = uint256(addr);
+      }
+      whitelist.push(uint256(addr), PREV);
+      emit WhitelistedAddressAdded(addr);
+      success = true;
+    }
+  }
+
+  /**
+   * @dev Removes an address from the whitelist
+   * @param addr address
+   * @return true if the address was removed from the whitelist,
+   * false if the address wasn't in the whitelist in the first place
+   */
+  function removeAddressFromWhitelist(address addr) onlyOwner public returns(bool success) {
+    if (whitelist.nodeExists(uint256(addr))) {
+      bool direction;
+      uint256 nextHead;
+      (direction, nextHead) = whitelist.getAdjacent(HeadWhitelist, NEXT);
+      if (HeadWhitelist == uint256(addr) && nextHead != HeadWhitelist) {
+        HeadWhitelist = nextHead;
+      }
+      whitelist.remove(uint256(addr));
+      if (!whitelist.listExists()) {
+        HeadWhitelist = NULL;
+      }
+      emit WhitelistedAddressRemoved(addr);
+      success = true;
+    }
+  }
+
+  /**
+   * @dev Given an whitelisted address, returns the next whitelisted address
+   * @param addr address
+   */
+  function getNextWhitelistedAddress(address addr) public returns(address) {
+    if (whitelist.listExists()) {
+      bool direction;
+      uint256 next;
+      (direction, next) = whitelist.getAdjacent(uint256(addr), NEXT);
+      return address(next);
+    }
   }
 }
