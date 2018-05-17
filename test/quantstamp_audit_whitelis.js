@@ -18,9 +18,15 @@ contract('QuantstampAudit_whitelist', function(accounts) {
     quantstamp_token = await QuantstampToken.deployed();
   });
 
-  it ("should let an audit node address to be whitelisted and accessible from head", async function () {
+  it ("should add an address to the whitelist and be accessible from the head", async function () {
     const auditor = accounts[1];
-    await quantstamp_audit.addAddressToWhitelist(auditor);
+    assertEvent({
+        result: await quantstamp_audit.addAddressToWhitelist(auditor),
+        name: "WhitelistedAddressAdded",
+        args: (args) => {
+        assert.equal(args.addr, auditor);
+        }
+    });
 
     assert.equal(auditor, web3.toHex((await quantstamp_audit.HeadWhitelist.call())));
 
@@ -34,7 +40,7 @@ contract('QuantstampAudit_whitelist', function(accounts) {
     });
   });
 
-  it ("should empty the white list after equal add and remove", async function () {
+  it ("should empty the whitelist after equally adding and removing addresses", async function () {
     const auditor = accounts[1];
     await quantstamp_audit.addAddressToWhitelist(auditor);
     await quantstamp_audit.removeAddressFromWhitelist(auditor);
@@ -42,19 +48,19 @@ contract('QuantstampAudit_whitelist', function(accounts) {
     assert.equal(0, web3.toHex((await quantstamp_audit.HeadWhitelist.call())));
   });
 
-  it ("should not change the head after a remove on an empty list", async function () {
+  it ("should not change the head after removing from an empty list", async function () {
     const auditor = accounts[1];
     await quantstamp_audit.removeAddressFromWhitelist(auditor);
 
     assert.equal(0, web3.toHex((await quantstamp_audit.HeadWhitelist.call())));
   });
 
-  it ("should return null next for empty list", async function () {
+  it ("should return next as null for empty list", async function () {
     assert.equal(0,
       web3.toHex((await quantstamp_audit.getNextWhitelistedAddress.call(await quantstamp_audit.HeadWhitelist.call()))));
   });
 
-  it ("should change the head after the first whitelisted node is removed", async function () {
+  it ("should change the head after removing the first whitelisted address", async function () {
     const auditor = accounts[1];
     const auditor2 = accounts[2];
     await quantstamp_audit.addAddressToWhitelist(auditor);
@@ -80,8 +86,7 @@ contract('QuantstampAudit_whitelist', function(accounts) {
     await quantstamp_audit.removeAddressFromWhitelist(auditor);
   });
 
-  // no body other than owner can add/revmoe from whitelisted auditnodes
-  it ("should let anyone other that owner add/remove whitelist", async function () {
+  it ("should not let anyone other than the owner modify whitelist", async function () {
     const fakeOwner = accounts[1];
     const auditor = accounts[2];
 
@@ -102,7 +107,7 @@ contract('QuantstampAudit_whitelist', function(accounts) {
           web3.toHex((await quantstamp_audit.HeadWhitelist.call())))
       )));
 
-    // remove all
+    // remove all auditors from the whitelist
     await quantstamp_audit.removeAddressFromWhitelist(auditor);
     await quantstamp_audit.removeAddressFromWhitelist(auditor2);
   });
