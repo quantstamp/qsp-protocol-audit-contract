@@ -8,9 +8,9 @@ const AuditState = Object.freeze({
   None : 0,
   Queued : 1,
   Assigned : 2,
-  Completed : 3,
-  Error : 4,
-  Timeout : 5
+  Refunded : 3,
+  Completed : 4,
+  Error : 5
 });
 
 contract('QuantstampAudit', function(accounts) {
@@ -167,7 +167,8 @@ contract('QuantstampAudit', function(accounts) {
     await quantstamp_audit.requestAudit(uri, price, {from: requestor});
     await quantstamp_audit.getNextAuditRequest({from: auditor});
     await quantstamp_audit.submitReport(requestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor});
-
+    const state = await quantstamp_audit.getAuditState(requestId);
+    assert.equal(state, AuditState.Completed);
     assertEvent({
       result: await quantstamp_audit.submitReport(requestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor}),
       name: "LogReportSubmissionError_InvalidState",
@@ -209,6 +210,43 @@ contract('QuantstampAudit', function(accounts) {
     await quantstamp_audit.removeAddressFromWhitelist(auditor);
 
     Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor}));
+  });
+
+  it("should prevent a whitelisted user from submitting a report to an audit that they are not assigned", async function() {
+    const auditor2 = accounts[4];
+    await quantstamp_audit.addAddressToWhitelist(auditor);
+    await quantstamp_audit.addAddressToWhitelist(auditor2);
+    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
+    const result = await quantstamp_audit.getNextAuditRequest({from: auditor});
+    const requestId = Util.extractRequestId(result);
+
+    assertEvent({
+      result: await quantstamp_audit.submitReport(requestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor2}),
+      name: "LogReportSubmissionError_InvalidAuditor",
+      args: (args) => {
+        assert.equal(args.requestId.toNumber(), requestId);
+        assert.equal(args.auditor, auditor2);
+      }
+    });
+
+    await quantstamp_audit.submitReport(requestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor});
+    // for the sake of dependency, let's ensure the auditor is not in the whitelist
+    await quantstamp_audit.removeAddressFromWhitelist(auditor2);
+  });
+
+  it("should prevent an audit from being submitted with a bad state", async function() {
+    const auditor2 = accounts[4];
+    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
+    const result = await quantstamp_audit.getNextAuditRequest({from: auditor});
+    const requestId = Util.extractRequestId(result);
+
+    Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.None, reportUri, sha256emptyFile, {from: auditor}));
+    Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.Queued, reportUri, sha256emptyFile, {from: auditor}));
+    Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.Assigned, reportUri, sha256emptyFile, {from: auditor}));
+    Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.Refunded, reportUri, sha256emptyFile, {from: auditor}));
+
+
+    await quantstamp_audit.submitReport(requestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor});
   });
 
   it("should prevent a requestor to request an audit if owner paused", async function() {

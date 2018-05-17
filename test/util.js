@@ -41,11 +41,10 @@ const AuditState = Object.freeze({
   None : 0,
   Queued : 1,
   Assigned : 2,
-  Completed : 3,
-  Error : 4,
-  Timeout : 5
+  Refunded : 3,
+  Completed : 4,
+  Error : 5
 });
-
 
 async function balanceOf (token, user) {
   return (await token.balanceOf(user)).toNumber();
@@ -55,10 +54,14 @@ async function allowance (token, owner, spender) {
   return (await token.allowance(owner, spender)).toNumber();
 }
 
-async function getReportUri (requestId) {
-  // the reportUri is at this index in the QuantstampAudit.Audit struct
+async function getReportUri (quantstamp_audit, requestId) {
   const reportUriIndex = 8;
   return (await quantstamp_audit.audits.call(requestId))[reportUriIndex];
+}
+
+async function getAuditState (quantstamp_audit, requestId) {
+  const stateIndex = 5;
+  return (await quantstamp_audit.audits.call(requestId))[stateIndex];
 }
 
 async function getOwnerBalance () {
@@ -86,6 +89,7 @@ module.exports = {
   balanceOf : balanceOf,
   allowance : allowance,
   getReportUri : getReportUri,
+  getAuditState : getAuditState,
   getOwnerBalance : getOwnerBalance,
   extractRequestId : extractRequestId
 };
