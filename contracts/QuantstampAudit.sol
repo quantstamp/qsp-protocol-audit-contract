@@ -67,6 +67,9 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   // TODO: remove
   uint256 public transactionFee;
 
+  // map audit nodes to their minimum prices. Defaults to zero: the node accepts all requests.
+  mapping(address => uint256) public minAuditPrice;
+
   event LogAuditFinished(
     uint256 requestId,
     address auditor,
@@ -93,7 +96,16 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   event LogPayAuditor(uint256 requestId, address auditor, uint256 amount);
   event LogRefund(uint256 requestId, address requestor, uint256 amount);
   event LogTransactionFeeChanged(uint256 oldFee, uint256 newFee);
+  event LogAuditNodePriceChanged(address auditor, uint256 amount);
+
+  // error handling events
+  // payment is requested for an audit that is already already paid or does not exist
+  event LogErrorAuditNotPending(uint256 requestId, address auditor);
   event LogAuditQueueIsEmpty();
+  
+  // the audit queue has elements, but none satisfy the minPrice of the audit node
+  // amount corresponds to the current minPrice of the auditor
+  event LogAuditNodePriceHigherThanRequests(address auditor, uint256 amount);
 
   uint256 private requestCounter;
 
@@ -172,9 +184,14 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   }
 
   /**
-   * @dev Finds a list of most expensive audits and assigns the oldest one to the auditor node.
+   * @dev Finds a list of most expensive audits and assigns the oldest one to the auditor node. 
    */
   function getNextAuditRequest() public onlyWhitelisted {
+    // there are no audits in the queue
+    if(!auditQueueExists()){
+      emit LogAuditQueueIsEmpty();
+      return;
+    }
 
     // check if the auditor's assignment is not exceeded.
     uint256 assignedRequests = assignedRequestIds[msg.sender];
@@ -183,10 +200,11 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
       return;
     }
 
-    uint256 requestId = dequeueAudit();
-
+    // there are no audits in the queue with a price high enough for the audit node
+    uint256 minPrice = minAuditPrice[msg.sender];
+    uint256 requestId = dequeueAudit(minPrice);
     if (requestId == 0) {
-      emit LogAuditQueueIsEmpty();
+      emit LogAuditNodePriceHigherThanRequests(msg.sender, minPrice);
       return;
     }
 
@@ -197,6 +215,13 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
     assignedRequestIds[msg.sender] = assignedRequests + 1;
 
     emit LogAuditAssigned(requestId, audits[requestId].auditor);
+  }
+
+  /**
+   * @dev Checks if the list of audits has any elements
+   */
+  function auditQueueExists() view internal returns(bool) {
+    return priceList.listExists();
   }
 
   /**
@@ -215,14 +240,19 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   }
 
   /**
-   * @dev Finds a list of most expensive audits and returns the oldest one.
+   * @dev Finds a list of most expensive audits and returns the oldest one that has a price >= minPrice
+   * @param minPrice The minimum audit price.
    */
-  function dequeueAudit() internal returns(uint256) {
+  function dequeueAudit(uint256 minPrice) internal returns(uint256) {
     bool exists;
     uint256 price;
 
     // picks the tail of price buckets
     (exists, price) = priceList.getAdjacent(HEAD, PREV);
+    
+    if(price < minPrice){
+      return 0;
+    }
 
     // picks the oldest audit request
     uint256 result = auditsByPrice[price].pop(NEXT);
@@ -231,6 +261,15 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
       priceList.remove(price);
     }
     return result;
+  }
+
+  /**
+   * @dev Allows the audit node to set its minimum price per audit
+   * @param price The minimum price.  
+   */
+  function setAuditNodePrice(uint256 price) public onlyWhitelisted {
+    minAuditPrice[msg.sender] = price;
+    emit LogAuditNodePriceChanged(msg.sender, price);
   }
 
   /**
@@ -273,8 +312,8 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
     // iterate over the price list
     (exists, price) = priceList.getAdjacent(HEAD, NEXT);
     while (price != HEAD) {
-      (exists, price) = priceList.getAdjacent(price, NEXT);
       numElements += auditsByPrice[price].sizeOf();
+      (exists, price) = priceList.getAdjacent(price, NEXT);
     }
     return numElements;
   }
