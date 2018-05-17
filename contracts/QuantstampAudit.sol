@@ -245,7 +245,7 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   }
 
   /**
-   * @dev Finds a list of most expensive audits and returns the oldest one that has a price > minPrice
+   * @dev Finds a list of most expensive audits and returns the oldest one that has a price >= minPrice
    * @param minPrice The minimum audit price.
    */
   function dequeueAuditRequest(uint256 minPrice) internal returns(uint256) {
