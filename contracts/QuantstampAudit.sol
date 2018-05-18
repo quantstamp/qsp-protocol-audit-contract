@@ -3,7 +3,6 @@ pragma solidity 0.4.23;
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "openzeppelin-solidity/contracts/ownership/Whitelist.sol";
 import "openzeppelin-solidity/contracts/lifecycle/Pausable.sol";
 
 import "./LinkedListLib.sol";
@@ -51,9 +50,6 @@ contract QuantstampAudit is Ownable, Pausable {
   bool constant PREV = false;
   bool constant NEXT = true;
 
-  // head of the whitelist linked-list
-  uint256 public HeadWhitelist;
-
   // maximum number of assigned audits per each auditor
   uint256 public maxAssignedRequests = 1;
   // mapping from an auditor address to the number of requests that it currently processes
@@ -65,7 +61,7 @@ contract QuantstampAudit is Ownable, Pausable {
   mapping(uint256 => LinkedListLib.LinkedList) auditsByPrice;
 
   // whitelist audit nodes
-  LinkedListLib.LinkedList whitelist;
+  LinkedListLib.LinkedList whitelistedList;
 
   // token used to pay for audits. This contract assumes that the owner of the contract trusts token's code and
   // that transfer function (such as transferFrom, transfer) do the right thing
@@ -134,7 +130,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @dev Throws if called by any account that's not whitelisted.
    */
   modifier onlyWhitelisted() {
-    require(whitelist.nodeExists(uint256(msg.sender)));
+    require(whitelistedList.nodeExists(uint256(msg.sender)));
     _;
   }
 
@@ -399,33 +395,19 @@ contract QuantstampAudit is Ownable, Pausable {
    * @return true if the address was added to the whitelist
    */
   function addAddressToWhitelist(address addr) onlyOwner public returns(bool success) {
-    if (!whitelist.nodeExists(uint256(addr))) {
-      if (!whitelist.listExists()) {
-        HeadWhitelist = uint256(addr);
-      }
-      whitelist.push(uint256(addr), PREV);
+    if (whitelistedList.insert(HEAD, uint256(addr), PREV)) {
       emit WhitelistedAddressAdded(addr);
       success = true;
     }
   }
 
   /**
-   * @dev Removes an address from the whitelist and updates the whitelist linked-list head
+   * @dev Removes an address from the whitelist linked-list
    * @param addr address
    * @return true if the address was removed from the whitelist,
    */
   function removeAddressFromWhitelist(address addr) onlyOwner public returns(bool success) {
-    if (whitelist.nodeExists(uint256(addr))) {
-      bool direction;
-      uint256 nextHead;
-      (direction, nextHead) = whitelist.getAdjacent(HeadWhitelist, NEXT);
-      if (HeadWhitelist == uint256(addr) && nextHead != HeadWhitelist) {
-        HeadWhitelist = nextHead;
-      }
-      whitelist.remove(uint256(addr));
-      if (!whitelist.listExists()) {
-        HeadWhitelist = NULL;
-      }
+    if (whitelistedList.remove(uint256(addr)) != 0) {
       emit WhitelistedAddressRemoved(addr);
       success = true;
     }
@@ -437,11 +419,9 @@ contract QuantstampAudit is Ownable, Pausable {
    * @return next address of the given param
    */
   function getNextWhitelistedAddress(address addr) public returns(address) {
-    if (whitelist.listExists()) {
-      bool direction;
-      uint256 next;
-      (direction, next) = whitelist.getAdjacent(uint256(addr), NEXT);
-      return address(next);
-    }
+    bool direction;
+    uint256 next;
+    (direction, next) = whitelistedList.getAdjacent(uint256(addr), NEXT);
+    return address(next);
   }
 }
