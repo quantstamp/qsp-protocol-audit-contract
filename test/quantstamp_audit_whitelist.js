@@ -70,7 +70,7 @@ contract('QuantstampAudit_whitelist', function(accounts) {
     // remove all auditors from the whitelist
     for (var i in auditors) {
       await quantstamp_audit.removeAddressFromWhitelist(auditors[i]);
-    }q
+    }
   });
 
 });
