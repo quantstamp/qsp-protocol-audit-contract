@@ -55,13 +55,13 @@ async function allowance (token, owner, spender) {
 }
 
 async function getReportUri (quantstamp_audit, requestId) {
-  const reportUriIndex = 8;
+  const reportUriIndex = 7;
   return (await quantstamp_audit.audits.call(requestId))[reportUriIndex];
 }
 
-async function getAuditState (quantstamp_audit, requestId) {
-  const stateIndex = 5;
-  return (await quantstamp_audit.audits.call(requestId))[stateIndex];
+async function getAuditState (quantstamp_audit_data, requestId) {
+  const stateIndex = 4;
+  return (await quantstamp_audit_data.audits.call(requestId))[stateIndex];
 }
 
 async function getOwnerBalance () {

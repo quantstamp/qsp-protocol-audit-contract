@@ -1,5 +1,6 @@
 const Util = require("./util.js");
 const QuantstampToken = artifacts.require('test/QuantstampToken');
+const QuantstampAuditData = artifacts.require('QuantstampAuditData');
 const QuantstampAudit = artifacts.require('QuantstampAudit');
 
 const AuditState = Object.freeze({
@@ -19,15 +20,13 @@ contract('QuantstampAudit2', function(accounts) {
 
   const requestorBudget = Util.toQsp(100000);
   const uri = "http://www.quantstamp.com/contract.sol";
-  // transaction fee that offsets the gas cost on QSP network
-  const fee = Util.toEther(0.5);
 
   const reportUri = "http://www.quantstamp.com/report.md";
   const sha256emptyFile = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
   let requestCounter = 1;
 
-
+  let quantstamp_audit_data;
   let quantstamp_audit;
   let quantstamp_token;
 
@@ -40,8 +39,8 @@ contract('QuantstampAudit2', function(accounts) {
   }
 
   async function getReportUri (requestId) {
-    const reportUriIndex = 8;
-    return (await quantstamp_audit.audits.call(requestId))[reportUriIndex];
+    const reportUriIndex = 7;
+    return (await quantstamp_audit_data.audits.call(requestId))[reportUriIndex];
   }
 
   async function getOwnerBalance () {
@@ -66,7 +65,9 @@ contract('QuantstampAudit2', function(accounts) {
 
   beforeEach(async function () {
     quantstamp_token = await QuantstampToken.deployed();
+    quantstamp_audit_data = await QuantstampAuditData.deployed();
     quantstamp_audit = await QuantstampAudit.deployed();
+    await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     // enable transfers before any payments are allowed
     await quantstamp_token.enableTransfer({from : owner});
     // transfer 100,000 QSP tokens to the requestor
@@ -81,13 +82,12 @@ contract('QuantstampAudit2', function(accounts) {
     assert.equal(await balanceOf(requestor), requestorBudget);
     // initially the contract has empty budget
     assert.equal(await balanceOf(quantstamp_audit.address), 0);
-    await quantstamp_audit.setTransactionFee(fee, {from : owner});
 
     const price = Util.toQsp(35);
     const ownerBalance = await getOwnerBalance();
     // request an audit
     requestCounter++;
-    const result = await quantstamp_audit.requestAudit(uri, price, {value : fee, from : requestor});
+    const result = await quantstamp_audit.requestAudit(uri, price, {from : requestor});
     const requestId = extractRequestId(result);
 
     // verify the emitted event
@@ -96,28 +96,12 @@ contract('QuantstampAudit2', function(accounts) {
     // the audit contract should have only one payment
     assert.equal(await balanceOf(quantstamp_audit.address), price);
     assert.equal(await quantstamp_audit.isAuditFinished(requestId), false);
-    // owner should be paid the transaction fee
-    assert.equal(ownerBalance.add(fee).toNumber(), (await getOwnerBalance()).toNumber());
-  });
-
-  it("should not audit unless the audit price is higher than the transaction fee", async function () {
-    const newFee = Util.toEther(2);
-    await quantstamp_audit.setTransactionFee(newFee, {from : owner});
-    // verify that the new fee is set
-    assert.equal((await quantstamp_audit.transactionFee.call()).toNumber(), newFee);
-
-    // should fail, because fee < transactionFee
-    requestCounter++;
-    Util.assertTxFail(quantstamp_audit.requestAudit(uri, newFee, {value : fee, from : requestor}));
-    // revert the transaction fee
-    await quantstamp_audit.setTransactionFee(fee, {from : owner});
   });
 
   it("should pay the auditor for their work", async function () {
-    await quantstamp_audit.setTransactionFee(fee, {from : owner});
     const price = Util.toQsp(35);
     requestCounter++;
-    const result = await quantstamp_audit.requestAudit(uri, price, {value : fee, from : requestor});
+    const result = await quantstamp_audit.requestAudit(uri, price, {from : requestor});
     const requestId = extractRequestId(result);
 
     assertEventAtIndex({
@@ -178,25 +162,24 @@ contract('QuantstampAudit2', function(accounts) {
     const secondRequestUri = "http://www.quantstamp.com/contract02.sol";
     const price = Util.toQsp(25);
 
-    const firstAuditRequestResult = await quantstamp_audit.requestAudit(firstRequestUri, price, {value : fee, from : requestor});
+    const firstAuditRequestResult = await quantstamp_audit.requestAudit(firstRequestUri, price, {from : requestor});
     assert.equal(firstAuditRequestResult.logs.length, 1);
     assert.equal(firstAuditRequestResult.logs[0].event, "LogAuditRequested");
     const firstRequestId = firstAuditRequestResult.logs[0].args.requestId.toNumber();
 
-    const secondAuditRequestResult = await quantstamp_audit.requestAudit(secondRequestUri, price, {value : fee, from : requestor});
+    const secondAuditRequestResult = await quantstamp_audit.requestAudit(secondRequestUri, price, {from : requestor});
     assert.equal(secondAuditRequestResult.logs.length, 1);
     assert.equal(secondAuditRequestResult.logs[0].event, "LogAuditRequested");
     assert.equal(secondAuditRequestResult.logs[0].args.requestId.toNumber(), firstRequestId + 1);
   });
 
-  it("should log transaction fee and block timestamp when requesting audits", async function () {
+  it("should log block timestamp when requesting audits", async function () {
     const requestUri = "http://www.quantstamp.com/contract03.sol";
     const price = Util.toQsp(25);
 
-    const result = await quantstamp_audit.requestAudit(requestUri, price, {value : fee, from : requestor});
+    const result = await quantstamp_audit.requestAudit(requestUri, price, {from : requestor});
     assert.equal(result.logs.length, 1);
     assert.equal(result.logs[0].event, "LogAuditRequested");
-    assert.equal(result.logs[0].args.transactionFee.toNumber(), fee);
     assert(result.logs[0].args.requestTimestamp.toNumber() > 0);
   });
 
@@ -208,7 +191,7 @@ contract('QuantstampAudit2', function(accounts) {
     // whitelisting another auditor
     await quantstamp_audit.addAddressToWhitelist(auditor);
 
-    const auditRequestResult = await quantstamp_audit.requestAudit(requestUri, price, {value : fee, from : requestor});
+    const auditRequestResult = await quantstamp_audit.requestAudit(requestUri, price, {from : requestor});
     const result = await quantstamp_audit.getNextAuditRequest({from: auditor});
     const requestId = extractRequestId(result);
 
@@ -224,21 +207,21 @@ contract('QuantstampAudit2', function(accounts) {
   it("should revert if the user tries to request an audit with an insufficient token allowance", async function () {
     const requestUri = "http://www.quantstamp.com/contract05.sol";
     const price = (await balanceOf(requestor));
-    Util.assertTxFail(quantstamp_audit.requestAudit(requestUri, price, {value : fee, from : requestor}));
+    Util.assertTxFail(quantstamp_audit.requestAudit(requestUri, price, {from : requestor}));
   });
 
   it("should revert if the user tries to request an audit with an insufficient token balance", async function () {
     const requestUri = "http://www.quantstamp.com/contract06.sol";
     const price = Util.toQsp(10000000);
-    Util.assertTxFail(quantstamp_audit.requestAudit(requestUri, price, {value : fee, from : requestor}));
+    Util.assertTxFail(quantstamp_audit.requestAudit(requestUri, price, {from : requestor}));
   });
 
   it("should log an error if payment is requested for a non-pending audit", async function () {
     const price = Util.toQsp(35);
-    await quantstamp_audit.requestAudit(uri, price, {value : fee, from : requestor});
+    await quantstamp_audit.requestAudit(uri, price, {from : requestor});
     const requestResult = await quantstamp_audit.getNextAuditRequest({from: auditor});
     const requestId = extractRequestId(requestResult);
-    const result = await quantstamp_audit.submitReport(requestId, AuditState.Completed, reportUri, sha256emptyFile, {from : auditor});
+    await quantstamp_audit.submitReport(requestId, AuditState.Completed, reportUri, sha256emptyFile, {from : auditor});
 
     assert.equal(await quantstamp_audit.isAuditFinished(requestId), true);
 
