@@ -3,6 +3,7 @@ pragma solidity ^0.4.23;
 import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
 import "openzeppelin-solidity/contracts/ownership/Whitelist.sol";
 
+// the audit data has a whitelist of addresses of audit contracts that may interact with this contract
 contract QuantstampAuditData is Whitelist {
 
   // state of audit requests submitted to the contract
