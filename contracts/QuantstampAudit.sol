@@ -2,13 +2,12 @@ pragma solidity 0.4.23;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "openzeppelin-solidity/contracts/ownership/Whitelist.sol";
 import "openzeppelin-solidity/contracts/lifecycle/Pausable.sol";
 
 import "./LinkedListLib.sol";
 import "./QuantstampAuditData.sol";
 
-contract QuantstampAudit is Ownable, Whitelist, Pausable {
+contract QuantstampAudit is Ownable, Pausable {
   using SafeMath for uint256;
   using LinkedListLib for LinkedListLib.LinkedList;
 
@@ -25,6 +24,9 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   LinkedListLib.LinkedList priceList;
   // map from price to a list of request IDs
   mapping(uint256 => LinkedListLib.LinkedList) auditsByPrice;
+
+  // whitelist audit nodes
+  LinkedListLib.LinkedList whitelistedList;
 
   // contract that stores audit data (separate from the auditing logic)
   QuantstampAuditData public auditData;
@@ -64,6 +66,9 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   // amount corresponds to the current minPrice of the auditor
   event LogAuditNodePriceHigherThanRequests(address auditor, uint256 amount);
 
+  event WhitelistedAddressAdded(address addr);
+  event WhitelistedAddressRemoved(address addr);
+
   /**
    * @dev The constructor creates an audit contract.
    * @param auditDataAddress The address of a AuditData that stores data used for performing audits.
@@ -71,6 +76,14 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
   constructor (address auditDataAddress) public {
     require(auditDataAddress != address(0));
     auditData = QuantstampAuditData(auditDataAddress);
+  }
+
+  /**
+   * @dev Throws if called by any account that's not whitelisted.
+   */
+  modifier onlyWhitelisted() {
+    require(whitelistedList.nodeExists(uint256(msg.sender)));
+    _;
   }
 
   /**
@@ -296,5 +309,41 @@ contract QuantstampAudit is Ownable, Whitelist, Pausable {
       (exists, price) = priceList.getAdjacent(price, NEXT);
     }
     return numElements;
+  }
+
+  /**
+   * @dev Adds an address to the whitelist
+   * @param addr address
+   * @return true if the address was added to the whitelist
+   */
+  function addAddressToWhitelist(address addr) onlyOwner public returns(bool success) {
+    if (whitelistedList.insert(HEAD, uint256(addr), PREV)) {
+      emit WhitelistedAddressAdded(addr);
+      success = true;
+    }
+  }
+
+  /**
+   * @dev Removes an address from the whitelist linked-list
+   * @param addr address
+   * @return true if the address was removed from the whitelist,
+   */
+  function removeAddressFromWhitelist(address addr) onlyOwner public returns(bool success) {
+    if (whitelistedList.remove(uint256(addr)) != 0) {
+      emit WhitelistedAddressRemoved(addr);
+      success = true;
+    }
+  }
+
+  /**
+   * @dev Given a whitelisted address, returns the next address from the whitelist
+   * @param addr address
+   * @return next address of the given param
+   */
+  function getNextWhitelistedAddress(address addr) public returns(address) {
+    bool direction;
+    uint256 next;
+    (direction, next) = whitelistedList.getAdjacent(uint256(addr), NEXT);
+    return address(next);
   }
 }
