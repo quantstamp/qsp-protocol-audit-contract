@@ -11,7 +11,6 @@ const AuditState = Object.freeze({
   Error : 5
 });
 
-
 function toEther (n) {
   return web3.toWei(n, "ether");
 }
@@ -59,14 +58,14 @@ async function allowance (token, owner, spender) {
   return (await token.allowance(owner, spender)).toNumber();
 }
 
-async function getReportUri (quantstamp_audit, requestId) {
-  const reportUriIndex = 8;
-  return (await quantstamp_audit.audits.call(requestId))[reportUriIndex];
+async function getReportUri (quantstamp_audit_data, requestId) {
+  const reportUriIndex = 7;
+  return (await quantstamp_audit_data.audits.call(requestId))[reportUriIndex];
 }
 
-async function getAuditState (quantstamp_audit, requestId) {
-  const stateIndex = 5;
-  return (await quantstamp_audit.audits.call(requestId))[stateIndex];
+async function getAuditState (quantstamp_audit_data, requestId) {
+  const stateIndex = 4;
+  return (await quantstamp_audit_data.audits.call(requestId))[stateIndex];
 }
 
 async function getEthBalance (user) {
@@ -76,7 +75,6 @@ async function getEthBalance (user) {
 function extractRequestId(result) {
   return result.logs[0].args.requestId.toNumber();
 }
-
 
 module.exports = {
   uri : uri,

@@ -1,5 +1,6 @@
 const QuantstampToken = artifacts.require('QuantstampToken');
 const QuantstampAudit = artifacts.require('QuantstampAudit');
+const QuantstampAuditData = artifacts.require('QuantstampAuditData');
 const Util = require("./util.js");
 const AuditState = Util.AuditState;
 
@@ -12,14 +13,16 @@ contract('QuantstampAudit_refunds', function(accounts) {
   const price = 123;
   const requestorBudget = Util.toQsp(100000);
 
-  let requestCounter = 1;
   let globalRequestId = 0;
+  let quantstamp_audit_data;
   let quantstamp_audit;
   let quantstamp_token;
 
   beforeEach(async function () {
+    quantstamp_audit_data = await QuantstampAuditData.deployed();
     quantstamp_audit = await QuantstampAudit.deployed();
     quantstamp_token = await QuantstampToken.deployed();
+    await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     // enable transfers before any payments are allowed
     await quantstamp_token.enableTransfer({from : owner});
     // transfer 100,000 QSP tokens to the requestor
@@ -29,7 +32,7 @@ contract('QuantstampAudit_refunds', function(accounts) {
     // whitelisting auditor
     await quantstamp_audit.addAddressToWhitelist(auditor);
     // allow audit nodes to perform many audits at once
-    await quantstamp_audit.setMaxAssignedRequests(1000);
+    await quantstamp_audit_data.setMaxAssignedRequests(1000);
   });
 
   it("should disallow refunds for bogus request IDs", async function () {
@@ -51,7 +54,7 @@ contract('QuantstampAudit_refunds', function(accounts) {
     const sizeBeforeRefund = await quantstamp_audit.getQueueLength.call();
     assert.equal(await Util.balanceOf(quantstamp_token, requestor), requestorBalance - price);
     const requestId = Util.extractRequestId(result);
-    assert.equal(await Util.getAuditState(quantstamp_audit, requestId), AuditState.Queued);
+    assert.equal(await Util.getAuditState(quantstamp_audit_data, requestId), AuditState.Queued);
 
     Util.assertEvent({
       result: await quantstamp_audit.refund(requestId, {from: requestor}),
@@ -63,7 +66,7 @@ contract('QuantstampAudit_refunds', function(accounts) {
       }
     });
     assert.equal(await quantstamp_audit.getQueueLength.call(), sizeBeforeRefund - 1);
-    assert.equal(await Util.getAuditState(quantstamp_audit, requestId), AuditState.Refunded);
+    assert.equal(await Util.getAuditState(quantstamp_audit_data, requestId), AuditState.Refunded);
     assert.equal(await Util.balanceOf(quantstamp_token, requestor), requestorBalance);
   });
 
@@ -110,7 +113,7 @@ contract('QuantstampAudit_refunds', function(accounts) {
       }
     });
   });
-  
+
   it("should not allow the requestor to get a refund during the lock period", async function () {
     assert(await quantstamp_audit.getQueueLength.call(), 0);
     const result = await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor});
@@ -127,7 +130,7 @@ contract('QuantstampAudit_refunds', function(accounts) {
   });
 
   it("should allow the requestor to get a refund after the lock period", async function () {
-    await quantstamp_audit.setAuditTimeout(0);
+    await quantstamp_audit_data.setAuditTimeout(0);
     Util.assertEvent({
       result: await quantstamp_audit.refund(globalRequestId, {from: requestor}),
       name: "LogRefund",

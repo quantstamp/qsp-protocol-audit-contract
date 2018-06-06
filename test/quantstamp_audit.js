@@ -1,3 +1,4 @@
+const QuantstampAuditData = artifacts.require('QuantstampAuditData');
 const QuantstampToken = artifacts.require('QuantstampToken');
 const QuantstampAudit = artifacts.require('QuantstampAudit');
 const Util = require("./util.js");
@@ -13,12 +14,15 @@ contract('QuantstampAudit', function(accounts) {
   const requestorBudget = Util.toQsp(100000);
 
   let requestCounter = 1;
+  let quantstamp_audit_data;
   let quantstamp_audit;
   let quantstamp_token;
 
   beforeEach(async function () {
+    quantstamp_audit_data = await QuantstampAuditData.deployed();
     quantstamp_audit = await QuantstampAudit.deployed();
     quantstamp_token = await QuantstampToken.deployed();
+    await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     // enable transfers before any payments are allowed
     await quantstamp_token.enableTransfer({from : owner});
     // transfer 100,000 QSP tokens to the requestor
@@ -28,7 +32,7 @@ contract('QuantstampAudit', function(accounts) {
     // whitelisting auditor
     await quantstamp_audit.addAddressToWhitelist(auditor);
     // relaxing the requirement for other tests
-    await quantstamp_audit.setMaxAssignedRequests(100);
+    await quantstamp_audit_data.setMaxAssignedRequests(100);
   });
 
   it("queues new audits and assigns them in the right order", async function() {
@@ -144,7 +148,7 @@ contract('QuantstampAudit', function(accounts) {
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     await quantstamp_audit.getNextAuditRequest({from: auditor});
     await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor});
-    const state = await quantstamp_audit.getAuditState(requestId);
+    const state = await quantstamp_audit_data.getAuditState(requestId);
     assert.equal(state, AuditState.Completed);
     Util.assertEvent({
       result: await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor}),
@@ -238,7 +242,7 @@ contract('QuantstampAudit', function(accounts) {
     const auditor2 = accounts[4];
     const pendingAuditsNum = (await quantstamp_audit.assignedRequestIds.call(auditor2)).toNumber();
 
-    await quantstamp_audit.setMaxAssignedRequests(pendingAuditsNum + 1);
+    await quantstamp_audit_data.setMaxAssignedRequests(pendingAuditsNum + 1);
     await quantstamp_audit.addAddressToWhitelist(auditor2);
 
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
@@ -260,7 +264,7 @@ contract('QuantstampAudit', function(accounts) {
 
     await quantstamp_audit.addAddressToWhitelist(auditor2);
     const pendingAuditsNum = (await quantstamp_audit.assignedRequestIds.call(auditor2)).toNumber();
-    await quantstamp_audit.setMaxAssignedRequests(pendingAuditsNum + 1);
+    await quantstamp_audit_data.setMaxAssignedRequests(pendingAuditsNum + 1);
 
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
@@ -289,7 +293,7 @@ contract('QuantstampAudit', function(accounts) {
 
     await quantstamp_audit.addAddressToWhitelist(auditor2);
     const pendingAuditsNum = (await quantstamp_audit.assignedRequestIds.call(auditor2)).toNumber();
-    await quantstamp_audit.setMaxAssignedRequests(pendingAuditsNum + 1);
+    await quantstamp_audit_data.setMaxAssignedRequests(pendingAuditsNum + 1);
 
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     const result = await quantstamp_audit.getNextAuditRequest({from: auditor2});

@@ -1,8 +1,8 @@
 const QuantstampToken = artifacts.require('QuantstampToken');
 const QuantstampAudit = artifacts.require('QuantstampAudit');
+const QuantstampAuditData = artifacts.require('QuantstampAuditData');
 const Util = require("./util.js");
 const AuditState = Util.AuditState;
-
 
 contract('QuantstampAudit_ordering', function(accounts) {
   const owner = accounts[0];
@@ -13,9 +13,9 @@ contract('QuantstampAudit_ordering', function(accounts) {
   const requestorBudget = Util.toQsp(100000);
 
   let requestCounter = 1;
+  let quantstamp_audit_data;
   let quantstamp_audit;
   let quantstamp_token;
-
 
   // submits a request for each price in order, returning the array of ids of the requests
   async function submitMultipleRequests(prices){
@@ -57,10 +57,10 @@ contract('QuantstampAudit_ordering', function(accounts) {
     return indices;
   }
 
-  // ensures that the order in which audit nodes receive audits adheres to our requirements: 
+  // ensures that the order in which audit nodes receive audits adheres to our requirements:
   // higher priced audits are chosen first, tie-breaking on age
   async function check_ordering(prices){
-    var sorted_indices = getSortedIndices(prices); 
+    var sorted_indices = getSortedIndices(prices);
     var request_ids = await submitMultipleRequests(prices);
     var audit_ids = await getMultipleRequests(prices.length);
 
@@ -74,8 +74,10 @@ contract('QuantstampAudit_ordering', function(accounts) {
   }
 
   beforeEach(async function () {
+    quantstamp_audit_data = await QuantstampAuditData.deployed();
     quantstamp_audit = await QuantstampAudit.deployed();
     quantstamp_token = await QuantstampToken.deployed();
+    await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     // enable transfers before any payments are allowed
     await quantstamp_token.enableTransfer({from : owner});
     // transfer 100,000 QSP tokens to the requestor
@@ -85,7 +87,7 @@ contract('QuantstampAudit_ordering', function(accounts) {
     // whitelisting auditor
     await quantstamp_audit.addAddressToWhitelist(auditor);
     // allow audit nodes to perform many audits at once
-    await quantstamp_audit.setMaxAssignedRequests(1000);
+    await quantstamp_audit_data.setMaxAssignedRequests(1000);
 
   });
 
@@ -116,7 +118,7 @@ contract('QuantstampAudit_ordering', function(accounts) {
   });
 
   it("should allow the auditor to set their min price", async function(){
-    assert.equal(await quantstamp_audit.minAuditPrice.call(auditor), 0);
+    assert.equal(await quantstamp_audit_data.minAuditPrice.call(auditor), 0);
     Util.assertEvent({
       result: await quantstamp_audit.setAuditNodePrice(price, {from:auditor}),
       name: "LogAuditNodePriceChanged",
@@ -125,7 +127,7 @@ contract('QuantstampAudit_ordering', function(accounts) {
         assert.equal(args.amount, price);
       }
     });
-    assert.equal(await quantstamp_audit.minAuditPrice.call(auditor), price);
+    assert.equal(await quantstamp_audit_data.minAuditPrice.call(auditor), price);
   });
 
   it("should only get audits that meet the audit node minimum price", async function(){
