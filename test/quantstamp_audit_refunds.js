@@ -1,11 +1,7 @@
+const QuantstampToken = artifacts.require('QuantstampToken');
+const QuantstampAudit = artifacts.require('QuantstampAudit');
 const Util = require("./util.js");
 const AuditState = Util.AuditState;
-const assertEvent = Util.assertEvent;
-const assertEventAtIndex = Util.assertEventAtIndex;
-const extractRequestId = Util.extractRequestId;
-
-const QuantstampAudit = artifacts.require('QuantstampAudit');
-const QuantstampToken = artifacts.require('QuantstampToken');
 
 
 contract('QuantstampAudit_refunds', function(accounts) {
@@ -15,9 +11,6 @@ contract('QuantstampAudit_refunds', function(accounts) {
   const auditor = accounts[3];
   const price = 123;
   const requestorBudget = Util.toQsp(100000);
-  const uri = "http://www.quantstamp.com/contract1.sol";
-  const reportUri = "http://www.quantstamp.com/report.md";
-  const sha256emptyFile = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
   let requestCounter = 1;
   let globalRequestId = 0;
@@ -41,7 +34,7 @@ contract('QuantstampAudit_refunds', function(accounts) {
 
   it("should disallow refunds for bogus request IDs", async function () {
     const bogusId = 123456;
-    assertEvent({
+    Util.assertEvent({
       result: await quantstamp_audit.refund(bogusId, {from: requestor}),
       name: "LogRefundInvalidState",
       args: (args) => {
@@ -54,13 +47,13 @@ contract('QuantstampAudit_refunds', function(accounts) {
   it("should allow for refunds immediately after requesting, decreasing the queue size", async function () {
     const price = Util.toQsp(35);
     const requestorBalance = await Util.balanceOf(quantstamp_token, requestor);
-    const result = await quantstamp_audit.requestAudit(uri, price, {from : requestor});
+    const result = await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor});
     const sizeBeforeRefund = await quantstamp_audit.getQueueLength.call();
     assert.equal(await Util.balanceOf(quantstamp_token, requestor), requestorBalance - price);
-    const requestId = extractRequestId(result);
+    const requestId = Util.extractRequestId(result);
     assert.equal(await Util.getAuditState(quantstamp_audit, requestId), AuditState.Queued);
 
-    assertEvent({
+    Util.assertEvent({
       result: await quantstamp_audit.refund(requestId, {from: requestor}),
       name: "LogRefund",
       args: (args) => {
@@ -75,10 +68,10 @@ contract('QuantstampAudit_refunds', function(accounts) {
   });
 
   it("should not allow a user that did not submit the request to get a refund", async function () {
-    const result = await quantstamp_audit.requestAudit(uri, price, {from : requestor});
-    globalRequestId = extractRequestId(result);
+    const result = await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor});
+    globalRequestId = Util.extractRequestId(result);
     const bogusRequestor = accounts[5];
-    assertEvent({
+    Util.assertEvent({
       result: await quantstamp_audit.refund(globalRequestId, {from: bogusRequestor}),
       name: "LogRefundInvalidRequestor",
       args: (args) => {
@@ -91,9 +84,9 @@ contract('QuantstampAudit_refunds', function(accounts) {
   it("should not allow a requestor to get a refund after a report has been submitted", async function () {
     assert(await quantstamp_audit.getQueueLength.call(), 1);
     await quantstamp_audit.getNextAuditRequest({from:auditor});
-    await quantstamp_audit.submitReport(globalRequestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor});
-    
-    assertEvent({
+    await quantstamp_audit.submitReport(globalRequestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor});
+
+    Util.assertEvent({
       result: await quantstamp_audit.refund(globalRequestId, {from: requestor}),
       name: "LogRefundInvalidState",
       args: (args) => {
@@ -104,11 +97,11 @@ contract('QuantstampAudit_refunds', function(accounts) {
   });
 
   it("should not allow an auditor to submit a report after a refund", async function () {
-    const result = await quantstamp_audit.requestAudit(uri, price, {from : requestor});
-    const requestId = extractRequestId(result);
+    const result = await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor});
+    const requestId = Util.extractRequestId(result);
     await quantstamp_audit.refund(requestId, {from: requestor});
-    assertEvent({
-      result: await quantstamp_audit.submitReport(requestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor}),
+    Util.assertEvent({
+      result: await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor}),
       name: "LogReportSubmissionError_InvalidState",
       args: (args) => {
         assert.equal(args.requestId, requestId);
@@ -120,10 +113,10 @@ contract('QuantstampAudit_refunds', function(accounts) {
   
   it("should not allow the requestor to get a refund during the lock period", async function () {
     assert(await quantstamp_audit.getQueueLength.call(), 0);
-    const result = await quantstamp_audit.requestAudit(uri, price, {from : requestor});
-    globalRequestId = extractRequestId(result);
+    const result = await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor});
+    globalRequestId = Util.extractRequestId(result);
     await quantstamp_audit.getNextAuditRequest({from:auditor});
-    assertEvent({
+    Util.assertEvent({
       result: await quantstamp_audit.refund(globalRequestId, {from: requestor}),
       name: "LogRefundInvalidFundsLocked",
       args: (args) => {
@@ -135,7 +128,7 @@ contract('QuantstampAudit_refunds', function(accounts) {
 
   it("should allow the requestor to get a refund after the lock period", async function () {
     await quantstamp_audit.setAuditTimeout(0);
-    assertEvent({
+    Util.assertEvent({
       result: await quantstamp_audit.refund(globalRequestId, {from: requestor}),
       name: "LogRefund",
       args: (args) => {
@@ -147,11 +140,11 @@ contract('QuantstampAudit_refunds', function(accounts) {
   });
 
   it("should allow multiple requestors to get refunds with the same price", async function () {
-    const result = await quantstamp_audit.requestAudit(uri, price, {from : requestor});
-    const id1 = extractRequestId(result);
-    const result2 = await quantstamp_audit.requestAudit(uri, price, {from : requestor});
-    const id2 = extractRequestId(result2);
-    assertEvent({
+    const result = await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor});
+    const id1 = Util.extractRequestId(result);
+    const result2 = await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor});
+    const id2 = Util.extractRequestId(result2);
+    Util.assertEvent({
       result: await quantstamp_audit.refund(id2, {from: requestor}),
       name: "LogRefund",
       args: (args) => {
@@ -160,7 +153,7 @@ contract('QuantstampAudit_refunds', function(accounts) {
         assert.equal(args.amount, price);
       }
     });
-    assertEvent({
+    Util.assertEvent({
       result: await quantstamp_audit.refund(id1, {from: requestor}),
       name: "LogRefund",
       args: (args) => {
@@ -173,12 +166,12 @@ contract('QuantstampAudit_refunds', function(accounts) {
 
   it("should allow the auditor to submit an audit after the lock period", async function () {
     assert(await quantstamp_audit.getQueueLength.call(), 0);
-    await quantstamp_audit.requestAudit(uri, price, {from : requestor});
+    await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor});
     const result = await quantstamp_audit.getNextAuditRequest({from:auditor});
-    const requestId = extractRequestId(result);
+    const requestId = Util.extractRequestId(result);
 
-    assertEventAtIndex({
-      result: await quantstamp_audit.submitReport(requestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor}),
+    Util.assertEventAtIndex({
+      result: await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor}),
       name: "LogAuditFinished",
       args: (args) => {},
       index: 0
