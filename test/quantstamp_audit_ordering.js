@@ -1,13 +1,8 @@
+const QuantstampToken = artifacts.require('QuantstampToken');
+const QuantstampAudit = artifacts.require('QuantstampAudit');
+const QuantstampAuditData = artifacts.require('QuantstampAuditData');
 const Util = require("./util.js");
 const AuditState = Util.AuditState;
-const assertEvent = Util.assertEvent;
-const assertEventAtIndex = Util.assertEventAtIndex;
-const extractRequestId = Util.extractRequestId;
-
-const QuantstampAuditData = artifacts.require('QuantstampAuditData');
-const QuantstampAudit = artifacts.require('QuantstampAudit');
-const QuantstampToken = artifacts.require('QuantstampToken');
-
 
 contract('QuantstampAudit_ordering', function(accounts) {
   const owner = accounts[0];
@@ -16,7 +11,6 @@ contract('QuantstampAudit_ordering', function(accounts) {
   const auditor = accounts[3];
   const price = 123;
   const requestorBudget = Util.toQsp(100000);
-  const uri = "http://www.quantstamp.com/contract1.sol";
 
   let requestCounter = 1;
   let quantstamp_audit_data;
@@ -27,7 +21,7 @@ contract('QuantstampAudit_ordering', function(accounts) {
   async function submitMultipleRequests(prices){
     var ids = []
     for(var i = 0; i < prices.length; i++){
-      await quantstamp_audit.requestAudit(uri, prices[i], {from:requestor});
+      await quantstamp_audit.requestAudit(Util.uri, prices[i], {from:requestor});
       ids.push(requestCounter++);
     }
     return ids;
@@ -39,7 +33,7 @@ contract('QuantstampAudit_ordering', function(accounts) {
     let result;
     for(var i = 0; i < num_requests; i++){
       result = await quantstamp_audit.getNextAuditRequest({from:auditor});
-      ids.push(extractRequestId(result));
+      ids.push(Util.extractRequestId(result));
     }
     return ids;
   }
@@ -125,7 +119,7 @@ contract('QuantstampAudit_ordering', function(accounts) {
 
   it("should allow the auditor to set their min price", async function(){
     assert.equal(await quantstamp_audit_data.minAuditPrice.call(auditor), 0);
-    assertEvent({
+    Util.assertEvent({
       result: await quantstamp_audit.setAuditNodePrice(price, {from:auditor}),
       name: "LogAuditNodePriceChanged",
       args: (args) => {
@@ -147,7 +141,7 @@ contract('QuantstampAudit_ordering', function(accounts) {
   });
 
   it("should not give audits below the set price to the audit node", async function(){
-    assertEvent({
+    Util.assertEvent({
       result: await quantstamp_audit.getNextAuditRequest({from:auditor}),
       name: "LogAuditNodePriceHigherThanRequests",
       args: (args) => {

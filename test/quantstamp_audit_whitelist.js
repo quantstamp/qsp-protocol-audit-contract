@@ -1,9 +1,4 @@
 const Util = require("./util.js");
-const AuditState = Util.AuditState;
-const assertEvent = Util.assertEvent;
-const assertEventAtIndex = Util.assertEventAtIndex;
-const extractRequestId = Util.extractRequestId;
-
 const QuantstampAudit = artifacts.require('QuantstampAudit');
 const QuantstampToken = artifacts.require('QuantstampToken');
 
@@ -20,7 +15,7 @@ contract('QuantstampAudit_whitelist', function(accounts) {
 
   it ("should add an address to the whitelist and be accessible from the head", async function () {
     const auditor = accounts[1];
-    assertEvent({
+    Util.assertEvent({
         result: await quantstamp_audit.addAddressToWhitelist(auditor),
         name: "WhitelistedAddressAdded",
         args: (args) => {
@@ -29,7 +24,7 @@ contract('QuantstampAudit_whitelist', function(accounts) {
     });
 
     // empty the white list for the next test case
-    assertEvent({
+    Util.assertEvent({
         result: await quantstamp_audit.removeAddressFromWhitelist(auditor),
         name: "WhitelistedAddressRemoved",
         args: (args) => {

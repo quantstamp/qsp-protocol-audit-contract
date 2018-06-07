@@ -1,3 +1,16 @@
+const uri = "http://www.quantstamp.com/contract.sol";
+const reportUri = "http://www.quantstamp.com/report.md";
+const sha256emptyFile = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+
+const AuditState = Object.freeze({
+  None : 0,
+  Queued : 1,
+  Assigned : 2,
+  Refunded : 3,
+  Completed : 4,
+  Error : 5
+});
+
 function toEther (n) {
   return web3.toWei(n, "ether");
 }
@@ -37,15 +50,6 @@ function assertEventAtIndex({result, name, args, index}) {
   args(result.logs[index].args);
 }
 
-const AuditState = Object.freeze({
-  None : 0,
-  Queued : 1,
-  Assigned : 2,
-  Refunded : 3,
-  Completed : 4,
-  Error : 5
-});
-
 async function balanceOf (token, user) {
   return (await token.balanceOf(user)).toNumber();
 }
@@ -54,9 +58,9 @@ async function allowance (token, owner, spender) {
   return (await token.allowance(owner, spender)).toNumber();
 }
 
-async function getReportUri (quantstamp_audit, requestId) {
+async function getReportUri (quantstamp_audit_data, requestId) {
   const reportUriIndex = 7;
-  return (await quantstamp_audit.audits.call(requestId))[reportUriIndex];
+  return (await quantstamp_audit_data.audits.call(requestId))[reportUriIndex];
 }
 
 async function getAuditState (quantstamp_audit_data, requestId) {
@@ -64,16 +68,18 @@ async function getAuditState (quantstamp_audit_data, requestId) {
   return (await quantstamp_audit_data.audits.call(requestId))[stateIndex];
 }
 
-async function getOwnerBalance () {
-  return await web3.eth.getBalance(owner);
+async function getEthBalance (user) {
+  return await web3.eth.getBalance(user);
 }
 
 function extractRequestId(result) {
   return result.logs[0].args.requestId.toNumber();
 }
 
-
 module.exports = {
+  uri : uri,
+  reportUri : reportUri,
+  sha256emptyFile : sha256emptyFile,
   toEther : toEther,
   toQsp : toEther,
   oneEther : toEther(1),
@@ -90,7 +96,7 @@ module.exports = {
   allowance : allowance,
   getReportUri : getReportUri,
   getAuditState : getAuditState,
-  getOwnerBalance : getOwnerBalance,
+  getEthBalance : getEthBalance,
   extractRequestId : extractRequestId
 };
 
