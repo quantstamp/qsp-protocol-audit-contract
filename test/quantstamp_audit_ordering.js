@@ -4,8 +4,9 @@ const assertEvent = Util.assertEvent;
 const assertEventAtIndex = Util.assertEventAtIndex;
 const extractRequestId = Util.extractRequestId;
 
-const QuantstampAuditData = artifacts.require('QuantstampAuditData');
 const QuantstampAudit = artifacts.require('QuantstampAudit');
+const QuantstampAuditData = artifacts.require('QuantstampAuditData');
+const QuantstampAuditView = artifacts.require('QuantstampAuditView');
 const QuantstampToken = artifacts.require('QuantstampToken');
 
 
@@ -19,8 +20,9 @@ contract('QuantstampAudit_ordering', function(accounts) {
   const uri = "http://www.quantstamp.com/contract1.sol";
 
   let requestCounter = 1;
-  let quantstamp_audit_data;
   let quantstamp_audit;
+  let quantstamp_audit_view;
+  let quantstamp_audit_data;
   let quantstamp_token;
 
   // submits a request for each price in order, returning the array of ids of the requests
@@ -80,8 +82,9 @@ contract('QuantstampAudit_ordering', function(accounts) {
   }
 
   beforeEach(async function () {
-    quantstamp_audit_data = await QuantstampAuditData.deployed();
     quantstamp_audit = await QuantstampAudit.deployed();
+    quantstamp_audit_data = await QuantstampAuditData.deployed();
+    quantstamp_audit_view = await QuantstampAuditView.deployed();
     quantstamp_token = await QuantstampToken.deployed();
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     // enable transfers before any payments are allowed
@@ -160,7 +163,7 @@ contract('QuantstampAudit_ordering', function(accounts) {
   it("should allow audit nodes to lower their price to get more audits", async function(){
     // the request queue should still contain prices [1, 2, 3, 3]
     // their request IDs are stored in global_request_ids in an earlier test
-    assert.equal(await quantstamp_audit.getQueueLength.call(), 4);
+    assert.equal(await quantstamp_audit_view.getQueueLength.call(), 4);
     await quantstamp_audit.setAuditNodePrice(3, {from:auditor});
     const audit_ids = await getMultipleRequests(2);
     const expected_ids = [global_request_ids[2], global_request_ids[3]];

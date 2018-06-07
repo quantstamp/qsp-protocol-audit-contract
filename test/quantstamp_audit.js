@@ -1,7 +1,8 @@
 const Util = require("./util.js");
 
-const QuantstampAuditData = artifacts.require('QuantstampAuditData');
 const QuantstampAudit = artifacts.require('QuantstampAudit');
+const QuantstampAuditData = artifacts.require('QuantstampAuditData');
+const QuantstampAuditView = artifacts.require('QuantstampAuditView');
 const QuantstampToken = artifacts.require('QuantstampToken');
 
 
@@ -26,14 +27,17 @@ contract('QuantstampAudit', function(accounts) {
   const sha256emptyFile = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
   let requestCounter = 1;
-  let quantstamp_audit_data;
   let quantstamp_audit;
+  let quantstamp_audit_data;
+  let quantstamp_audit_view;
   let quantstamp_token;
 
   beforeEach(async function () {
-    quantstamp_audit_data = await QuantstampAuditData.deployed();
     quantstamp_audit = await QuantstampAudit.deployed();
+    quantstamp_audit_data = await QuantstampAuditData.deployed();
+    quantstamp_audit_view = await QuantstampAuditView.deployed();
     quantstamp_token = await QuantstampToken.deployed();
+
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     // enable transfers before any payments are allowed
     await quantstamp_token.enableTransfer({from : owner});
@@ -63,7 +67,7 @@ contract('QuantstampAudit', function(accounts) {
     const requestId2 = requestCounter++;
     const requestId3 = requestCounter++;
 
-    assert(await quantstamp_audit.getQueueLength.call(), 0);
+    assert(await quantstamp_audit_view.getQueueLength.call(), 0);
     assertEvent({
         result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
       name: "LogAuditQueueIsEmpty",
@@ -78,7 +82,7 @@ contract('QuantstampAudit', function(accounts) {
       }
     });
 
-    assert(await quantstamp_audit.getQueueLength.call(), 1);
+    assert(await quantstamp_audit_view.getQueueLength.call(), 1);
 
     assertEvent({
       result: await quantstamp_audit.requestAudit(uri, price, {from:requestor}),
@@ -88,7 +92,7 @@ contract('QuantstampAudit', function(accounts) {
       }
     });
 
-    assert(await quantstamp_audit.getQueueLength.call(), 2);
+    assert(await quantstamp_audit_view.getQueueLength.call(), 2);
     assertEvent({
       result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
       name: "LogAuditAssigned",
@@ -98,7 +102,7 @@ contract('QuantstampAudit', function(accounts) {
       }
     });
 
-    assert(await quantstamp_audit.getQueueLength.call(), 1);
+    assert(await quantstamp_audit_view.getQueueLength.call(), 1);
     assertEvent({
       result: await quantstamp_audit.requestAudit(uri, price, {from:requestor}),
       name: "LogAuditRequested",
@@ -107,7 +111,7 @@ contract('QuantstampAudit', function(accounts) {
       }
     });
 
-    assert(await quantstamp_audit.getQueueLength.call(), 2);
+    assert(await quantstamp_audit_view.getQueueLength.call(), 2);
     assertEvent({
       result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
       name: "LogAuditAssigned",
@@ -117,7 +121,7 @@ contract('QuantstampAudit', function(accounts) {
       }
     });
 
-    assert(await quantstamp_audit.getQueueLength.call(), 1);
+    assert(await quantstamp_audit_view.getQueueLength.call(), 1);
     assertEvent({
       result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
       name: "LogAuditAssigned",
@@ -127,7 +131,7 @@ contract('QuantstampAudit', function(accounts) {
       }
     });
 
-    assert(await quantstamp_audit.getQueueLength.call(), 0);
+    assert(await quantstamp_audit_view.getQueueLength.call(), 0);
     assertEvent({
       result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
       name: "LogAuditQueueIsEmpty",
@@ -192,7 +196,7 @@ contract('QuantstampAudit', function(accounts) {
   });
 
   it("getQueueLength() returns queue length", async function() {
-    const length = await quantstamp_audit.getQueueLength.call();
+    const length = await quantstamp_audit_view.getQueueLength.call();
     assert.equal(length.toNumber(), 0); // queue should be empty by the end of each test
   });
 
