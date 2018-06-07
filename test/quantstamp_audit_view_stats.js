@@ -96,7 +96,6 @@ contract('QuantstampAuditView_stats', function(accounts) {
     await quantstamp_audit.requestAudit(uri, price, {from:requestor});
     assert.equal(await quantstamp_audit_view.getQueueLength(), 1);
 
-    console.info(await quantstamp_audit.auditQueueExists());
     await emptyQueue(1);
     assert.equal(await quantstamp_audit_view.getQueueLength(), 1 /*Expected result 0*/);
   });

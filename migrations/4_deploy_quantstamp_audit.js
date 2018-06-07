@@ -8,10 +8,9 @@ const s3 = new AWS.S3({
 
 // no known audit data addresses yet
 const AUDIT_DATA_ADDRESS_MAINNET = "0x0";
-const AUDIT_DATA_ADDRESS_ROPSTEN = "0x0";
+const AUDIT_DATA_ADDRESS_ROPSTEN = "0xe536dc77fcaa0c29d68761558affe0b6da66a890";
 
 module.exports = async function(deployer, network, accounts) {
-
   let stage = null;
   let auditDataAddress = null;
 
@@ -32,9 +31,13 @@ module.exports = async function(deployer, network, accounts) {
     auditDataAddress = QuantstampAuditData.address;
   }
 
+  const commitHash = require('child_process')
+    .execSync('git rev-parse HEAD')
+    .toString().trim();
+
   // need to use promises explicitly instead of await
   // see: https://github.com/trufflesuite/truffle/issues/713
-  deployer.deploy(LinkedListLib)
+  await deployer.deploy(LinkedListLib)
     .then(() => deployer.link(LinkedListLib, QuantstampAudit))
     .then(() => deployer.deploy(QuantstampAudit, auditDataAddress));
 
@@ -46,7 +49,8 @@ module.exports = async function(deployer, network, accounts) {
       ContentType: "application/json",
       Body: new Buffer(JSON.stringify({
         "contractAddress": QuantstampAudit.address,
-        "creatorAddress": networkConfig.account
+        "creatorAddress": networkConfig.account,
+        "commitHash": commitHash
       }, null, 2))
     }).promise();
     console.log('Interface metadata update response:', metaUpdateResponse);

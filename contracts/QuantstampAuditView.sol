@@ -7,8 +7,9 @@ import "./QuantstampAudit.sol";
 import "./QuantstampAuditData.sol";
 
 contract QuantstampAuditView is Ownable {
-
   using SafeMath for uint256;
+
+  uint256 constant HEAD = 0;
 
   QuantstampAudit public audit;
   QuantstampAuditData public auditData;

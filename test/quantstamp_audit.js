@@ -1,19 +1,10 @@
-const Util = require("./util.js");
-
 const QuantstampAudit = artifacts.require('QuantstampAudit');
 const QuantstampAuditData = artifacts.require('QuantstampAuditData');
 const QuantstampAuditView = artifacts.require('QuantstampAuditView');
 const QuantstampToken = artifacts.require('QuantstampToken');
+const Util = require("./util.js");
+const AuditState = Util.AuditState;
 
-
-const AuditState = Object.freeze({
-  None : 0,
-  Queued : 1,
-  Assigned : 2,
-  Refunded : 3,
-  Completed : 4,
-  Error : 5
-});
 
 contract('QuantstampAudit', function(accounts) {
   const owner = accounts[0];
@@ -22,9 +13,6 @@ contract('QuantstampAudit', function(accounts) {
   const auditor = accounts[3];
   const price = 123;
   const requestorBudget = Util.toQsp(100000);
-  const uri = "http://www.quantstamp.com/contract1.sol";
-  const reportUri = "http://www.quantstamp.com/report.md";
-  const sha256emptyFile = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
   let requestCounter = 1;
   let quantstamp_audit;
@@ -51,31 +39,21 @@ contract('QuantstampAudit', function(accounts) {
     await quantstamp_audit_data.setMaxAssignedRequests(100);
   });
 
-  function assertEvent({result, name, args}) {
-    assert.equal(result.logs.length, 1);
-    assert.equal(result.logs[0].event, name);
-    args(result.logs[0].args);
-  }
-
-  function assertEventAtIndex({result, name, args, index}) {
-    assert.equal(result.logs[index].event, name);
-    args(result.logs[index].args);
-  }
-
   it("queues new audits and assigns them in the right order", async function() {
     const requestId1 = requestCounter++;
     const requestId2 = requestCounter++;
     const requestId3 = requestCounter++;
 
+
     assert(await quantstamp_audit_view.getQueueLength.call(), 0);
-    assertEvent({
+    Util.assertEvent({
         result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
       name: "LogAuditQueueIsEmpty",
       args: (args) => {}
     });
 
-    assertEvent({
-      result: await quantstamp_audit.requestAudit(uri, price, {from:requestor}),
+    Util.assertEvent({
+      result: await quantstamp_audit.requestAudit(Util.uri, price, {from:requestor}),
       name: "LogAuditRequested",
       args: (args) => {
         assert.equal(args.requestId.toNumber(), requestId1);
@@ -84,16 +62,17 @@ contract('QuantstampAudit', function(accounts) {
 
     assert(await quantstamp_audit_view.getQueueLength.call(), 1);
 
-    assertEvent({
-      result: await quantstamp_audit.requestAudit(uri, price, {from:requestor}),
+    Util.assertEvent({
+      result: await quantstamp_audit.requestAudit(Util.uri, price, {from:requestor}),
       name: "LogAuditRequested",
       args: (args) => {
         assert.equal(args.requestId.toNumber(), requestId2);
       }
     });
 
+
     assert(await quantstamp_audit_view.getQueueLength.call(), 2);
-    assertEvent({
+    Util.assertEvent({
       result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
       name: "LogAuditAssigned",
       args: (args) => {
@@ -103,8 +82,8 @@ contract('QuantstampAudit', function(accounts) {
     });
 
     assert(await quantstamp_audit_view.getQueueLength.call(), 1);
-    assertEvent({
-      result: await quantstamp_audit.requestAudit(uri, price, {from:requestor}),
+    Util.assertEvent({
+      result: await quantstamp_audit.requestAudit(Util.uri, price, {from:requestor}),
       name: "LogAuditRequested",
       args: (args) => {
         assert.equal(args.requestId.toNumber(), requestId3);
@@ -112,7 +91,7 @@ contract('QuantstampAudit', function(accounts) {
     });
 
     assert(await quantstamp_audit_view.getQueueLength.call(), 2);
-    assertEvent({
+    Util.assertEvent({
       result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
       name: "LogAuditAssigned",
       args: (args) => {
@@ -121,8 +100,9 @@ contract('QuantstampAudit', function(accounts) {
       }
     });
 
+
     assert(await quantstamp_audit_view.getQueueLength.call(), 1);
-    assertEvent({
+    Util.assertEvent({
       result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
       name: "LogAuditAssigned",
       args: (args) => {
@@ -132,7 +112,7 @@ contract('QuantstampAudit', function(accounts) {
     });
 
     assert(await quantstamp_audit_view.getQueueLength.call(), 0);
-    assertEvent({
+    Util.assertEvent({
       result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
       name: "LogAuditQueueIsEmpty",
       args: (args) => {}
@@ -141,24 +121,24 @@ contract('QuantstampAudit', function(accounts) {
 
   it("submits a report when audit is queued and auditor is correct", async function() {
     const requestId = requestCounter++;
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
+    await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     await quantstamp_audit.getNextAuditRequest({from: auditor});
 
-    const result = await quantstamp_audit.submitReport(requestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor});
-    assertEventAtIndex({
+    const result = await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor});
+    Util.assertEventAtIndex({
       result: result,
       name: "LogAuditFinished",
       args: (args) => {
         assert.equal(args.requestId.toNumber(), requestId);
         assert.equal(args.auditor, auditor);
         assert.equal(args.auditResult, AuditState.Completed);
-        assert.equal(args.reportUri, reportUri);
-        assert.equal(args.reportHash, sha256emptyFile);
+        assert.equal(args.reportUri, Util.reportUri);
+        assert.equal(args.reportHash, Util.sha256emptyFile);
       },
       index: 0
     });
 
-    assertEventAtIndex({
+    Util.assertEventAtIndex({
       result: result,
       name: "LogPayAuditor",
       args: (args) => {
@@ -172,13 +152,13 @@ contract('QuantstampAudit', function(accounts) {
 
   it("does not submit a report when already audited", async function() {
     const requestId = requestCounter++;
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
+    await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     await quantstamp_audit.getNextAuditRequest({from: auditor});
-    await quantstamp_audit.submitReport(requestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor});
-    const state = await Util.getAuditState(quantstamp_audit_data, requestId);
+    await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor});
+    const state = await quantstamp_audit_data.getAuditState(requestId);
     assert.equal(state, AuditState.Completed);
-    assertEvent({
-      result: await quantstamp_audit.submitReport(requestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor}),
+    Util.assertEvent({
+      result: await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor}),
       name: "LogReportSubmissionError_InvalidState",
       args: (args) => {
         assert.equal(args.requestId.toNumber(), requestId);
@@ -188,7 +168,7 @@ contract('QuantstampAudit', function(accounts) {
   });
 
   it("does not assign an audit when the queue is empty", async function() {
-    assertEvent({
+    Util.assertEvent({
       result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
       name: "LogAuditQueueIsEmpty",
       args: (args) => {}
@@ -217,19 +197,19 @@ contract('QuantstampAudit', function(accounts) {
     // for the sake of dependency, let's ensure the auditor is not in the whitelist
     await quantstamp_audit.removeAddressFromWhitelist(auditor);
 
-    Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor}));
+    Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor}));
   });
 
   it("should prevent a whitelisted user from submitting a report to an audit that they are not assigned", async function() {
     const auditor2 = accounts[4];
     await quantstamp_audit.addAddressToWhitelist(auditor);
     await quantstamp_audit.addAddressToWhitelist(auditor2);
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
+    await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     const result = await quantstamp_audit.getNextAuditRequest({from: auditor});
     const requestId = Util.extractRequestId(result);
 
-    assertEvent({
-      result: await quantstamp_audit.submitReport(requestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor2}),
+    Util.assertEvent({
+      result: await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor2}),
       name: "LogReportSubmissionError_InvalidAuditor",
       args: (args) => {
         assert.equal(args.requestId.toNumber(), requestId);
@@ -237,31 +217,31 @@ contract('QuantstampAudit', function(accounts) {
       }
     });
 
-    await quantstamp_audit.submitReport(requestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor});
+    await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor});
     // for the sake of dependency, let's ensure the auditor is not in the whitelist
     await quantstamp_audit.removeAddressFromWhitelist(auditor2);
   });
 
   it("should prevent an audit from being submitted with a bad state", async function() {
     const auditor2 = accounts[4];
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
+    await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     const result = await quantstamp_audit.getNextAuditRequest({from: auditor});
     const requestId = Util.extractRequestId(result);
 
-    Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.None, reportUri, sha256emptyFile, {from: auditor}));
-    Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.Queued, reportUri, sha256emptyFile, {from: auditor}));
-    Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.Assigned, reportUri, sha256emptyFile, {from: auditor}));
-    Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.Refunded, reportUri, sha256emptyFile, {from: auditor}));
+    Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.None, Util.reportUri, Util.sha256emptyFile, {from: auditor}));
+    Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.Queued, Util.reportUri, Util.sha256emptyFile, {from: auditor}));
+    Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.Assigned, Util.reportUri, Util.sha256emptyFile, {from: auditor}));
+    Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.Refunded, Util.reportUri, Util.sha256emptyFile, {from: auditor}));
 
 
-    await quantstamp_audit.submitReport(requestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor});
+    await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor});
   });
 
   it("should prevent a requestor to request an audit if owner paused", async function() {
     // for the sake of dependency, let's ensure the auditor is not in the whitelist
     await quantstamp_audit.pause();
 
-    Util.assertTxFail(quantstamp_audit.requestAudit(uri, price, {from: requestor}));
+    Util.assertTxFail(quantstamp_audit.requestAudit(Util.uri, price, {from: requestor}));
     await quantstamp_audit.unpause();
   });
 
@@ -272,12 +252,12 @@ contract('QuantstampAudit', function(accounts) {
     await quantstamp_audit_data.setMaxAssignedRequests(pendingAuditsNum + 1);
     await quantstamp_audit.addAddressToWhitelist(auditor2);
 
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
+    await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
+    await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
 
     await quantstamp_audit.getNextAuditRequest({from: auditor2});
 
-    assertEvent({
+    Util.assertEvent({
         result: await quantstamp_audit.getNextAuditRequest({from: auditor2}),
         name: "LogAuditAssignmentError_ExceededMaxAssignedRequests",
         args: (args) => {
@@ -293,21 +273,21 @@ contract('QuantstampAudit', function(accounts) {
     const pendingAuditsNum = (await quantstamp_audit.assignedRequestIds.call(auditor2)).toNumber();
     await quantstamp_audit_data.setMaxAssignedRequests(pendingAuditsNum + 1);
 
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
+    await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
+    await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
 
     const result = await quantstamp_audit.getNextAuditRequest({from: auditor2});
 
-    assertEvent({
+    Util.assertEvent({
         result: result,
         name: "LogAuditAssigned",
         args: (args) => {}
     });
 
     const grantedRequestId = result.logs[0].args.requestId.toNumber();
-    await quantstamp_audit.submitReport(grantedRequestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor2});
+    await quantstamp_audit.submitReport(grantedRequestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor2});
 
-    assertEvent({
+    Util.assertEvent({
         result: await quantstamp_audit.getNextAuditRequest({from: auditor2}),
         name: "LogAuditAssigned",
         args: (args) => {}
@@ -322,24 +302,24 @@ contract('QuantstampAudit', function(accounts) {
     const pendingAuditsNum = (await quantstamp_audit.assignedRequestIds.call(auditor2)).toNumber();
     await quantstamp_audit_data.setMaxAssignedRequests(pendingAuditsNum + 1);
 
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
+    await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     const result = await quantstamp_audit.getNextAuditRequest({from: auditor2});
 
-    assertEvent({
+    Util.assertEvent({
       result: result,
       name: "LogAuditAssigned",
       args: (args) => {}
     });
 
     const grantedRequestId = result.logs[0].args.requestId.toNumber();
-    await quantstamp_audit.submitReport(grantedRequestId, AuditState.Completed, reportUri, sha256emptyFile, {from: auditor2});
+    await quantstamp_audit.submitReport(grantedRequestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor2});
 
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
-    await quantstamp_audit.requestAudit(uri, price, {from: requestor});
+    await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
+    await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
 
     await quantstamp_audit.getNextAuditRequest({from: auditor2});
 
-    assertEvent({
+    Util.assertEvent({
         result: await quantstamp_audit.getNextAuditRequest({from: auditor2}),
         name: "LogAuditAssignmentError_ExceededMaxAssignedRequests",
         args: (args) => {
