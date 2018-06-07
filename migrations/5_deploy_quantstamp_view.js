@@ -41,6 +41,10 @@ module.exports = async function(deployer, network, accounts) {
     auditDataAddress = QuantstampAuditData.address;
   }
 
+  const commitHash = require('child_process')
+    .execSync('git rev-parse HEAD')
+    .toString().trim();
+
   // need to use promises explicitly instead of await
   // see: https://github.com/trufflesuite/truffle/issues/713
   deployer.deploy(QuantstampAuditView, auditAddress, auditDataAddress);
@@ -53,7 +57,8 @@ module.exports = async function(deployer, network, accounts) {
       ContentType: "application/json",
       Body: new Buffer(JSON.stringify({
         "contractAddress": QuantstampAuditView.address,
-        "creatorAddress": networkConfig.account
+        "creatorAddress": networkConfig.account,
+        "commitHash": commitHash
       }, null, 2))
     }).promise();
     console.log('Audit View metadata update response:', metaUpdateResponse);
