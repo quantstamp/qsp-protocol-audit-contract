@@ -47,7 +47,7 @@ module.exports = async function(deployer, network, accounts) {
 
   // need to use promises explicitly instead of await
   // see: https://github.com/trufflesuite/truffle/issues/713
-  deployer.deploy(QuantstampAuditView, auditAddress, auditDataAddress);
+  await deployer.deploy(QuantstampAuditView, auditAddress, auditDataAddress);
 
   if (stage) {
     const networkConfig = require('../truffle.js').networks[network];
