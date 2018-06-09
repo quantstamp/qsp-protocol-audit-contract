@@ -7,8 +7,6 @@ const s3 = new AWS.S3({
 });
 
 // no known audit data addresses yet
-const AUDIT_DATA_ADDRESS_MAINNET = "0x0";
-const AUDIT_DATA_ADDRESS_ROPSTEN = "0xe536dc77fcaa0c29d68761558affe0b6da66a890";
 const AUDIT_ADDRESS_MAINNET = "0x0";
 const AUDIT_ADDRESS_ROPSTEN = "0x0";
 
@@ -45,9 +43,7 @@ module.exports = async function(deployer, network, accounts) {
     .execSync('git rev-parse HEAD')
     .toString().trim();
 
-  // need to use promises explicitly instead of await
-  // see: https://github.com/trufflesuite/truffle/issues/713
-  await deployer.deploy(QuantstampAuditView, auditAddress, auditDataAddress);
+  await deployer.deploy(QuantstampAuditView, auditAddress);
 
   if (stage) {
     const networkConfig = require('../truffle.js').networks[network];

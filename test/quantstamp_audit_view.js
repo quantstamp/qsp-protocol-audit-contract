@@ -46,32 +46,23 @@ contract('QuantstampAuditView_stats', function(accounts) {
     await quantstamp_audit_data.setMaxAssignedRequests(1000);
   });
 
-  it("let owner to QuantstampAudit address", async function () {
+  it("lets the owner change the QuantstampAudit address", async function () {
     const audit = await quantstamp_audit_view.audit.call();
+    const another_quantstamp_audit_data = (await QuantstampAuditData.new(quantstamp_token.contract.address)).contract.address;
+    const another_quantstamp_audit = (await QuantstampAudit.new(another_quantstamp_audit_data)).contract.address;
+
     // change QuantstampAudit to something else
-    await quantstamp_audit_view.setQuantstampAudit(auditor);
-    assert.equal(await quantstamp_audit_view.audit.call(), auditor);
-    // change it back
-    await quantstamp_audit_view.setQuantstampAudit(audit);
-    assert.equal(await quantstamp_audit_view.audit.call(), audit);
+    await quantstamp_audit_view.setQuantstampAudit(another_quantstamp_audit);
+    assert.equal(await quantstamp_audit_view.audit.call(), another_quantstamp_audit);
+    assert.equal(await quantstamp_audit_view.auditData.call(), another_quantstamp_audit_data);
+
     // only owner can change
     Util.assertTxFail(quantstamp_audit_view.setQuantstampAudit(audit, {from : requestor}));
     // address should be valid
     Util.assertTxFail(quantstamp_audit_view.setQuantstampAudit(0, {from : requestor}));
-  });
 
-  it("let owner to QuantstampAuditData address", async function () {
-    const auditData = await quantstamp_audit_view.auditData.call();
-    // change QuantstampAuditdata to something else
-    await quantstamp_audit_view.setQuantstampAuditData(auditor);
-    assert.equal(await quantstamp_audit_view.auditData.call(), auditor);
-    // change the address back
-    await quantstamp_audit_view.setQuantstampAuditData(auditData);
-    assert.equal(await quantstamp_audit_view.auditData.call(), auditData);
-    // only owner can change
-    Util.assertTxFail(quantstamp_audit_view.setQuantstampAuditData(auditData, {from : requestor}));
-    // address should be valid
-    Util.assertTxFail(quantstamp_audit_view.setQuantstampAuditData(0, {from : requestor}));
+    // change it back
+    await quantstamp_audit_view.setQuantstampAudit(audit);
   });
 
   it("returns zero for non-advertised minPrice", async function () {

@@ -337,7 +337,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param price of the current node
    * @return next price in the linked list
    */
-  function getNextPrices(uint256 price) public view returns(uint256) {
+  function getNextPrice(uint256 price) public view returns(uint256) {
     bool direction;
     uint256 next;
     (direction, next) = priceList.getAdjacent(price, NEXT);
@@ -351,7 +351,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param requestId unique Id of an requested audit
    * @return next requestId with the same price
    */
-  function getNextAuditsByPrice(uint256 price, uint256 requestId) public view returns(uint256) {
+  function getNextAuditByPrice(uint256 price, uint256 requestId) public view returns(uint256) {
     bool direction;
     uint256 next;
     (direction, next) =  auditsByPrice[price].getAdjacent(requestId, NEXT);
