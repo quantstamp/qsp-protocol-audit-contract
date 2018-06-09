@@ -47,7 +47,7 @@ contract QuantstampAuditView is Ownable {
   function findMinAuditPricesStats() internal view returns (AuditPriceStat) {
     uint256 sum;
     uint256 n;
-    uint256 min = 1 << 256 - 1;
+    uint256 min = 2**256 - 1;
     uint256 max;
 
     address currentWhitelistedAddress = audit.getNextWhitelistedAddress(address(HEAD));
