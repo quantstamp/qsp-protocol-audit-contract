@@ -43,7 +43,7 @@ contract QuantstampAuditData is Whitelist {
   uint256 public auditTimeoutInBlocks = 10;
 
   // maximum number of assigned audits per each auditor
-  uint256 public maxAssignedRequests = 1;
+  uint256 public maxAssignedRequests = 10;
 
   // map audit nodes to their minimum prices. Defaults to zero: the node accepts all requests.
   mapping(address => uint256) public minAuditPrice;
