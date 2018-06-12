@@ -297,21 +297,6 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Returns the number of unassigned audit requests in the queue.
-   */
-  function getQueueLength() public view returns(uint256 numElements) {
-    bool exists;
-    uint256 price;
-    // iterate over the price list
-    (exists, price) = priceList.getAdjacent(HEAD, NEXT);
-    while (price != HEAD) {
-      numElements += auditsByPrice[price].sizeOf();
-      (exists, price) = priceList.getAdjacent(price, NEXT);
-    }
-    return numElements;
-  }
-
-  /**
    * @dev Adds an address to the whitelist
    * @param addr address
    * @return true if the address was added to the whitelist
@@ -340,10 +325,36 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param addr address
    * @return next address of the given param
    */
-  function getNextWhitelistedAddress(address addr) public returns(address) {
+  function getNextWhitelistedAddress(address addr) public view returns(address) {
     bool direction;
     uint256 next;
     (direction, next) = whitelistedList.getAdjacent(uint256(addr), NEXT);
     return address(next);
+  }
+
+  /**
+   * @dev Given a price, returns the next price from the priceList
+   * @param price of the current node
+   * @return next price in the linked list
+   */
+  function getNextPrice(uint256 price) public view returns(uint256) {
+    bool direction;
+    uint256 next;
+    (direction, next) = priceList.getAdjacent(price, NEXT);
+    return next;
+  }
+
+  /**
+   * @dev Given a price and a requestId, then function returns the next requestId with the same price
+   * return 0, provided the given price does not exist in auditsByPrice
+   * @param price of the current bucket
+   * @param requestId unique Id of an requested audit
+   * @return next requestId with the same price
+   */
+  function getNextAuditByPrice(uint256 price, uint256 requestId) public view returns(uint256) {
+    bool direction;
+    uint256 next;
+    (direction, next) =  auditsByPrice[price].getAdjacent(requestId, NEXT);
+    return next;
   }
 }
