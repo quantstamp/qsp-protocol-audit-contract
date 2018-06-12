@@ -2,6 +2,11 @@ const credentials = require("./credentials.js");
 const HDWalletProvider = require("truffle-hdwallet-provider");
 
 module.exports = {
+  deploy: {
+    QuantstampAuditData: false,
+    QuantstampAudit: true,
+    QuantstampAuditView: false
+  },
   networks: {
     development: {
       host: "127.0.0.1",
