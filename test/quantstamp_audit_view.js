@@ -39,7 +39,7 @@ contract('QuantstampAuditView_stats', function(accounts) {
     await quantstamp_token.enableTransfer({from : owner});
     // transfer 100,000 QSP tokens to the requestor
     await quantstamp_token.transfer(requestor, requestorBudget, {from : owner});
-    // allow the audit contract use up to 65QSP for audits
+    // allow the audit contract use QSP for audits
     await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(1000), {from : requestor});
 
     // allow audit nodes to perform many audits at once
@@ -115,6 +115,7 @@ contract('QuantstampAuditView_stats', function(accounts) {
     await quantstamp_audit.requestAudit(uri, price, {from:requestor});
     assert.equal(await quantstamp_audit_view.getQueueLength(), 1);
 
+    // TODO  fix the expected behaviour according to QSP-401
     await emptyQueue(1);
     assert.equal(await quantstamp_audit_view.getQueueLength(), 1 /*Expected result 0*/);
   });
