@@ -10,14 +10,31 @@ QSP Protocol audit contract.
 The addresses of the deployed contracts could be fetched from these locations that persist across deployments:
 
 ### Dev (Ropsten)
-1. Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract-abi-dev/QuantstampAudit.meta.json
-1. ABI: https://s3.amazonaws.com/qsp-protocol-contract-abi-dev/QuantstampAudit.abi.json
-1. Querying: https://ropsten.etherscan.io/address/{address}#readContract , where `{address}` is `contractAddress` copied from the metadata file.
+
+1. Audit contract:
+    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract-abi-dev/QuantstampAudit.meta.json
+    - ABI: https://s3.amazonaws.com/qsp-protocol-contract-abi-dev/QuantstampAudit.abi.json
+1. Audit Data contract:
+    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract-abi-dev/QuantstampAuditData.meta.json
+    - ABI: https://s3.amazonaws.com/qsp-protocol-contract-abi-dev/QuantstampAuditData.abi.json
+1. Audit View contract:
+    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract-abi-dev/QuantstampAuditView.meta.json
+    - ABI: https://s3.amazonaws.com/qsp-protocol-contract-abi-dev/QuantstampAuditView.abi.json
+
+For querying, go to: https://ropsten.etherscan.io/address/{address}#readContract , where `{address}` is `contractAddress` copied from the corresponding metadata file.
 
 ### Prod (Main Net)
-1. Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract-abi-prod/QuantstampAudit.meta.json
-1. ABI: https://s3.amazonaws.com/qsp-protocol-contract-abi-prod/QuantstampAudit.abi.json
-1. Querying: https://etherscan.io/address/{address}#readContract , where `{address}` is `contractAddress` copied from the metadata file.
+1. Audit contract:
+    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract-abi-prod/QuantstampAudit.meta.json
+    - ABI: https://s3.amazonaws.com/qsp-protocol-contract-abi-prod/QuantstampAudit.abi.json
+1. Audit Data contract:
+    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract-abi-prod/QuantstampAuditData.meta.json
+    - ABI: https://s3.amazonaws.com/qsp-protocol-contract-abi-prod/QuantstampAuditData.abi.json
+1. Audit View contract:
+    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract-abi-prod/QuantstampAuditView.meta.json
+    - ABI: https://s3.amazonaws.com/qsp-protocol-contract-abi-prod/QuantstampAuditView.abi.json
+
+For querying, go to: https://etherscan.io/address/{address}#readContract , where `{address}` is `contractAddress` copied from the corresponding metadata file.
 
 ## Run locally
 ### Requirements
@@ -49,7 +66,8 @@ First-time only: manually create the S3 buckets `qsp-protocol-contract-abi-dev` 
 1. Make sure MetaMask is running throughout the deployment process.
 1. Place the secret mnemonic phrase and the infura API token into `credentials.js`.
 1. If you deploy to Dev or Prod stages of the QSP Protocol, make sure you have AWS credentials that allow write access to the bucket `qsp-protocol-contract-abi-<stage>`. If deployment is successful, the new contract address and the owner address will be written to the corresponding S3 file automatically.
-1. Deploy the contract to the desired stage:
+1. Go to `truffle.js` and under `deploy`, set values to `true` for the contracts you would like to deploy.
+1. Deploy the contract(s) to the desired stage:
     * `truffle migrate --network stage_dev` - QSP protocol dev stage.
     * `truffle migrate --network stage_prod` - QSP protocol prod stage.
     * `truffle migrate --network ropsten` - Ropsten for independent testing (does not write anything to S3).
