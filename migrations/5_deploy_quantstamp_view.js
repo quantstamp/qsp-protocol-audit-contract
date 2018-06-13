@@ -13,5 +13,5 @@ module.exports = function(deployer, network, accounts) {
   deployer
     .then(async() => await utils.contractAddress(network, 'QuantstampAudit', QuantstampAudit))
     .then(auditContractAddress => deployer.deploy(QuantstampAuditView, auditContractAddress))
-    .then(async() => utils.updateAbiAndMetadata(network, 'QuantstampAuditView', QuantstampAuditView.address));
+    .then(async() => await utils.updateAbiAndMetadata(network, 'QuantstampAuditView', QuantstampAuditView.address));
 };

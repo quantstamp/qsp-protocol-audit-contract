@@ -15,5 +15,5 @@ module.exports = function(deployer, network, accounts) {
     .then(() => deployer.link(LinkedListLib, QuantstampAudit))
     .then(async() => await utils.contractAddress(network, 'QuantstampAuditData', QuantstampAuditData))
     .then(dataContractAddress => deployer.deploy(QuantstampAudit, dataContractAddress))
-    .then(async() => utils.updateAbiAndMetadata(network, 'QuantstampAudit', QuantstampAudit.address));
+    .then(async() => await utils.updateAbiAndMetadata(network, 'QuantstampAudit', QuantstampAudit.address));
 };

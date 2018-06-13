@@ -8,6 +8,9 @@ const QSP_TOKEN_ADDRESS_MAINNET = "0x99ea4db9ee77acd40b119bd1dc4e33e1c070b80d";
 const QSP_TOKEN_ADDRESS_ROPSTEN = "0xc1220b0bA0760817A9E8166C114D3eb2741F5949";
 
 function tokenAddress(network, defaultArtifact) {
+  // defaultArtifact: the smart contract artifact
+  // (output of artifacts.require('<contract-name'))
+  // whose address will be used when deploying to other networks (e.g., Ganache)
   switch(network) {
     case 'stage_dev':
     case 'ropsten':
@@ -31,11 +34,14 @@ async function readAddressFromMetadata(stage, contractName) {
   }).promise();
   
   const responseJson = JSON.parse(response.Body.toString());
-  console.log('response JSON', responseJson);
+  console.log('response JSON', JSON.stringify(responseJson, null, 2));
   return responseJson.contractAddress;
 }
 
 async function contractAddress(contractName, network, defaultArtifact) {
+  // defaultArtifact: the smart contract artifact
+  // (output of artifacts.require('<contract-name'))
+  // whose address will be used when deploying to other networks (e.g., Ganache)
   switch(network) {
     case 'stage_dev':
     case 'ropsten':
@@ -78,7 +84,7 @@ async function updateAbiAndMetadata(network, contractName, contractAddress) {
       "commitHash": commitHash
     }, null, 2))
   }).promise();
-  console.log(`${contractName}: metadata update response:`, metaUpdateResponse);
+  console.log(`${contractName}: metadata update response:`, JSON.stringify(metaUpdateResponse, null, 2));
 
   const abiUpdateResponse = await s3.putObject({
     Bucket: `qsp-protocol-contract-abi-${stage}`,
@@ -88,7 +94,7 @@ async function updateAbiAndMetadata(network, contractName, contractAddress) {
       require(`../build/contracts/${contractName}.json`).abi, null, 2
     ))
   }).promise();
-  console.log(`${contractName}: ABI update response:`, abiUpdateResponse);
+  console.log(`${contractName}: ABI update response:`, JSON.stringify(abiUpdateResponse, null, 2));
 }
 
 function canDeploy(network, contractName) {
@@ -97,7 +103,7 @@ function canDeploy(network, contractName) {
   }
 
   if (truffle.deploy[contractName] !== true) {
-    console.log(`${contractName}: Skipping deployment: deploy.${contractName} is not set to true`);
+    console.log(`${contractName}: Skipping deployment: deploy.${contractName} is not set to the boolean true`);
     return false;
   }
 
