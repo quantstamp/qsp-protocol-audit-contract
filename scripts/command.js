@@ -20,7 +20,7 @@ async function callMethod({provider, stage, contractName, methodName, methodArgs
           console.log(`${methodName}(...): transaction errored: "${err.message}"`);
           resolve(err);
         } else {
-          console.log(`${methodName}(...): transaction sent, tx hash: "${hash}". Track its status on Etherescan`);
+          console.log(`${methodName}(...): transaction sent, tx hash: "${hash}". You can track its status on Etherscan`);
         }
       }).on('receipt', function(receipt) {
         console.log(`${methodName}(...): transaction receipt`, JSON.stringify(receipt));
