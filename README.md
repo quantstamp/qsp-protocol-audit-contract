@@ -75,6 +75,9 @@ First-time only: manually create the S3 buckets `qsp-protocol-contract-abi-dev` 
     * `npm run whitelist-contract-dev` - QSP protocol dev stage.
     * `npm run whitelist-contract-prod` - QSP protocol prod stage.
 
+    Note: a successful return of the whitelisting script does not necessarily mean the transaction is fully completed. Please check
+    the status manually on a block explorer and wait for the desired number of confirmations.
+
 ## Deploy to Ganache
 
 `npm test` automatically deploys the contract to Ganache and runs tests against it. However, there is an option of deploying the contract to Ganache manually (e.g., for purposes of manual testing)
