@@ -71,6 +71,9 @@ First-time only: manually create the S3 buckets `qsp-protocol-contract-abi-dev` 
     * `truffle migrate --network stage_dev` - QSP protocol dev stage.
     * `truffle migrate --network stage_prod` - QSP protocol prod stage.
     * `truffle migrate --network ropsten` - Ropsten for independent testing (does not write anything to S3).
+1. Whitelist the Audit contract in the Data contract:
+    * `npm run whitelist-contract-dev` - QSP protocol dev stage.
+    * `npm run whitelist-contract-prod` - QSP protocol prod stage.
 
 ## Deploy to Ganache
 

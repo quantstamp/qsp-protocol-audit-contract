@@ -34,8 +34,19 @@ async function readAddressFromMetadata(stage, contractName) {
   }).promise();
   
   const responseJson = JSON.parse(response.Body.toString());
-  console.log('response JSON', JSON.stringify(responseJson, null, 2));
+  console.log(`readAddressFromMetadata(...): ${contractName}:${stage}: response JSON`,
+    JSON.stringify(responseJson, null, 2));
+
   return responseJson.contractAddress;
+}
+
+async function readAbi(stage, contractName) {
+  const response = await s3.getObject({
+    Bucket: `qsp-protocol-contract-abi-${stage}`,
+    Key: `${contractName}.abi.json`
+  }).promise();
+
+  return JSON.parse(response.Body.toString());
 }
 
 async function contractAddress(contractName, network, defaultArtifact) {
@@ -114,5 +125,7 @@ module.exports = {
   updateAbiAndMetadata,
   tokenAddress,
   contractAddress,
-  canDeploy
+  canDeploy,
+  readAbi,
+  readAddressFromMetadata
 };
