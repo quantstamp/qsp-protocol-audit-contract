@@ -9,7 +9,9 @@
    "scripts": {
       "test": "./node_modules/.bin/truffle test",
       "test-cov": "./node_modules/.bin/solidity-coverage",
-      "coveralls-collect": "cat coverage/lcov.info | ./node_modules/.bin/coveralls"
+      "coveralls-collect": "cat coverage/lcov.info | ./node_modules/.bin/coveralls",
+      "whitelist-contract-dev": "node ./scripts/command.js -a=whitelist-audit-contract -s=dev",
+      "whitelist-contract-prod": "node ./scripts/command.js -a=whitelist-audit-contract -s=prod"
    },
    "author": "",
    "license": "ISC",
@@ -22,5 +24,8 @@
       "truffle": "4.1.7",
       "truffle-hdwallet-provider": "0.0.3",
       "web3": "1.0.0-beta.34"
+   },
+   "devDependencies": {
+      "yargs": "11.0.0"
    }
 }
