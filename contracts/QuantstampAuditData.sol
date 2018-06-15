@@ -1,10 +1,11 @@
-pragma solidity ^0.4.23;
+pragma solidity 0.4.23;
 
 import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
 import "openzeppelin-solidity/contracts/ownership/Whitelist.sol";
 
-// the audit data has a whitelist of addresses of audit contracts that may interact with this contract
+
 contract QuantstampAuditData is Whitelist {
+  // the audit data has a whitelist of addresses of audit contracts that may interact with this contract
 
   // state of audit requests submitted to the contract
   enum AuditState {
@@ -63,7 +64,7 @@ contract QuantstampAuditData is Whitelist {
     // assign the next request ID
     uint256 requestId = ++requestCounter;
     // store the audit
-    audits[requestId] = Audit(requestor, contractUri, price, block.timestamp, AuditState.Queued, address(0), 0, "", "", 0);
+    audits[requestId] = Audit(requestor, contractUri, price, block.timestamp, AuditState.Queued, address(0), 0, "", "", 0);  // solhint-disable-line not-rely-on-time
     return requestId;
   }
 
