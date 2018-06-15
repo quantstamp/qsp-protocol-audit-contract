@@ -7,26 +7,27 @@ import "openzeppelin-solidity/contracts/lifecycle/Pausable.sol";
 import "./LinkedListLib.sol";
 import "./QuantstampAuditData.sol";
 
+
 contract QuantstampAudit is Ownable, Pausable {
   using SafeMath for uint256;
   using LinkedListLib for LinkedListLib.LinkedList;
 
   // constants used by LinkedListLib
-  uint256 constant NULL = 0;
-  uint256 constant HEAD = 0;
-  bool constant PREV = false;
-  bool constant NEXT = true;
+  uint256 constant internal NULL = 0;
+  uint256 constant internal HEAD = 0;
+  bool constant internal PREV = false;
+  bool constant internal NEXT = true;
 
   // mapping from an auditor address to the number of requests that it currently processes
   mapping(address => uint256) public assignedRequestIds;
 
   // increasingly sorted linked list of prices
-  LinkedListLib.LinkedList priceList;
+  LinkedListLib.LinkedList internal priceList;
   // map from price to a list of request IDs
-  mapping(uint256 => LinkedListLib.LinkedList) auditsByPrice;
+  mapping(uint256 => LinkedListLib.LinkedList) internal auditsByPrice;
 
   // whitelist audit nodes
-  LinkedListLib.LinkedList whitelistedList;
+  LinkedListLib.LinkedList internal whitelistedList;
 
   // contract that stores audit data (separate from the auditing logic)
   QuantstampAuditData public auditData;
@@ -48,11 +49,14 @@ contract QuantstampAudit is Ownable, Pausable {
   );
 
   event LogAuditAssigned(uint256 requestId, address auditor);
+
+  /* solhint-disable event-name-camelcase */
   event LogReportSubmissionError_InvalidAuditor(uint256 requestId, address auditor);
   event LogReportSubmissionError_InvalidState(uint256 requestId, address auditor, QuantstampAuditData.AuditState state);
-  event LogAuditQueueIsEmpty();
-
   event LogAuditAssignmentError_ExceededMaxAssignedRequests(address auditor);
+  /* solhint-enable event-name-camelcase */
+
+  event LogAuditQueueIsEmpty();
 
   event LogPayAuditor(uint256 requestId, address auditor, uint256 amount);
   event LogAuditNodePriceChanged(address auditor, uint256 amount);
@@ -87,6 +91,44 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
+   * @dev Returns funds to the requestor.
+   * @param requestId Unique ID of the audit request.
+   */
+  function refund(uint256 requestId) external returns(bool) {
+    QuantstampAuditData.AuditState state = auditData.getAuditState(requestId);
+    // check that the audit exists and is in a valid state
+    if (state != QuantstampAuditData.AuditState.Queued && state != QuantstampAuditData.AuditState.Assigned) {
+      emit LogRefundInvalidState(requestId, state);
+      return;
+    }
+    address requestor = auditData.getAuditRequestor(requestId);
+    if (requestor != msg.sender) {
+      emit LogRefundInvalidRequestor(requestId, msg.sender);
+      return;
+    }
+    uint refundTimestamp = auditData.getAuditAssignTimestamp(requestId) + auditData.auditTimeoutInBlocks();
+    // check that the auditor has not recently started the audit (locking the funds)
+    if (state == QuantstampAuditData.AuditState.Assigned && block.number <= refundTimestamp) {
+      emit LogRefundInvalidFundsLocked(requestId, block.number, refundTimestamp);
+      return;
+    }
+
+    // remove the request from the queue
+    // note that if an audit node is currently assigned the request, it is already removed from the queue
+    if (state == QuantstampAuditData.AuditState.Queued) {
+      removeQueueElement(requestId);
+    }
+
+    // set the audit state the refunded
+    auditData.setAuditState(requestId, QuantstampAuditData.AuditState.Refunded);
+
+    // return the funds to the user
+    uint256 price = auditData.getAuditPrice(requestId);
+    emit LogRefund(requestId, requestor, price);
+    return auditData.token().transfer(requestor, price);
+  }
+
+  /**
    * @dev Submits audit request.
    * @param contractUri Identifier of the resource to audit.
    * @param price The total amount of tokens that will be paid for the audit.
@@ -100,7 +142,7 @@ contract QuantstampAudit is Ownable, Pausable {
     // TODO: use existing price instead of HEAD (optimization)
     queueAuditRequest(requestId, HEAD);
 
-    emit LogAuditRequested(requestId, msg.sender, contractUri, price, block.timestamp);
+    emit LogAuditRequested(requestId, msg.sender, contractUri, price, block.timestamp); // solhint-disable-line not-rely-on-time
 
     return requestId;
   }
@@ -129,12 +171,12 @@ contract QuantstampAudit is Ownable, Pausable {
     auditData.setAuditState(requestId, auditResult);
     auditData.setAuditReportUri(requestId, reportUri);
     auditData.setAuditReportHash(requestId, reportHash);
-    auditData.setAuditReportTimestamp(requestId, block.timestamp);
+    auditData.setAuditReportTimestamp(requestId, block.timestamp); // solhint-disable-line not-rely-on-time
 
     // validate the audit state
     require(isAuditFinished(requestId));
 
-    emit LogAuditFinished(requestId, msg.sender, auditResult, reportUri, reportHash, block.timestamp);
+    emit LogAuditFinished(requestId, msg.sender, auditResult, reportUri, reportHash, block.timestamp); // solhint-disable-line not-rely-on-time
 
     assignedRequestIds[msg.sender] = assignedRequestIds[msg.sender].sub(1);
 
@@ -148,7 +190,7 @@ contract QuantstampAudit is Ownable, Pausable {
    */
   function getNextAuditRequest() public onlyWhitelisted {
     // there are no audits in the queue
-    if (! auditQueueExists()) {
+    if (!auditQueueExists()) {
       emit LogAuditQueueIsEmpty();
       return;
     }
@@ -178,69 +220,6 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Checks if the list of audits has any elements
-   */
-  function auditQueueExists() view internal returns(bool) {
-    return priceList.listExists();
-  }
-
-  /**
-   * @dev Adds an audit request to the queue
-   * @param requestId Request ID.
-   * @param existingPrice price of an existing audit in the queue (makes insertion O(1))
-   */
-  function queueAuditRequest(uint256 requestId, uint256 existingPrice) internal {
-    uint256 price = auditData.getAuditPrice(requestId);
-    if (!priceList.nodeExists(price)) {
-      // if a price bucket doesn't exist, create it next to an existing one
-      priceList.insert(priceList.getSortedSpot(existingPrice, price, NEXT), price, PREV);
-    }
-    // push to the tail
-    auditsByPrice[price].push(requestId, PREV);
-  }
-
-  /**
-   * @dev Finds a list of most expensive audits and returns the oldest one that has a price >= minPrice
-   * @param minPrice The minimum audit price.
-   */
-  function dequeueAuditRequest(uint256 minPrice) internal returns(uint256) {
-    bool exists;
-    uint256 price;
-
-    // picks the tail of price buckets
-    (exists, price) = priceList.getAdjacent(HEAD, PREV);
-
-    if(price < minPrice){
-      return 0;
-    }
-
-    // picks the oldest audit request
-    uint256 result = auditsByPrice[price].pop(NEXT);
-    // removes the price bucket if it contains no requests
-    if (auditsByPrice[price].sizeOf() == 0) {
-      priceList.remove(price);
-    }
-    return result;
-  }
-
-  /**
-   * @dev Removes an element from the list
-   * @param requestId The Id of the request to be removed
-   */
-  function removeQueueElement(uint256 requestId) internal {
-    uint256 price = auditData.getAuditPrice(requestId);
-
-    // the node must exist in the list
-    require(priceList.nodeExists(price));
-    require(auditsByPrice[price].nodeExists(requestId));
-
-    auditsByPrice[price].remove(requestId);
-    if (auditsByPrice[price].sizeOf() == 0) {
-      priceList.remove(price);
-    }
-  }
-
-  /**
    * @dev Allows the audit node to set its minimum price per audit
    * @param price The minimum price.
    */
@@ -253,47 +232,9 @@ contract QuantstampAudit is Ownable, Pausable {
    * @dev Checks if an audit is finished. It is considered finished when the audit is either completed or failed.
    * @param requestId Unique ID of the audit request.
    */
-  function isAuditFinished(uint256 requestId) view public returns(bool) {
+  function isAuditFinished(uint256 requestId) public view returns(bool) {
     QuantstampAuditData.AuditState state = auditData.getAuditState(requestId);
     return state == QuantstampAuditData.AuditState.Completed || state == QuantstampAuditData.AuditState.Error;
-  }
-
-  /**
-   * @dev Returns funds to the requestor.
-   * @param requestId Unique ID of the audit request.
-   */
-  function refund(uint256 requestId) external returns(bool) {
-    QuantstampAuditData.AuditState state = auditData.getAuditState(requestId);
-    // check that the audit exists and is in a valid state
-    if(state != QuantstampAuditData.AuditState.Queued && state != QuantstampAuditData.AuditState.Assigned){
-      emit LogRefundInvalidState(requestId, state);
-      return;
-    }
-    address requestor = auditData.getAuditRequestor(requestId);
-    if(requestor != msg.sender){
-      emit LogRefundInvalidRequestor(requestId, msg.sender);
-      return;
-    }
-    uint refundTimestamp = auditData.getAuditAssignTimestamp(requestId) + auditData.auditTimeoutInBlocks();
-    // check that the auditor has not recently started the audit (locking the funds)
-    if(state == QuantstampAuditData.AuditState.Assigned && block.number <= refundTimestamp){
-      emit LogRefundInvalidFundsLocked(requestId, block.number, refundTimestamp);
-      return;
-    }
-
-    // remove the request from the queue
-    // note that if an audit node is currently assigned the request, it is already removed from the queue
-    if(state == QuantstampAuditData.AuditState.Queued){
-      removeQueueElement(requestId);
-    }
-
-    // set the audit state the refunded
-    auditData.setAuditState(requestId, QuantstampAuditData.AuditState.Refunded);
-
-    // return the funds to the user
-    uint256 price = auditData.getAuditPrice(requestId);
-    emit LogRefund(requestId, requestor, price);
-    return auditData.token().transfer(requestor, price);
   }
 
   /**
@@ -301,7 +242,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param addr address
    * @return true if the address was added to the whitelist
    */
-  function addAddressToWhitelist(address addr) onlyOwner public returns(bool success) {
+  function addAddressToWhitelist(address addr) public onlyOwner returns(bool success) {
     if (whitelistedList.insert(HEAD, uint256(addr), PREV)) {
       emit WhitelistedAddressAdded(addr);
       success = true;
@@ -313,7 +254,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param addr address
    * @return true if the address was removed from the whitelist,
    */
-  function removeAddressFromWhitelist(address addr) onlyOwner public returns(bool success) {
+  function removeAddressFromWhitelist(address addr) public onlyOwner returns(bool success) {
     if (whitelistedList.remove(uint256(addr)) != 0) {
       emit WhitelistedAddressRemoved(addr);
       success = true;
@@ -354,7 +295,70 @@ contract QuantstampAudit is Ownable, Pausable {
   function getNextAuditByPrice(uint256 price, uint256 requestId) public view returns(uint256) {
     bool direction;
     uint256 next;
-    (direction, next) =  auditsByPrice[price].getAdjacent(requestId, NEXT);
+    (direction, next) = auditsByPrice[price].getAdjacent(requestId, NEXT);
     return next;
+  }
+
+  /**
+   * @dev Checks if the list of audits has any elements
+   */
+  function auditQueueExists() internal view returns(bool) {
+    return priceList.listExists();
+  }
+
+  /**
+   * @dev Adds an audit request to the queue
+   * @param requestId Request ID.
+   * @param existingPrice price of an existing audit in the queue (makes insertion O(1))
+   */
+  function queueAuditRequest(uint256 requestId, uint256 existingPrice) internal {
+    uint256 price = auditData.getAuditPrice(requestId);
+    if (!priceList.nodeExists(price)) {
+      // if a price bucket doesn't exist, create it next to an existing one
+      priceList.insert(priceList.getSortedSpot(existingPrice, price, NEXT), price, PREV);
+    }
+    // push to the tail
+    auditsByPrice[price].push(requestId, PREV);
+  }
+
+  /**
+   * @dev Finds a list of most expensive audits and returns the oldest one that has a price >= minPrice
+   * @param minPrice The minimum audit price.
+   */
+  function dequeueAuditRequest(uint256 minPrice) internal returns(uint256) {
+    bool exists;
+    uint256 price;
+
+    // picks the tail of price buckets
+    (exists, price) = priceList.getAdjacent(HEAD, PREV);
+
+    if (price < minPrice) {
+      return 0;
+    }
+
+    // picks the oldest audit request
+    uint256 result = auditsByPrice[price].pop(NEXT);
+    // removes the price bucket if it contains no requests
+    if (auditsByPrice[price].sizeOf() == 0) {
+      priceList.remove(price);
+    }
+    return result;
+  }
+
+  /**
+   * @dev Removes an element from the list
+   * @param requestId The Id of the request to be removed
+   */
+  function removeQueueElement(uint256 requestId) internal {
+    uint256 price = auditData.getAuditPrice(requestId);
+
+    // the node must exist in the list
+    require(priceList.nodeExists(price));
+    require(auditsByPrice[price].nodeExists(requestId));
+
+    auditsByPrice[price].remove(requestId);
+    if (auditsByPrice[price].sizeOf() == 0) {
+      priceList.remove(price);
+    }
   }
 }

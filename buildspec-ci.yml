@@ -10,6 +10,7 @@ phases:
       - truffle version
   build:
     commands:
+      - npm run lint
       - npm run test-cov
       - npm run coveralls-collect
   post_build:
