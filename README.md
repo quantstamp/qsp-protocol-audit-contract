@@ -91,3 +91,15 @@ First-time only: manually create the S3 buckets `qsp-protocol-contract-abi-dev` 
 1. `docker run -d -p 7545:8545 trufflesuite/ganache-cli:latest`
 1. `truffle test --network development`
 1. `truffle migrate --network development`
+
+## Retrieve linked bytecode
+
+The solidity feature of libraries produces bytecode which is not compatible with some code analyzers. To obtain the correctly linked bytecode, you must extract it from the address on your local system. There is a script in `scripts` to perform this. Requires Ruby + the HTTP library. Run with
+
+```
+gem install http
+ruby scripts/get_audit_bytecode.rb {address from ganache}
+cat bytecode.bin
+```
+
+You get the address from ganache after running `truffle migrate --network development`
