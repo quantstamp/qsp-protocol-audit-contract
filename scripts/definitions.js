@@ -8,7 +8,7 @@ module.exports = {
     methodName: 'addAddressToWhitelist',
     gasLimit: 80000,
     methodArgs: async(stage, argv) => {
-      return [await utils.readAddressFromMetadata(stage, 'QuantstampAudit')];
+      return [argv.p];
     }
   },
   'whitelist-audit-contract': {
@@ -16,7 +16,7 @@ module.exports = {
     methodName: 'addAddressToWhitelist',
     gasLimit: 80000,
     methodArgs: async(stage, argv) => {
-      return [argv.p];
+      return [await utils.readAddressFromMetadata(stage, 'QuantstampAudit')];
     }
   },
   'set-max-assigned': {
