@@ -7,15 +7,15 @@ module.exports = {
     contractName: 'QuantstampAudit',
     methodName: 'addAddressToWhitelist',
     gasLimit: 80000,
-    methodArgs: (stage, argv) => {
-      return [utils.readAddressFromMetadata(stage, 'QuantstampAudit')];
+    methodArgs: async(stage, argv) => {
+      return [await utils.readAddressFromMetadata(stage, 'QuantstampAudit')];
     }
   },
   'whitelist-audit-contract': {
     contractName: 'QuantstampAuditData',
     methodName: 'addAddressToWhitelist',
-    gasLimit: 26000,
-    methodArgs: (stage, argv) => {
+    gasLimit: 80000,
+    methodArgs: async(stage, argv) => {
       return [argv.p];
     }
   },
@@ -23,7 +23,7 @@ module.exports = {
     contractName: 'QuantstampAuditData',
     methodName: 'setMaxAssignedRequests',
     gasLimit: 30000,
-    methodArgs: (stage, argv) => {
+    methodArgs: async(stage, argv) => {
       return [argv.p];
     }
   }

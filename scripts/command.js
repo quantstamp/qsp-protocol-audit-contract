@@ -70,7 +70,7 @@ return Promise.resolve()
     stage,
     contractName: definition.contractName,
     methodName: definition.methodName,
-    methodArgs: definition.methodArgs(stage, argv),
+    methodArgs: await definition.methodArgs(stage, argv),
     sendArgs: {
       from: truffle.networks[network].account,
       gasPrice: truffle.networks[network].gasPrice,
