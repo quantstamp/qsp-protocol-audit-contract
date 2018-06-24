@@ -10,8 +10,8 @@
       "test": "./node_modules/.bin/truffle test",
       "test-cov": "./node_modules/.bin/solidity-coverage",
       "coveralls-collect": "cat coverage/lcov.info | ./node_modules/.bin/coveralls",
-      "whitelist-contract-dev": "node ./scripts/command.js -a=whitelist-audit-contract -s=dev",
-      "whitelist-contract-prod": "node ./scripts/command.js -a=whitelist-audit-contract -s=prod",
+      "command-dev": "node ./scripts/command.js -s=dev",
+      "command-prod": "node ./scripts/command.js -s=prod",
       "lint": "./node_modules/.bin/solhint contracts/Quantstamp*.sol"
    },
    "author": "",
