@@ -20,9 +20,9 @@
       "aws-sdk": "2.194.0",
       "coveralls": "3.0.0",
       "ganache-cli": "6.1.0",
-      "openzeppelin-solidity": "1.9.0",
-      "solidity-coverage": "0.5.0",
-      "truffle": "4.1.7",
+      "openzeppelin-solidity": "1.10.0",
+      "solidity-coverage": "0.5.4",
+      "truffle": "4.1.11",
       "truffle-hdwallet-provider": "0.0.3",
       "web3": "1.0.0-beta.34"
    },
