@@ -72,11 +72,20 @@ First-time only: manually create the S3 buckets `qsp-protocol-contract-abi-dev` 
     * `truffle migrate --network stage_prod` - QSP protocol prod stage.
     * `truffle migrate --network ropsten` - Ropsten for independent testing (does not write anything to S3).
 1. Whitelist the Audit contract in the Data contract:
-    * `npm run whitelist-contract-dev` - QSP protocol dev stage.
-    * `npm run whitelist-contract-prod` - QSP protocol prod stage.
+    * `npm run command-dev -- -a=whitelist-audit-contract` - for the dev stage.
+    * `npm run command-prod -- -a=whitelist-audit-contract` - for the prod stage.
 
     Note: a successful return of the whitelisting script does not necessarily mean the transaction is fully completed. Please check
     the status manually on a block explorer and wait for the desired number of confirmations.
+1. To perform actions on a deployed smart contract, use the following commands:
+    * `npm run command-dev -- -p=<parameter>` - QSP protocol dev stage.
+    * `npm run command-prod -- -p=<parameter>` - QSP protocol prod stage.
+    
+    For the full list, check out the next section and `./scripts/definitions.json`. The list is extensible.
+
+## Commands
+1. `npm run command-dev -- -a=whitelist -p=0x123456789` whitelists a node defined by a given address
+1. `npm run command-dev -- -a=set-max-assigned -p=100` sets "maximum assigned nodes"
 
 ## Deploy to Ganache
 
