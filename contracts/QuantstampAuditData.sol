@@ -5,9 +5,10 @@ import "openzeppelin-solidity/contracts/ownership/Whitelist.sol";
 
 import "./LinkedListLib.sol";
 
+
 contract QuantstampAuditData is Whitelist {
-  using LinkedListLib for LinkedListLib.LinkedList;
   // the audit data has a whitelist of addresses of audit contracts that may interact with this contract
+  using LinkedListLib for LinkedListLib.LinkedList;
 
   // constants used by LinkedListLib
   uint256 constant internal NULL = 0;
