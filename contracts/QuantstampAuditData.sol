@@ -68,6 +68,10 @@ contract QuantstampAuditData is Whitelist {
     return requestId;
   }
 
+  function getAuditContractUri(uint256 requestId) public view returns(string) {
+    return audits[requestId].contractUri;
+  }
+
   function getAuditRequestor(uint256 requestId) public view returns(address) {
     return audits[requestId].requestor;
   }
@@ -78,6 +82,10 @@ contract QuantstampAuditData is Whitelist {
 
   function getAuditState (uint256 requestId) public view returns(AuditState) {
     return audits[requestId].state;
+  }
+
+  function getAuditRequestTimestamp (uint256 requestId) public view returns(uint) {
+    return audits[requestId].requestTimestamp;
   }
 
   function setAuditState (uint256 requestId, AuditState state) public onlyWhitelisted {
