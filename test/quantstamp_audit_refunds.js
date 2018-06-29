@@ -33,7 +33,7 @@ contract('QuantstampAudit_refunds', function(accounts) {
     // allow the audit contract use up to 65QSP for audits
     await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(1000), {from : requestor});
     // whitelisting auditor
-    await quantstamp_audit.addAddressToWhitelist(auditor);
+    await quantstamp_audit_data.addNodeToWhitelist(auditor);
     // allow audit nodes to perform many audits at once
     await quantstamp_audit_data.setMaxAssignedRequests(1000);
   });

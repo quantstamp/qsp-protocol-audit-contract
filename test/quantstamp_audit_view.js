@@ -21,12 +21,12 @@ contract('QuantstampAuditView_stats', function(accounts) {
   // Helper function to empty the queue
   async function emptyQueue (n) {
     // remove requests
-    await quantstamp_audit.addAddressToWhitelist(auditor);
+    await quantstamp_audit_data.addNodeToWhitelist(auditor);
     await quantstamp_audit.setAuditNodePrice(0, {from: auditor});
     for (let i = 0; i < n; i++){
       await quantstamp_audit.getNextAuditRequest({from: auditor});
     }
-    await quantstamp_audit.removeAddressFromWhitelist(auditor);
+    await quantstamp_audit_data.removeNodeFromWhitelist(auditor);
   }
 
   beforeEach(async function () {
@@ -79,7 +79,7 @@ contract('QuantstampAuditView_stats', function(accounts) {
     const auditors = [auditor, accounts[4], accounts[5]];
     for (i in auditors) {
       // whitelisting auditor
-      await quantstamp_audit.addAddressToWhitelist(auditors[i]);
+      await quantstamp_audit_data.addNodeToWhitelist(auditors[i]);
       // advertise min price
       await quantstamp_audit.setAuditNodePrice(prices[i], {from: auditors[i]});
     }
@@ -91,7 +91,7 @@ contract('QuantstampAuditView_stats', function(accounts) {
 
     // remove two auditors from the whitelist
     for (i in auditors) {
-      await quantstamp_audit.removeAddressFromWhitelist(auditors[i]);
+      await quantstamp_audit_data.removeNodeFromWhitelist(auditors[i]);
     }
   });
 

@@ -4,8 +4,8 @@ const utils = require('../migrations/utils.js');
 
 module.exports = {
   'whitelist': {
-    contractName: 'QuantstampAudit',
-    methodName: 'addAddressToWhitelist',
+    contractName: 'QuantstampAuditData',
+    methodName: 'addNodeToWhitelist',
     gasLimit: 80000,
     methodArgs: async(stage, argv) => {
       return [argv.p];

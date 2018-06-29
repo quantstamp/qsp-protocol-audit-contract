@@ -84,6 +84,9 @@ First-time only: manually create the S3 buckets `qsp-protocol-contract-abi-dev` 
     For the full list, check out the next section and `./scripts/definitions.json`. The list is extensible.
 
 ## Commands
+
+**Note**: before running a command, setup the credentials as described in the section above.
+
 1. `npm run command-dev -- -a=whitelist -p=0x123456789` whitelists a node defined by a given address
 1. `npm run command-dev -- -a=set-max-assigned -p=100` sets "maximum assigned nodes"
 

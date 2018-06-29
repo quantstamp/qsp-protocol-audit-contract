@@ -99,7 +99,7 @@ contract QuantstampAuditView is Ownable {
     uint256 min = 2**256 - 1;
     uint256 max;
 
-    address currentWhitelistedAddress = audit.getNextWhitelistedAddress(address(HEAD));
+    address currentWhitelistedAddress = auditData.getNextWhitelistedNode(address(HEAD));
     while (currentWhitelistedAddress != address(HEAD)) {
       n++;
       uint256 minPrice = auditData.minAuditPrice(currentWhitelistedAddress);
@@ -110,7 +110,7 @@ contract QuantstampAuditView is Ownable {
       if (minPrice > max) {
         max = minPrice;
       }
-      currentWhitelistedAddress = audit.getNextWhitelistedAddress(currentWhitelistedAddress);
+      currentWhitelistedAddress = auditData.getNextWhitelistedNode(currentWhitelistedAddress);
     }
 
     if (n == 0) {

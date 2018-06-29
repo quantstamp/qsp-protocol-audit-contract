@@ -31,7 +31,7 @@ contract('QuantstampAudit2', function(accounts) {
     // allow the audit contract use up to 65QSP for audits
     await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(65), {from : requestor});
     // whitelisting auditor
-    await quantstamp_audit.addAddressToWhitelist(auditor);
+    await quantstamp_audit_data.addNodeToWhitelist(auditor);
   });
 
   it("should audit the contract if the requestor pays", async function () {
@@ -145,7 +145,7 @@ contract('QuantstampAudit2', function(accounts) {
     const auditor = accounts[4];
 
     // whitelisting another auditor
-    await quantstamp_audit.addAddressToWhitelist(auditor);
+    await quantstamp_audit_data.addNodeToWhitelist(auditor);
 
     const auditRequestResult = await quantstamp_audit.requestAudit(requestUri, price, {from : requestor});
     const result = await quantstamp_audit.getNextAuditRequest({from: auditor});

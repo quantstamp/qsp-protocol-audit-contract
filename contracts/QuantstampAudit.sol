@@ -26,9 +26,6 @@ contract QuantstampAudit is Ownable, Pausable {
   // map from price to a list of request IDs
   mapping(uint256 => LinkedListLib.LinkedList) internal auditsByPrice;
 
-  // whitelist audit nodes
-  LinkedListLib.LinkedList internal whitelistedList;
-
   // contract that stores audit data (separate from the auditing logic)
   QuantstampAuditData public auditData;
 
@@ -75,10 +72,6 @@ contract QuantstampAudit is Ownable, Pausable {
   // amount corresponds to the current minPrice of the auditor
   event LogAuditNodePriceHigherThanRequests(address auditor, uint256 amount);
 
-  event WhitelistedAddressAdded(address addr);
-  event WhitelistedAddressRemoved(address addr);
-
-  // state of audit requests submitted to the contract
   enum AuditAvailabilityState {
     Error,
     Ready,      // an audit is available to pick up
@@ -100,7 +93,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @dev Throws if called by any account that's not whitelisted.
    */
   modifier onlyWhitelisted() {
-    require(whitelistedList.nodeExists(uint256(msg.sender)));
+    require(auditData.isWhitelisted(msg.sender));
     _;
   }
 
@@ -280,42 +273,6 @@ contract QuantstampAudit is Ownable, Pausable {
   function isAuditFinished(uint256 requestId) public view returns(bool) {
     QuantstampAuditData.AuditState state = auditData.getAuditState(requestId);
     return state == QuantstampAuditData.AuditState.Completed || state == QuantstampAuditData.AuditState.Error;
-  }
-
-  /**
-   * @dev Adds an address to the whitelist
-   * @param addr address
-   * @return true if the address was added to the whitelist
-   */
-  function addAddressToWhitelist(address addr) public onlyOwner returns(bool success) {
-    if (whitelistedList.insert(HEAD, uint256(addr), PREV)) {
-      emit WhitelistedAddressAdded(addr);
-      success = true;
-    }
-  }
-
-  /**
-   * @dev Removes an address from the whitelist linked-list
-   * @param addr address
-   * @return true if the address was removed from the whitelist,
-   */
-  function removeAddressFromWhitelist(address addr) public onlyOwner returns(bool success) {
-    if (whitelistedList.remove(uint256(addr)) != 0) {
-      emit WhitelistedAddressRemoved(addr);
-      success = true;
-    }
-  }
-
-  /**
-   * @dev Given a whitelisted address, returns the next address from the whitelist
-   * @param addr address
-   * @return next address of the given param
-   */
-  function getNextWhitelistedAddress(address addr) public view returns(address) {
-    bool direction;
-    uint256 next;
-    (direction, next) = whitelistedList.getAdjacent(uint256(addr), NEXT);
-    return address(next);
   }
 
   /**

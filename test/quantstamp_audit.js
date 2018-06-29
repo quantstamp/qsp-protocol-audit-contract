@@ -34,7 +34,7 @@ contract('QuantstampAudit', function(accounts) {
     // allow the audit contract use up to 65QSP for audits
     await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(1000), {from : requestor});
     // whitelisting auditor
-    await quantstamp_audit.addAddressToWhitelist(auditor);
+    await quantstamp_audit_data.addNodeToWhitelist(auditor);
     // relaxing the requirement for other tests
     await quantstamp_audit_data.setMaxAssignedRequests(100);
   });
@@ -185,7 +185,7 @@ contract('QuantstampAudit', function(accounts) {
     const requestId = requestCounter++;
 
     // for the sake of dependency, let's ensure the auditor is not in the whitelist
-    await quantstamp_audit.removeAddressFromWhitelist(auditor);
+    await quantstamp_audit_data.removeNodeFromWhitelist(auditor);
 
     Util.assertTxFail(quantstamp_audit.getNextAuditRequest({from: auditor}));
   });
@@ -195,15 +195,15 @@ contract('QuantstampAudit', function(accounts) {
     const requestId = requestCounter++;
 
     // for the sake of dependency, let's ensure the auditor is not in the whitelist
-    await quantstamp_audit.removeAddressFromWhitelist(auditor);
+    await quantstamp_audit_data.removeNodeFromWhitelist(auditor);
 
     Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor}));
   });
 
   it("should prevent a whitelisted user from submitting a report to an audit that they are not assigned", async function() {
     const auditor2 = accounts[4];
-    await quantstamp_audit.addAddressToWhitelist(auditor);
-    await quantstamp_audit.addAddressToWhitelist(auditor2);
+    await quantstamp_audit_data.addNodeToWhitelist(auditor);
+    await quantstamp_audit_data.addNodeToWhitelist(auditor2);
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     const result = await quantstamp_audit.getNextAuditRequest({from: auditor});
     const requestId = Util.extractRequestId(result);
@@ -219,7 +219,7 @@ contract('QuantstampAudit', function(accounts) {
 
     await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor});
     // for the sake of dependency, let's ensure the auditor is not in the whitelist
-    await quantstamp_audit.removeAddressFromWhitelist(auditor2);
+    await quantstamp_audit_data.removeNodeFromWhitelist(auditor2);
   });
 
   it("should prevent an audit from being submitted with a bad state", async function() {
@@ -250,7 +250,7 @@ contract('QuantstampAudit', function(accounts) {
     const pendingAuditsNum = (await quantstamp_audit.assignedRequestIds.call(auditor2)).toNumber();
 
     await quantstamp_audit_data.setMaxAssignedRequests(pendingAuditsNum + 1);
-    await quantstamp_audit.addAddressToWhitelist(auditor2);
+    await quantstamp_audit_data.addNodeToWhitelist(auditor2);
 
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
@@ -269,7 +269,7 @@ contract('QuantstampAudit', function(accounts) {
   it("should get a request after finishing the previous one", async function() {
     const auditor2 = accounts[4];
 
-    await quantstamp_audit.addAddressToWhitelist(auditor2);
+    await quantstamp_audit_data.addNodeToWhitelist(auditor2);
     const pendingAuditsNum = (await quantstamp_audit.assignedRequestIds.call(auditor2)).toNumber();
     await quantstamp_audit_data.setMaxAssignedRequests(pendingAuditsNum + 1);
 
@@ -298,7 +298,7 @@ contract('QuantstampAudit', function(accounts) {
   it("does not get another request before finishing the previous one even if it submitted a report before", async function() {
     const auditor2 = accounts[4];
 
-    await quantstamp_audit.addAddressToWhitelist(auditor2);
+    await quantstamp_audit_data.addNodeToWhitelist(auditor2);
     const pendingAuditsNum = (await quantstamp_audit.assignedRequestIds.call(auditor2)).toNumber();
     await quantstamp_audit_data.setMaxAssignedRequests(pendingAuditsNum + 1);
 
