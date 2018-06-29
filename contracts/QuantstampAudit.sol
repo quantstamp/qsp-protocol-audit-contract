@@ -74,10 +74,10 @@ contract QuantstampAudit is Ownable, Pausable {
 
   enum AuditAvailabilityState {
     Error,
-    Ready,      // an audit is available to pick up
-    Empty,      // there is no audit request
-    Exceeded,   // number of incomplete audit requests without is reached the cap
-    Underprice  // all available audit requests are less than expected price
+    Ready,      // an audit is available to be picked up
+    Empty,      // there is no audit request in the queue
+    Exceeded,   // number of incomplete audit requests is reached the cap
+    Underprice  // all queued audit requests are less than the expected price
   }
 
   /**
@@ -193,7 +193,7 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Determines if there is audit request available to be picked up by the caller
+   * @dev Determines if there is an audit request available to be picked up by the caller
    */
   function anyRequestAvailable() public view returns(AuditAvailabilityState) {
     // there are no audits in the queue
@@ -202,13 +202,11 @@ contract QuantstampAudit is Ownable, Pausable {
     }
 
     // check if the auditor's assignment is not exceeded.
-    uint256 assignedRequests = assignedRequestIds[msg.sender];
-    if (assignedRequests >= auditData.maxAssignedRequests()) {
+    if (assignedRequestIds[msg.sender] >= auditData.maxAssignedRequests()) {
       return AuditAvailabilityState.Exceeded;
     }
 
-    uint256 minPrice = auditData.getMinAuditPrice(msg.sender);
-    if (anyAuditRequestMatchesPrice(minPrice) == 0) {
+    if (anyAuditRequestMatchesPrice(auditData.getMinAuditPrice(msg.sender)) == 0) {
       return AuditAvailabilityState.Underprice;
     }
 
@@ -228,7 +226,6 @@ contract QuantstampAudit is Ownable, Pausable {
     }
 
     // check if the auditor's assignment is not exceeded.
-    uint256 assignedRequests = assignedRequestIds[msg.sender];
     if (isRequestAvailable == AuditAvailabilityState.Exceeded) {
       emit LogAuditAssignmentError_ExceededMaxAssignedRequests(msg.sender);
       return;
@@ -246,7 +243,7 @@ contract QuantstampAudit is Ownable, Pausable {
     auditData.setAuditAuditor(requestId, msg.sender);
     auditData.setAuditAssignTimestamp(requestId, block.number);
 
-    assignedRequestIds[msg.sender] = assignedRequests + 1;
+    assignedRequestIds[msg.sender] = assignedRequestIds[msg.sender] + 1;
 
     emit LogAuditAssigned(
       requestId,
