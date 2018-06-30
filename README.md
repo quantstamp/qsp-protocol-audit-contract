@@ -89,6 +89,7 @@ First-time only: manually create the S3 buckets `qsp-protocol-contract-abi-dev` 
 
 1. `npm run command-dev -- -a=whitelist -p=0x123456789` whitelists a node defined by a given address
 1. `npm run command-dev -- -a=set-max-assigned -p=100` sets "maximum assigned nodes"
+1. `npm run command-dev -- -a=get-next-audit-request` calls `getNextAuditRequest()` on the contract. May be useful for cleaning up the audit waiting queue.
 
 ## Deploy to Ganache
 
