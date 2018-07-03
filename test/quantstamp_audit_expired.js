@@ -5,7 +5,7 @@ const QuantstampAuditData = artifacts.require('QuantstampAuditData');
 const Util = require("./util.js");
 const AuditState = Util.AuditState;
 
-contract('QuantstampAudit_refunds', function(accounts) {
+contract('QuantstampAudit_expires', function(accounts) {
   const owner = accounts[0];
   const admin = accounts[1];
   const requestor = accounts[2];
@@ -40,134 +40,37 @@ contract('QuantstampAudit_refunds', function(accounts) {
     await quantstamp_audit_data.setAuditTimeout(10000);
   });
 
-  it("should disallow refunds for bogus request IDs", async function () {
-    const bogusId = 123456;
-    Util.assertEvent({
-      result: await quantstamp_audit.refund(bogusId, {from: requestor}),
-      name: "LogRefundInvalidState",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), bogusId);
-        assert.equal(args.state, AuditState.None);
-      }
-    });
-  });
+  it.only("should adjust expired requests in each call for bidding request", async function () {
+    const timeout = 10;
+    await quantstamp_audit_data.setAuditTimeout(timeout);
+    const requestedId = Util.extractRequestId(await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor}));
 
-  it("should adjust expired requests in each call for bidding request", async function () {
+    Util.extractRequestId(await quantstamp_audit.getNextAuditRequest({from:auditor}));
+    await Util.mineNBlocks(timeout-2);
+
+    // let's spend one block
+    Util.assertEvent({
+      result: await quantstamp_audit.getNextAuditRequest({from:auditor}),
+      name: "LogAuditQueueIsEmpty",
+      args: (args) => {}
+    });
+
+    Util.assertEventAtIndex({
+      result: await quantstamp_audit.getNextAuditRequest({from:auditor}),
+      name: "LogAuditAssignmentUpdate_Expired",
+      args: (args) => {
+        assert.equal(args.requestId.toNumber(), requestedId);
+      },
+      index: 0
+    });
   });
 
   it("should adjust expired requests in each report submission happening after time allowance", async function () {
   });
 
+  it("should not allow audit to submit after time allowance", async function () {
+  });
 
   it("should not leave a request in the assigned queue after a refund", async function () {
-    const result = await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor});
-    globalRequestId = Util.extractRequestId(result);
-    const bogusRequestor = accounts[5];
-    Util.assertEvent({
-      result: await quantstamp_audit.refund(globalRequestId, {from: bogusRequestor}),
-      name: "LogRefundInvalidRequestor",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), globalRequestId);
-        assert.equal(args.requestor, bogusRequestor);
-      }
-    });
   });
-
-  it("should not allow a requestor to get a refund after a report has been submitted", async function () {
-    assert(await quantstamp_audit_view.getQueueLength.call(), 1);
-    await quantstamp_audit.getNextAuditRequest({from:auditor});
-    await quantstamp_audit.submitReport(globalRequestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor});
-
-    Util.assertEvent({
-      result: await quantstamp_audit.refund(globalRequestId, {from: requestor}),
-      name: "LogRefundInvalidState",
-      args: (args) => {
-        assert.equal(args.requestId, globalRequestId);
-        assert.equal(args.state, AuditState.Completed);
-      }
-    });
-  });
-
-  it("should not allow an auditor to submit a report after a refund", async function () {
-    const result = await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor});
-    const requestId = Util.extractRequestId(result);
-    await quantstamp_audit.refund(requestId, {from: requestor});
-    Util.assertEvent({
-      result: await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor}),
-      name: "LogReportSubmissionError_InvalidState",
-      args: (args) => {
-        assert.equal(args.requestId, requestId);
-        assert.equal(args.auditor, auditor);
-        assert.equal(args.state, AuditState.Refunded);
-      }
-    });
-  });
-
-  it("should not allow the requestor to get a refund during the lock period", async function () {
-    assert(await quantstamp_audit_view.getQueueLength.call(), 0);
-    const result = await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor});
-    globalRequestId = Util.extractRequestId(result);
-    await quantstamp_audit.getNextAuditRequest({from:auditor});
-    Util.assertEvent({
-      result: await quantstamp_audit.refund(globalRequestId, {from: requestor}),
-      name: "LogRefundInvalidFundsLocked",
-      args: (args) => {
-        assert.equal(args.requestId, globalRequestId);
-      }
-    });
-
-  });
-
-  it("should allow the requestor to get a refund after the lock period", async function () {
-    await quantstamp_audit_data.setAuditTimeout(0);
-    Util.assertEvent({
-      result: await quantstamp_audit.refund(globalRequestId, {from: requestor}),
-      name: "LogRefund",
-      args: (args) => {
-        assert.equal(args.requestId, globalRequestId);
-        assert.equal(args.requestor, requestor);
-        assert.equal(args.amount, price);
-      }
-    });
-  });
-
-  it("should allow multiple requestors to get refunds with the same price", async function () {
-    const result = await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor});
-    const id1 = Util.extractRequestId(result);
-    const result2 = await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor});
-    const id2 = Util.extractRequestId(result2);
-    Util.assertEvent({
-      result: await quantstamp_audit.refund(id2, {from: requestor}),
-      name: "LogRefund",
-      args: (args) => {
-        assert.equal(args.requestId, id2);
-        assert.equal(args.requestor, requestor);
-        assert.equal(args.amount, price);
-      }
-    });
-    Util.assertEvent({
-      result: await quantstamp_audit.refund(id1, {from: requestor}),
-      name: "LogRefund",
-      args: (args) => {
-        assert.equal(args.requestId, id1);
-        assert.equal(args.requestor, requestor);
-        assert.equal(args.amount, price);
-      }
-    });
-  });
-
-  it("should allow the auditor to submit an audit after the lock period", async function () {
-    assert(await quantstamp_audit_view.getQueueLength.call(), 0);
-    await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor});
-    const result = await quantstamp_audit.getNextAuditRequest({from:auditor});
-    const requestId = Util.extractRequestId(result);
-
-    Util.assertEventAtIndex({
-      result: await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor}),
-      name: "LogAuditFinished",
-      args: (args) => {},
-      index: 0
-    });
-  });
-
 });

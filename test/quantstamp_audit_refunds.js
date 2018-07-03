@@ -172,18 +172,4 @@ contract('QuantstampAudit_refunds', function(accounts) {
     });
   });
 
-  it("should allow the auditor to submit an audit after the lock period", async function () {
-    assert(await quantstamp_audit_view.getQueueLength.call(), 0);
-    await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor});
-    const result = await quantstamp_audit.getNextAuditRequest({from:auditor});
-    const requestId = Util.extractRequestId(result);
-
-    Util.assertEventAtIndex({
-      result: await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor}),
-      name: "LogAuditFinished",
-      args: (args) => {},
-      index: 0
-    });
-  });
-
 });
