@@ -8,7 +8,8 @@ const AuditState = Object.freeze({
   Assigned : 2,
   Refunded : 3,
   Completed : 4,
-  Error : 5
+  Error : 5,
+  Expired: 6
 });
 
 function toEther (n) {

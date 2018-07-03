@@ -242,7 +242,6 @@ contract QuantstampAudit is Ownable, Pausable {
    * @dev Finds a list of most expensive audits and assigns the oldest one to the auditor node.
    */
   function getNextAuditRequest() public onlyWhitelisted {
-
     // remove an expired audit request
     if (assignedAudits.listExists()) {
       bool direction;
@@ -280,7 +279,6 @@ contract QuantstampAudit is Ownable, Pausable {
     auditData.setAuditState(requestId, QuantstampAuditData.AuditState.Assigned);
     auditData.setAuditAuditor(requestId, msg.sender);
     auditData.setAuditAssignTimestamp(requestId, block.number);
-
     assignedRequestIds[msg.sender]++;
 
     // push to the tail

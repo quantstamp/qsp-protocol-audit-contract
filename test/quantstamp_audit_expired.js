@@ -40,7 +40,7 @@ contract('QuantstampAudit_expires', function(accounts) {
     await quantstamp_audit_data.setAuditTimeout(10000);
   });
 
-  it.only("should adjust expired requests in each call for bidding request", async function () {
+  it("should adjust expired requests in each call for bidding request", async function () {
     const timeout = 10;
     await quantstamp_audit_data.setAuditTimeout(timeout);
     const requestedId = Util.extractRequestId(await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor}));
@@ -63,6 +63,22 @@ contract('QuantstampAudit_expires', function(accounts) {
       },
       index: 0
     });
+  });
+
+  it("should update the assigned queue and states accordingly", async function () {
+    // do white box testing for increasing coverage
+    const timeout = 10;
+    await quantstamp_audit_data.setAuditTimeout(timeout);
+    const requestedId1 = Util.extractRequestId(await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor}));
+    const requestedId2 = Util.extractRequestId(await quantstamp_audit.requestAudit(Util.uri, price + 1, {from : requestor}));
+
+    Util.extractRequestId(await quantstamp_audit.getNextAuditRequest({from:auditor}));
+    assert.equal((await quantstamp_audit.getNextAssignedRequest(0)).toNumber(), requestedId2);
+    await Util.mineNBlocks(timeout - 1);
+    assert.equal((await quantstamp_audit.getNextAssignedRequest(0)).toNumber(), requestedId2);
+    await quantstamp_audit.getNextAuditRequest({from:auditor});
+    assert.equal((await quantstamp_audit.getNextAssignedRequest(0)).toNumber(), requestedId1);
+    assert.equal((await quantstamp_audit_data.getAuditState(requestedId2)).toNumber(), Util.AuditState.Expired);
   });
 
   it("should adjust expired requests in each report submission happening after time allowance", async function () {
