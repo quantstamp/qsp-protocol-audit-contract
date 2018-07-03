@@ -27,7 +27,7 @@ contract QuantstampAudit is Ownable, Pausable {
   mapping(uint256 => LinkedListLib.LinkedList) internal auditsByPrice;
 
   // assigned audits are stored in a temporal order
-  LinkedListLib.LinkedList public assignedAudits;
+  LinkedListLib.LinkedList internal assignedAudits;
 
   // contract that stores audit data (separate from the auditing logic)
   QuantstampAuditData public auditData;
