@@ -325,6 +325,18 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
+   * @dev Given a requestId, returns the requestId from assignedAudits
+   * @param requestId of the current node
+   * @return next requestId in the linked list
+   */
+  function getNextAssignedRequest(uint256 requestId) public view returns(uint256) {
+    bool direction;
+    uint256 next;
+    (direction, next) = assignedAudits.getAdjacent(requestId, NEXT);
+    return next;
+  }
+
+  /**
    * @dev Given a price and a requestId, then function returns the next requestId with the same price
    * return 0, provided the given price does not exist in auditsByPrice
    * @param price of the current bucket
