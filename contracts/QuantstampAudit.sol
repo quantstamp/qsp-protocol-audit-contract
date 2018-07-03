@@ -243,7 +243,7 @@ contract QuantstampAudit is Ownable, Pausable {
     auditData.setAuditAuditor(requestId, msg.sender);
     auditData.setAuditAssignTimestamp(requestId, block.number);
 
-    assignedRequestIds[msg.sender] = assignedRequestIds[msg.sender] + 1;
+    assignedRequestIds[msg.sender]++;
 
     emit LogAuditAssigned(
       requestId,
