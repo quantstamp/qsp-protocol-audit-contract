@@ -91,7 +91,8 @@ contract('QuantstampAudit_ordering', function(accounts) {
     await quantstamp_audit_data.addNodeToWhitelist(auditor);
     // allow audit nodes to perform many audits at once
     await quantstamp_audit_data.setMaxAssignedRequests(1000);
-
+    // timeout requests
+    await quantstamp_audit_data.setAuditTimeout(10000);
   });
 
   it("queues requests with different prices in the correct order", async function() {

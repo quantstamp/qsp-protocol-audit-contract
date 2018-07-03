@@ -23,7 +23,8 @@ contract QuantstampAuditData is Whitelist {
     Assigned,
     Refunded,
     Completed,  // automated audit finished successfully and the report is available
-    Error       // automated audit failed to finish; the report contains detailed information about the error
+    Error,      // automated audit failed to finish; the report contains detailed information about the error
+    Expired
   }
 
   // structure representing an audit

@@ -26,6 +26,9 @@ contract QuantstampAudit is Ownable, Pausable {
   // map from price to a list of request IDs
   mapping(uint256 => LinkedListLib.LinkedList) internal auditsByPrice;
 
+  // assigned audits are stored in a temporal order
+  LinkedListLib.LinkedList public assignedAudits;
+
   // contract that stores audit data (separate from the auditing logic)
   QuantstampAuditData public auditData;
 
@@ -56,6 +59,7 @@ contract QuantstampAudit is Ownable, Pausable {
   event LogReportSubmissionError_InvalidAuditor(uint256 requestId, address auditor);
   event LogReportSubmissionError_InvalidState(uint256 requestId, address auditor, QuantstampAuditData.AuditState state);
   event LogAuditAssignmentError_ExceededMaxAssignedRequests(address auditor);
+  event LogAuditAssignmentUpdate_Expired(uint256 requestId);
   /* solhint-enable event-name-camelcase */
 
   event LogAuditQueueIsEmpty();
@@ -104,7 +108,9 @@ contract QuantstampAudit is Ownable, Pausable {
   function refund(uint256 requestId) external returns(bool) {
     QuantstampAuditData.AuditState state = auditData.getAuditState(requestId);
     // check that the audit exists and is in a valid state
-    if (state != QuantstampAuditData.AuditState.Queued && state != QuantstampAuditData.AuditState.Assigned) {
+    if (state != QuantstampAuditData.AuditState.Queued &&
+          state != QuantstampAuditData.AuditState.Assigned &&
+            state != QuantstampAuditData.AuditState.Expired) {
       emit LogRefundInvalidState(requestId, state);
       return;
     }
@@ -124,6 +130,11 @@ contract QuantstampAudit is Ownable, Pausable {
     // note that if an audit node is currently assigned the request, it is already removed from the queue
     if (state == QuantstampAuditData.AuditState.Queued) {
       removeQueueElement(requestId);
+    }
+
+    // the request is expired but not detected by getNextAuditRequest
+    if (state == QuantstampAuditData.AuditState.Assigned) {
+      assignedAudits.remove(requestId);
     }
 
     // set the audit state the refunded
@@ -187,6 +198,9 @@ contract QuantstampAudit is Ownable, Pausable {
 
     assignedRequestIds[msg.sender] = assignedRequestIds[msg.sender].sub(1);
 
+    // remove the requestId from assigned queue
+    assignedAudits.remove(requestId);
+
     uint256 auditPrice = auditData.getAuditPrice(requestId);
     auditData.token().transfer(msg.sender, auditPrice);
     emit LogPayAuditor(requestId, msg.sender, auditPrice);
@@ -218,6 +232,18 @@ contract QuantstampAudit is Ownable, Pausable {
    */
   function getNextAuditRequest() public onlyWhitelisted {
 
+    // remove an expired audit request
+    if (assignedAudits.listExists()) {
+      bool direction;
+      uint256 potentialExpiredRequestId;
+      (direction, potentialExpiredRequestId) = assignedAudits.getAdjacent(HEAD, NEXT);
+      if (auditData.getAuditAssignTimestamp(requestId) + auditData.auditTimeoutInBlocks() < block.number) {
+        assignedAudits.remove(potentialExpiredRequestId);
+        auditData.setAuditState(potentialExpiredRequestId, QuantstampAuditData.AuditState.Expired);
+        emit LogAuditAssignmentUpdate_Expired(potentialExpiredRequestId);
+      }
+    }
+
     AuditAvailabilityState isRequestAvailable = anyRequestAvailable();
     // there are no audits in the queue
     if (isRequestAvailable == AuditAvailabilityState.Empty) {
@@ -244,6 +270,9 @@ contract QuantstampAudit is Ownable, Pausable {
     auditData.setAuditAssignTimestamp(requestId, block.number);
 
     assignedRequestIds[msg.sender]++;
+
+    // push to the tail
+    assignedAudits.push(requestId, PREV);
 
     emit LogAuditAssigned(
       requestId,
@@ -355,6 +384,7 @@ contract QuantstampAudit is Ownable, Pausable {
       // picks the oldest audit request
       uint256 result = auditsByPrice[price].pop(NEXT);
       // removes the price bucket if it contains no requests
+      // TODO Question: apparently sizeOf takes O(N). Why not using listExists?
       if (auditsByPrice[price].sizeOf() == 0) {
         priceList.remove(price);
       }

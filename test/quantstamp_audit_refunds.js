@@ -36,6 +36,8 @@ contract('QuantstampAudit_refunds', function(accounts) {
     await quantstamp_audit_data.addNodeToWhitelist(auditor);
     // allow audit nodes to perform many audits at once
     await quantstamp_audit_data.setMaxAssignedRequests(1000);
+    // timeout requests
+    await quantstamp_audit_data.setAuditTimeout(10000);
   });
 
   it("should disallow refunds for bogus request IDs", async function () {

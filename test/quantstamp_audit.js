@@ -36,6 +36,8 @@ contract('QuantstampAudit', function(accounts) {
     await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(1000), {from : requestor});
     // whitelisting auditor
     await quantstamp_audit_data.addNodeToWhitelist(auditor);
+    // timeout requests
+    await quantstamp_audit_data.setAuditTimeout(10000);
     // relaxing the requirement for other tests
     await quantstamp_audit_data.setMaxAssignedRequests(maxAssignedRequests);
   });
