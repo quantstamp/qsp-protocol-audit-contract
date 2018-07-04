@@ -136,6 +136,7 @@ contract QuantstampAudit is Ownable, Pausable {
     // the request is expired but not detected by getNextAuditRequest
     if (state == QuantstampAuditData.AuditState.Assigned) {
       assignedAudits.remove(requestId);
+      assignedRequestIds[auditData.getAuditAuditor(requestId)] = assignedRequestIds[auditData.getAuditAuditor(requestId)].sub(1);
     }
 
     // set the audit state the refunded
@@ -192,6 +193,7 @@ contract QuantstampAudit is Ownable, Pausable {
       // update assigned to expired state
       assignedAudits.remove(requestId);
       auditData.setAuditState(requestId, QuantstampAuditData.AuditState.Expired);
+      assignedRequestIds[msg.sender] = assignedRequestIds[msg.sender].sub(1);
       emit LogReportSubmissionError_ExpiredAudit(requestId, msg.sender, allowanceTime);
       return;
     }
@@ -251,6 +253,7 @@ contract QuantstampAudit is Ownable, Pausable {
       if (allowanceTime <= block.number) {
         assignedAudits.remove(potentialExpiredRequestId);
         auditData.setAuditState(potentialExpiredRequestId, QuantstampAuditData.AuditState.Expired);
+        assignedRequestIds[auditData.getAuditAuditor(potentialExpiredRequestId)] = assignedRequestIds[auditData.getAuditAuditor(potentialExpiredRequestId)].sub(1);
         emit LogAuditAssignmentUpdate_Expired(potentialExpiredRequestId, allowanceTime);
       }
     }
