@@ -7,13 +7,12 @@ const AuditState = Util.AuditState;
 
 contract('QuantstampAudit_expires', function(accounts) {
   const owner = accounts[0];
-  const admin = accounts[1];
   const requestor = accounts[2];
   const auditor = accounts[3];
   const price = 123;
   const requestorBudget = Util.toQsp(100000);
+  const timeout = 2;
 
-  let globalRequestId = 0;
   let quantstamp_audit;
   let quantstamp_audit_data;
   let quantstamp_audit_view;
@@ -37,12 +36,10 @@ contract('QuantstampAudit_expires', function(accounts) {
     // allow audit nodes to perform many audits at once
     await quantstamp_audit_data.setMaxAssignedRequests(1000);
     // timeout requests
-    await quantstamp_audit_data.setAuditTimeout(10000);
+    await quantstamp_audit_data.setAuditTimeout(timeout);
   });
 
   it("should adjust expired requests in each call for bidding request", async function () {
-    const timeout = 10;
-    await quantstamp_audit_data.setAuditTimeout(timeout);
     const requestedId = Util.extractRequestId(await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor}));
 
     Util.extractRequestId(await quantstamp_audit.getNextAuditRequest({from:auditor}));
@@ -67,26 +64,94 @@ contract('QuantstampAudit_expires', function(accounts) {
 
   it("should update the assigned queue and states accordingly", async function () {
     // do white box testing for increasing coverage
-    const timeout = 10;
-    await quantstamp_audit_data.setAuditTimeout(timeout);
     const requestedId1 = Util.extractRequestId(await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor}));
     const requestedId2 = Util.extractRequestId(await quantstamp_audit.requestAudit(Util.uri, price + 1, {from : requestor}));
 
-    Util.extractRequestId(await quantstamp_audit.getNextAuditRequest({from:auditor}));
+    await quantstamp_audit.getNextAuditRequest({from:auditor});
     assert.equal((await quantstamp_audit.getNextAssignedRequest(0)).toNumber(), requestedId2);
     await Util.mineNBlocks(timeout - 1);
     assert.equal((await quantstamp_audit.getNextAssignedRequest(0)).toNumber(), requestedId2);
     await quantstamp_audit.getNextAuditRequest({from:auditor});
     assert.equal((await quantstamp_audit.getNextAssignedRequest(0)).toNumber(), requestedId1);
     assert.equal((await quantstamp_audit_data.getAuditState(requestedId2)).toNumber(), Util.AuditState.Expired);
-  });
-
-  it("should adjust expired requests in each report submission happening after time allowance", async function () {
+    // clean the assigned queue
+    await Util.mineNBlocks(timeout);
+    await quantstamp_audit.getNextAuditRequest({from:auditor});
+    assert.equal((await quantstamp_audit.getNextAssignedRequest(0)).toNumber(), 0);
   });
 
   it("should not allow audit to submit after time allowance", async function () {
+    const requestedId = Util.extractRequestId(await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor}));
+    await quantstamp_audit.getNextAuditRequest({from:auditor});
+    await Util.mineNBlocks(timeout);
+
+    // white box testing
+    assert.equal((await quantstamp_audit.getNextAssignedRequest(0)).toNumber(), requestedId);
+
+    Util.assertEvent({
+      result: await quantstamp_audit.submitReport(requestedId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor}),
+      name: "LogReportSubmissionError_ExpiredAudit",
+      args: (args) => {
+        assert.equal(args.requestId.toNumber(), requestedId);
+        assert.equal(args.auditor, auditor);
+        // one less due to new block for calling submitReport
+        assert.equal(args.allowanceTime.toNumber(), web3.eth.blockNumber - 1);
+      }
+    });
+
+    // white box testing
+    assert.equal((await quantstamp_audit.getNextAssignedRequest(0)).toNumber(), 0);
+    assert.equal((await quantstamp_audit_data.getAuditState(requestedId)).toNumber(), Util.AuditState.Expired);
+  });
+
+  it("should let requester refund an expired request", async function () {
+    const requestedId = Util.extractRequestId(await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor}));
+    await quantstamp_audit.getNextAuditRequest({from:auditor});
+    await Util.mineNBlocks(timeout);
+
+    Util.assertEventAtIndex({
+      result: await quantstamp_audit.getNextAuditRequest({from:auditor}),
+      name: "LogAuditAssignmentUpdate_Expired",
+      args: (args) => {
+        assert.equal(args.requestId.toNumber(), requestedId);
+      },
+      index: 0
+    });
+
+    assert.equal((await quantstamp_audit_data.getAuditState(requestedId)).toNumber(), Util.AuditState.Expired);
+
+    Util.assertEvent({
+      result: await quantstamp_audit.refund(requestedId, {from: requestor}),
+      name: "LogRefund",
+      args: (args) => {
+        assert.equal(args.requestId.toNumber(), requestedId);
+        assert.equal(args.requestor, requestor);
+        assert.equal(args.amount, price);
+      }
+    });
   });
 
   it("should not leave a request in the assigned queue after a refund", async function () {
+    const requestedId = Util.extractRequestId(await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor}));
+    await quantstamp_audit.getNextAuditRequest({from:auditor});
+    await Util.mineNBlocks(timeout);
+
+    // white box testing
+    assert.equal((await quantstamp_audit_data.getAuditState(requestedId)).toNumber(), Util.AuditState.Assigned);
+    assert.equal((await quantstamp_audit.getNextAssignedRequest(0)).toNumber(), requestedId);
+
+
+    Util.assertEvent({
+      result: await quantstamp_audit.refund(requestedId, {from: requestor}),
+      name: "LogRefund",
+      args: (args) => {
+        assert.equal(args.requestId.toNumber(), requestedId);
+        assert.equal(args.requestor, requestor);
+        assert.equal(args.amount, price);
+      }
+    });
+
+    // white box testing
+    assert.equal((await quantstamp_audit.getNextAssignedRequest(0)).toNumber(), 0);
   });
 });
