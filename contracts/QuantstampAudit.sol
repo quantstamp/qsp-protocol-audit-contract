@@ -45,7 +45,12 @@ contract QuantstampAudit is Ownable, Pausable {
     uint256 requestTimestamp
   );
 
-  event LogAuditAssigned(uint256 requestId, address auditor);
+  event LogAuditAssigned(uint256 requestId,
+    address auditor,
+    address requestor,
+    string uri,
+    uint256 price,
+    uint256 requestTimestamp);
 
   /* solhint-disable event-name-camelcase */
   event LogReportSubmissionError_InvalidAuditor(uint256 requestId, address auditor);
@@ -66,6 +71,14 @@ contract QuantstampAudit is Ownable, Pausable {
   // the audit queue has elements, but none satisfy the minPrice of the audit node
   // amount corresponds to the current minPrice of the auditor
   event LogAuditNodePriceHigherThanRequests(address auditor, uint256 amount);
+
+  enum AuditAvailabilityState {
+    Error,
+    Ready,      // an audit is available to be picked up
+    Empty,      // there is no audit request in the queue
+    Exceeded,   // number of incomplete audit requests is reached the cap
+    Underprice  // all queued audit requests are less than the expected price
+  }
 
   /**
    * @dev The constructor creates an audit contract.
@@ -180,18 +193,40 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
+   * @dev Determines if there is an audit request available to be picked up by the caller
+   */
+  function anyRequestAvailable() public view returns(AuditAvailabilityState) {
+    // there are no audits in the queue
+    if (!auditQueueExists()) {
+      return AuditAvailabilityState.Empty;
+    }
+
+    // check if the auditor's assignment is not exceeded.
+    if (assignedRequestIds[msg.sender] >= auditData.maxAssignedRequests()) {
+      return AuditAvailabilityState.Exceeded;
+    }
+
+    if (anyAuditRequestMatchesPrice(auditData.getMinAuditPrice(msg.sender)) == 0) {
+      return AuditAvailabilityState.Underprice;
+    }
+
+    return AuditAvailabilityState.Ready;
+  }
+
+  /**
    * @dev Finds a list of most expensive audits and assigns the oldest one to the auditor node.
    */
   function getNextAuditRequest() public onlyWhitelisted {
+
+    AuditAvailabilityState isRequestAvailable = anyRequestAvailable();
     // there are no audits in the queue
-    if (!auditQueueExists()) {
+    if (isRequestAvailable == AuditAvailabilityState.Empty) {
       emit LogAuditQueueIsEmpty();
       return;
     }
 
     // check if the auditor's assignment is not exceeded.
-    uint256 assignedRequests = assignedRequestIds[msg.sender];
-    if (assignedRequests >= auditData.maxAssignedRequests()) {
+    if (isRequestAvailable == AuditAvailabilityState.Exceeded) {
       emit LogAuditAssignmentError_ExceededMaxAssignedRequests(msg.sender);
       return;
     }
@@ -208,9 +243,15 @@ contract QuantstampAudit is Ownable, Pausable {
     auditData.setAuditAuditor(requestId, msg.sender);
     auditData.setAuditAssignTimestamp(requestId, block.number);
 
-    assignedRequestIds[msg.sender] = assignedRequests + 1;
+    assignedRequestIds[msg.sender]++;
 
-    emit LogAuditAssigned(requestId, auditData.getAuditAuditor(requestId));
+    emit LogAuditAssigned(
+      requestId,
+      auditData.getAuditAuditor(requestId),
+      auditData.getAuditRequestor(requestId),
+      auditData.getAuditContractUri(requestId),
+      auditData.getAuditPrice(requestId),
+      auditData.getAuditRequestTimestamp(requestId));
   }
 
   /**
@@ -280,10 +321,11 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Finds a list of most expensive audits and returns the oldest one that has a price >= minPrice
+   * @dev Evaluates if there is an audit price >= minPrice. Returns 0 if there no audit with the desired price.
+   * Note that there should not be any audit with price as 0.
    * @param minPrice The minimum audit price.
    */
-  function dequeueAuditRequest(uint256 minPrice) internal returns(uint256) {
+  function anyAuditRequestMatchesPrice(uint256 minPrice) internal view returns(uint256) {
     bool exists;
     uint256 price;
 
@@ -293,14 +335,32 @@ contract QuantstampAudit is Ownable, Pausable {
     if (price < minPrice) {
       return 0;
     }
+    return price;
+  }
 
-    // picks the oldest audit request
-    uint256 result = auditsByPrice[price].pop(NEXT);
-    // removes the price bucket if it contains no requests
-    if (auditsByPrice[price].sizeOf() == 0) {
-      priceList.remove(price);
+  /**
+   * @dev Finds a list of most expensive audits and returns the oldest one that has a price >= minPrice
+   * @param minPrice The minimum audit price.
+   */
+  function dequeueAuditRequest(uint256 minPrice) internal returns(uint256) {
+    uint256 price;
+
+    // picks the tail of price buckets
+    // TODO seems the following statement is redundantly called from getNextAuditRequest. If this is the only place
+    // to call dequeueAuditRequest, then removing the following line saves gas, but leaves dequeueAuditRequest
+    // unsafe for further extension by noobies.
+    price = anyAuditRequestMatchesPrice(minPrice);
+
+    if (price > 0) {
+      // picks the oldest audit request
+      uint256 result = auditsByPrice[price].pop(NEXT);
+      // removes the price bucket if it contains no requests
+      if (auditsByPrice[price].sizeOf() == 0) {
+        priceList.remove(price);
+      }
+      return result;
     }
-    return result;
+    return 0;
   }
 
   /**
