@@ -374,5 +374,6 @@ contract('QuantstampAudit', function(accounts) {
   
   it("should not let ask for request with zero price", async function() {
     Util.assertTxFail(quantstamp_audit.requestAudit(Util.uri, 0, {from: requestor}));
+  });
 
 });
