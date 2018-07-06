@@ -141,6 +141,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param price The total amount of tokens that will be paid for the audit.
    */
   function requestAudit(string contractUri, uint256 price) external whenNotPaused returns(uint256) {
+    require(price > 0);
     // transfer tokens to this contract
     auditData.token().transferFrom(msg.sender, this, price);
     // store the audit

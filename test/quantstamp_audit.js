@@ -371,5 +371,8 @@ contract('QuantstampAudit', function(accounts) {
     assert.equal((await quantstamp_audit.assignedRequestIds.call(auditor2)).toNumber(), 0);
     await quantstamp_audit_data.removeNodeFromWhitelist(auditor2);
   });
+  
+  it("should not let ask for request with zero price", async function() {
+    Util.assertTxFail(quantstamp_audit.requestAudit(Util.uri, 0, {from: requestor}));
 
 });

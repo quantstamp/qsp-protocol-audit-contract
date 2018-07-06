@@ -109,15 +109,11 @@ contract('QuantstampAuditView_stats', function(accounts) {
     assert.equal(await quantstamp_audit_view.getQueueLength(), 0);
   });
 
-  it("considers zero price audit", async function () {
+  it("Should not consider zero price audit", async function () {
     assert.equal(await quantstamp_audit_view.getQueueLength(), 0);
     let price = 0;
-    await quantstamp_audit.requestAudit(uri, price, {from:requestor});
-    assert.equal(await quantstamp_audit_view.getQueueLength(), 1);
-
-    // TODO  fix the expected behaviour according to QSP-401
-    await emptyQueue(1);
-    assert.equal(await quantstamp_audit_view.getQueueLength(), 1 /*Expected result 0*/);
+    Util.assertTxFail(quantstamp_audit.requestAudit(uri, price, {from:requestor}));
+    assert.equal(await quantstamp_audit_view.getQueueLength(), 0);
   });
 
 });
