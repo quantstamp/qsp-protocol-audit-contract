@@ -26,5 +26,13 @@ module.exports = {
     methodArgs: async(stage, argv) => {
       return [argv.p];
     }
+  },
+  'get-next-audit-request': {
+    contractName: 'QuantstampAudit',
+    methodName: 'getNextAuditRequest',
+    gasLimit: 200000,
+    methodArgs: async(stage, argv) => {
+      return [];
+    }
   }
 }
