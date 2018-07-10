@@ -96,7 +96,7 @@ contract('QuantstampAudit_expires', function(accounts) {
         assert.equal(args.requestId.toNumber(), requestedId);
         assert.equal(args.auditor, auditor);
         // one less due to new block for calling submitReport
-        assert.equal(args.allowanceTime.toNumber(), web3.eth.blockNumber - 1);
+        assert.equal(args.allowanceBlockNumber.toNumber(), web3.eth.blockNumber - 1);
       }
     });
 

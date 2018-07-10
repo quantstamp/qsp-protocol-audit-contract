@@ -342,7 +342,7 @@ contract('QuantstampAudit', function(accounts) {
     // empty the pending requests
     const queueSize = (await quantstamp_audit_view.getQueueLength.call()).toNumber();
     for (let i = 0; i < queueSize; ++i) {
-      const requestId = (await quantstamp_audit.getNextAuditRequest({from: auditor2})).logs[0].args.requestId.toNumber();
+      const requestId = Util.extractRequestId(await quantstamp_audit.getNextAuditRequest({from: auditor2}));
       await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor2});
     }
 
@@ -354,7 +354,7 @@ contract('QuantstampAudit', function(accounts) {
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     assert.equal((await quantstamp_audit.anyRequestAvailable({from: auditor2})).toNumber(), 1);
 
-    let requestId = (await quantstamp_audit.getNextAuditRequest({from: auditor2})).logs[0].args.requestId.toNumber();
+    let requestId = Util.extractRequestId(await quantstamp_audit.getNextAuditRequest({from: auditor2}));
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     assert.equal((await quantstamp_audit.anyRequestAvailable({from: auditor2})).toNumber(), 3);
 
@@ -367,11 +367,15 @@ contract('QuantstampAudit', function(accounts) {
     // make sure there is not pending assigned or unassigned request
     await quantstamp_audit.setAuditNodePrice(currentMinPrice, {from: auditor2});
     await quantstamp_audit_data.setMaxAssignedRequests(maxAssignedRequests);
-    requestId = (await quantstamp_audit.getNextAuditRequest({from: auditor2})).logs[0].args.requestId.toNumber();
+    requestId = Util.extractRequestId(await quantstamp_audit.getNextAuditRequest({from: auditor2}));
     await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor2});
     assert.equal(await quantstamp_audit_view.getQueueLength.call(), 0);
     assert.equal((await quantstamp_audit.assignedRequestIds.call(auditor2)).toNumber(), 0);
     await quantstamp_audit_data.removeNodeFromWhitelist(auditor2);
+  });
+
+  it("should not let ask for request with zero price", async function() {
+    Util.assertTxFail(quantstamp_audit.requestAudit(Util.uri, 0, {from: requestor}));
   });
 
 });
