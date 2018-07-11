@@ -8,7 +8,8 @@ const AuditState = Object.freeze({
   Assigned : 2,
   Refunded : 3,
   Completed : 4,
-  Error : 5
+  Error : 5,
+  Expired: 6
 });
 
 function toEther (n) {
@@ -72,8 +73,23 @@ async function getEthBalance (user) {
   return await web3.eth.getBalance(user);
 }
 
-function extractRequestId(result) {
+function extractRequestId (result) {
   return result.logs[0].args.requestId.toNumber();
+}
+
+async function mineOneBlock () {
+  await web3.currentProvider.send({
+    jsonrpc: '2.0',
+    method: 'evm_mine',
+    params: [],
+    id: 0,
+  })
+}
+
+async function mineNBlocks (n) {
+  for (let i = 0; i < n; i++) {
+    await mineOneBlock()
+  }
 }
 
 module.exports = {
@@ -97,6 +113,8 @@ module.exports = {
   getReportUri : getReportUri,
   getAuditState : getAuditState,
   getEthBalance : getEthBalance,
-  extractRequestId : extractRequestId
+  extractRequestId : extractRequestId,
+  mineOneBlock: mineOneBlock,
+  mineNBlocks: mineNBlocks
 };
 

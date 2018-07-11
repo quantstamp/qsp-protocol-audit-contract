@@ -41,7 +41,8 @@ contract('QuantstampAuditView_stats', function(accounts) {
     await quantstamp_token.transfer(requestor, requestorBudget, {from : owner});
     // allow the audit contract use QSP for audits
     await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(1000), {from : requestor});
-
+    // timeout requests
+    await quantstamp_audit_data.setAuditTimeout(10000);
     // allow audit nodes to perform many audits at once
     await quantstamp_audit_data.setMaxAssignedRequests(1000);
   });

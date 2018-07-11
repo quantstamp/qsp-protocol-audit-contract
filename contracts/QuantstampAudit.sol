@@ -26,6 +26,9 @@ contract QuantstampAudit is Ownable, Pausable {
   // map from price to a list of request IDs
   mapping(uint256 => LinkedListLib.LinkedList) internal auditsByPrice;
 
+  // list of request IDs of assigned audits (the list preserves temporal order of assignments)
+  LinkedListLib.LinkedList internal assignedAudits;
+
   // contract that stores audit data (separate from the auditing logic)
   QuantstampAuditData public auditData;
 
@@ -55,7 +58,9 @@ contract QuantstampAudit is Ownable, Pausable {
   /* solhint-disable event-name-camelcase */
   event LogReportSubmissionError_InvalidAuditor(uint256 requestId, address auditor);
   event LogReportSubmissionError_InvalidState(uint256 requestId, address auditor, QuantstampAuditData.AuditState state);
+  event LogReportSubmissionError_ExpiredAudit(uint256 requestId, address auditor, uint allowanceBlockNumber);
   event LogAuditAssignmentError_ExceededMaxAssignedRequests(address auditor);
+  event LogAuditAssignmentUpdate_Expired(uint256 requestId, uint allowanceBlockNumber);
   /* solhint-enable event-name-camelcase */
 
   event LogAuditQueueIsEmpty();
@@ -104,7 +109,9 @@ contract QuantstampAudit is Ownable, Pausable {
   function refund(uint256 requestId) external returns(bool) {
     QuantstampAuditData.AuditState state = auditData.getAuditState(requestId);
     // check that the audit exists and is in a valid state
-    if (state != QuantstampAuditData.AuditState.Queued && state != QuantstampAuditData.AuditState.Assigned) {
+    if (state != QuantstampAuditData.AuditState.Queued &&
+          state != QuantstampAuditData.AuditState.Assigned &&
+            state != QuantstampAuditData.AuditState.Expired) {
       emit LogRefundInvalidState(requestId, state);
       return;
     }
@@ -115,9 +122,13 @@ contract QuantstampAudit is Ownable, Pausable {
     }
     uint refundTimestamp = auditData.getAuditAssignTimestamp(requestId) + auditData.auditTimeoutInBlocks();
     // check that the auditor has not recently started the audit (locking the funds)
-    if (state == QuantstampAuditData.AuditState.Assigned && block.number <= refundTimestamp) {
-      emit LogRefundInvalidFundsLocked(requestId, block.number, refundTimestamp);
-      return;
+    if (state == QuantstampAuditData.AuditState.Assigned) {
+      if (block.number <= refundTimestamp) {
+        emit LogRefundInvalidFundsLocked(requestId, block.number, refundTimestamp);
+        return;
+      }
+      // the request is expired but not detected by getNextAuditRequest
+      updateAssignedAudits(requestId);
     }
 
     // remove the request from the queue
@@ -175,6 +186,18 @@ contract QuantstampAudit is Ownable, Pausable {
       return;
     }
 
+    // remove the requestId from assigned queue
+    updateAssignedAudits(requestId);
+
+    // auditor should not send a report after its allowed period
+    uint allowanceBlockNumber = auditData.getAuditAssignTimestamp(requestId) + auditData.auditTimeoutInBlocks();
+    if (allowanceBlockNumber <= block.number) {
+      // update assigned to expired state
+      auditData.setAuditState(requestId, QuantstampAuditData.AuditState.Expired);
+      emit LogReportSubmissionError_ExpiredAudit(requestId, msg.sender, allowanceBlockNumber);
+      return;
+    }
+
     // update the audit information held in this contract
     auditData.setAuditState(requestId, auditResult);
     auditData.setAuditReportUri(requestId, reportUri);
@@ -185,8 +208,6 @@ contract QuantstampAudit is Ownable, Pausable {
     require(isAuditFinished(requestId));
 
     emit LogAuditFinished(requestId, msg.sender, auditResult, reportUri, reportHash, block.timestamp); // solhint-disable-line not-rely-on-time
-
-    assignedRequestIds[msg.sender] = assignedRequestIds[msg.sender].sub(1);
 
     uint256 auditPrice = auditData.getAuditPrice(requestId);
     auditData.token().transfer(msg.sender, auditPrice);
@@ -218,6 +239,18 @@ contract QuantstampAudit is Ownable, Pausable {
    * @dev Finds a list of most expensive audits and assigns the oldest one to the auditor node.
    */
   function getNextAuditRequest() public onlyWhitelisted {
+    // remove an expired audit request
+    if (assignedAudits.listExists()) {
+      bool direction;
+      uint256 potentialExpiredRequestId;
+      (direction, potentialExpiredRequestId) = assignedAudits.getAdjacent(HEAD, NEXT);
+      uint allowanceBlockNumber = auditData.getAuditAssignTimestamp(potentialExpiredRequestId) + auditData.auditTimeoutInBlocks();
+      if (allowanceBlockNumber <= block.number) {
+        updateAssignedAudits(potentialExpiredRequestId);
+        auditData.setAuditState(potentialExpiredRequestId, QuantstampAuditData.AuditState.Expired);
+        emit LogAuditAssignmentUpdate_Expired(potentialExpiredRequestId, allowanceBlockNumber);
+      }
+    }
 
     AuditAvailabilityState isRequestAvailable = anyRequestAvailable();
     // there are no audits in the queue
@@ -243,8 +276,10 @@ contract QuantstampAudit is Ownable, Pausable {
     auditData.setAuditState(requestId, QuantstampAuditData.AuditState.Assigned);
     auditData.setAuditAuditor(requestId, msg.sender);
     auditData.setAuditAssignTimestamp(requestId, block.number);
-
     assignedRequestIds[msg.sender]++;
+
+    // push to the tail
+    assignedAudits.push(requestId, PREV);
 
     emit LogAuditAssigned(
       requestId,
@@ -286,6 +321,18 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
+   * @dev Given a requestId, returns the next one from assignedAudits
+   * @param requestId of the current node
+   * @return next requestId in the linked list
+   */
+  function getNextAssignedRequest(uint256 requestId) public view returns(uint256) {
+    bool direction;
+    uint256 next;
+    (direction, next) = assignedAudits.getAdjacent(requestId, NEXT);
+    return next;
+  }
+
+  /**
    * @dev Given a price and a requestId, then function returns the next requestId with the same price
    * return 0, provided the given price does not exist in auditsByPrice
    * @param price of the current bucket
@@ -297,6 +344,17 @@ contract QuantstampAudit is Ownable, Pausable {
     uint256 next;
     (direction, next) = auditsByPrice[price].getAdjacent(requestId, NEXT);
     return next;
+  }
+
+  /**
+   * @dev Given a requestId, the function removes it from the list of audits and decreases the number of assigned
+   * audits of the associated auditor
+   * @param requestId unique Id of an requested audit
+   */
+  function updateAssignedAudits(uint256 requestId) internal {
+    assignedAudits.remove(requestId);
+    assignedRequestIds[auditData.getAuditAuditor(requestId)] =
+      assignedRequestIds[auditData.getAuditAuditor(requestId)].sub(1);
   }
 
   /**
@@ -356,7 +414,7 @@ contract QuantstampAudit is Ownable, Pausable {
       // picks the oldest audit request
       uint256 result = auditsByPrice[price].pop(NEXT);
       // removes the price bucket if it contains no requests
-      if (auditsByPrice[price].sizeOf() == 0) {
+      if (!auditsByPrice[price].listExists()) {
         priceList.remove(price);
       }
       return result;
