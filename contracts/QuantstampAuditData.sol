@@ -51,7 +51,7 @@ contract QuantstampAuditData is Whitelist {
   // 10 blocks seems like a reasonable default timeout
   // Once an audit node gets an audit request, the audit price is locked for this many blocks.
   // After that, the requestor can asks for a refund.
-  uint256 public auditTimeoutInBlocks = 10;
+  uint256 public auditTimeoutInBlocks = 25;
 
   // maximum number of assigned audits per each auditor
   uint256 public maxAssignedRequests = 10;
