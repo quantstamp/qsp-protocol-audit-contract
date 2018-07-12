@@ -250,7 +250,7 @@ contract('QuantstampAudit', function(accounts) {
 
   it("does not get another request before finishes the previous one", async function() {
     const auditor2 = accounts[4];
-    const pendingAuditsNum = (await quantstamp_audit.assignedRequestIds.call(auditor2)).toNumber();
+    const pendingAuditsNum = (await quantstamp_audit.assignedRequestCount.call(auditor2)).toNumber();
 
     await quantstamp_audit_data.setMaxAssignedRequests(pendingAuditsNum + 1);
     await quantstamp_audit_data.addNodeToWhitelist(auditor2);
@@ -273,7 +273,7 @@ contract('QuantstampAudit', function(accounts) {
     const auditor2 = accounts[4];
 
     await quantstamp_audit_data.addNodeToWhitelist(auditor2);
-    const pendingAuditsNum = (await quantstamp_audit.assignedRequestIds.call(auditor2)).toNumber();
+    const pendingAuditsNum = (await quantstamp_audit.assignedRequestCount.call(auditor2)).toNumber();
     await quantstamp_audit_data.setMaxAssignedRequests(pendingAuditsNum + 1);
 
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
@@ -302,7 +302,7 @@ contract('QuantstampAudit', function(accounts) {
     const auditor2 = accounts[4];
 
     await quantstamp_audit_data.addNodeToWhitelist(auditor2);
-    const pendingAuditsNum = (await quantstamp_audit.assignedRequestIds.call(auditor2)).toNumber();
+    const pendingAuditsNum = (await quantstamp_audit.assignedRequestCount.call(auditor2)).toNumber();
     await quantstamp_audit_data.setMaxAssignedRequests(pendingAuditsNum + 1);
 
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
@@ -337,7 +337,7 @@ contract('QuantstampAudit', function(accounts) {
 
     await quantstamp_audit_data.addNodeToWhitelist(auditor2);
     // auditor2 does not have any pending assigned request
-    assert.equal((await quantstamp_audit.assignedRequestIds.call(auditor2)).toNumber(), 0);
+    assert.equal((await quantstamp_audit.assignedRequestCount.call(auditor2)).toNumber(), 0);
 
     // empty the pending requests
     const queueSize = (await quantstamp_audit_view.getQueueLength.call()).toNumber();
@@ -370,7 +370,7 @@ contract('QuantstampAudit', function(accounts) {
     requestId = Util.extractRequestId(await quantstamp_audit.getNextAuditRequest({from: auditor2}));
     await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor2});
     assert.equal(await quantstamp_audit_view.getQueueLength.call(), 0);
-    assert.equal((await quantstamp_audit.assignedRequestIds.call(auditor2)).toNumber(), 0);
+    assert.equal((await quantstamp_audit.assignedRequestCount.call(auditor2)).toNumber(), 0);
     await quantstamp_audit_data.removeNodeFromWhitelist(auditor2);
   });
   
