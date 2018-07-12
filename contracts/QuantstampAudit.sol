@@ -19,7 +19,7 @@ contract QuantstampAudit is Ownable, Pausable {
   bool constant internal NEXT = true;
 
   // mapping from an auditor address to the number of requests that it currently processes
-  mapping(address => uint256) public assignedRequestIds;
+  mapping(address => uint256) public assignedRequestCount;
 
   // increasingly sorted linked list of prices
   LinkedListLib.LinkedList internal priceList;
@@ -224,7 +224,7 @@ contract QuantstampAudit is Ownable, Pausable {
     }
 
     // check if the auditor's assignment is not exceeded.
-    if (assignedRequestIds[msg.sender] >= auditData.maxAssignedRequests()) {
+    if (assignedRequestCount[msg.sender] >= auditData.maxAssignedRequests()) {
       return AuditAvailabilityState.Exceeded;
     }
 
@@ -276,7 +276,7 @@ contract QuantstampAudit is Ownable, Pausable {
     auditData.setAuditState(requestId, QuantstampAuditData.AuditState.Assigned);
     auditData.setAuditAuditor(requestId, msg.sender);
     auditData.setAuditAssignTimestamp(requestId, block.number);
-    assignedRequestIds[msg.sender]++;
+    assignedRequestCount[msg.sender]++;
 
     // push to the tail
     assignedAudits.push(requestId, PREV);
@@ -353,8 +353,8 @@ contract QuantstampAudit is Ownable, Pausable {
    */
   function updateAssignedAudits(uint256 requestId) internal {
     assignedAudits.remove(requestId);
-    assignedRequestIds[auditData.getAuditAuditor(requestId)] =
-      assignedRequestIds[auditData.getAuditAuditor(requestId)].sub(1);
+    assignedRequestCount[auditData.getAuditAuditor(requestId)] =
+      assignedRequestCount[auditData.getAuditAuditor(requestId)].sub(1);
   }
 
   /**

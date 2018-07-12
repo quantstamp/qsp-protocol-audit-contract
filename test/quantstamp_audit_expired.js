@@ -170,7 +170,7 @@ contract('QuantstampAudit_expires', function(accounts) {
     });
 
     // white box testing
-    assert.equal((await quantstamp_audit.assignedRequestIds.call(auditor)).toNumber(), 1);
+    assert.equal((await quantstamp_audit.assignedRequestCount.call(auditor)).toNumber(), 1);
 
     await Util.mineNBlocks(timeout);
 
@@ -184,7 +184,7 @@ contract('QuantstampAudit_expires', function(accounts) {
     });
 
     // white box testing
-    assert.equal((await quantstamp_audit.assignedRequestIds.call(auditor)).toNumber(), 0);
+    assert.equal((await quantstamp_audit.assignedRequestCount.call(auditor)).toNumber(), 0);
     // let's cleanup the queues
     await quantstamp_audit.getNextAuditRequest({from:auditor});
     Util.assertEventAtIndex({
@@ -210,7 +210,7 @@ contract('QuantstampAudit_expires', function(accounts) {
     await quantstamp_audit.getNextAuditRequest({from:auditor});
     await Util.mineNBlocks(timeout);
 
-    assert.equal((await quantstamp_audit.assignedRequestIds.call(auditor)).toNumber(), 1);
+    assert.equal((await quantstamp_audit.assignedRequestCount.call(auditor)).toNumber(), 1);
 
     // another node is taking care of expired requests
     const getNextAuditRequestResult = await quantstamp_audit.getNextAuditRequest({from:auditor2});
@@ -234,7 +234,7 @@ contract('QuantstampAudit_expires', function(accounts) {
       index: 1
     });
     // white box testing
-    assert.equal((await quantstamp_audit.assignedRequestIds.call(auditor)).toNumber(), 0);
+    assert.equal((await quantstamp_audit.assignedRequestCount.call(auditor)).toNumber(), 0);
 
     // clean up
     await quantstamp_audit.submitReport(requestedId2, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor2});
@@ -247,9 +247,9 @@ contract('QuantstampAudit_expires', function(accounts) {
     await quantstamp_audit.getNextAuditRequest({from:auditor});
     await Util.mineNBlocks(timeout);
 
-    assert.equal((await quantstamp_audit.assignedRequestIds.call(auditor)).toNumber(), 1);
+    assert.equal((await quantstamp_audit.assignedRequestCount.call(auditor)).toNumber(), 1);
     assert.equal((await quantstamp_audit_data.getAuditState(requestedId)).toNumber(), Util.AuditState.Assigned);
     await quantstamp_audit.refund(requestedId, {from: requestor});
-    assert.equal((await quantstamp_audit.assignedRequestIds.call(auditor)).toNumber(), 0);
+    assert.equal((await quantstamp_audit.assignedRequestCount.call(auditor)).toNumber(), 0);
   });
 });
