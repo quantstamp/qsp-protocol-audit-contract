@@ -10,7 +10,7 @@ module.exports = {
   networks: {
     development: {
       host: "127.0.0.1",
-      port: 7545,
+      port: 8545,
       network_id: "*", // Match any network id
       gas: 5500000 // TODO change string->byte32. Th gas usage increased due to changes for QSP-425. One suggestion for decreasing the gas is to change string to bytes32.
     },
