@@ -73,11 +73,12 @@ contract QuantstampAuditView is Ownable {
   /**
    * @dev Returns the number of unassigned audit requests in the queue.
    */
-  function getQueueLength() public view returns(uint256 numElements) {
+  function getQueueLength() public view returns(uint256) {
     uint256 price;
     uint256 requestId;
     // iterate over the price list. Consider the zero prices as well.
     price = audit.getNextPrice(HEAD);
+    uint256 numElements = 0;
     do {
       requestId = audit.getNextAuditByPrice(price, HEAD);
       // The first requestId is one.
