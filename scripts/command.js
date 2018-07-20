@@ -34,6 +34,8 @@ async function callMethod({provider, stage, contractName, methodName, methodArgs
   });
 }
 
+const expectedStages = Object.keys(truffle.networks).filter(
+  item =>  !['development', 'stage_dev', 'stage_prod'].includes(item)).concat([STAGE_DEV, STAGE_PROD]);
 const actions = Object.keys(definitions);
 
 const argv = require('yargs')
@@ -42,7 +44,7 @@ const argv = require('yargs')
   .nargs('s', 1)
   .describe('s', 'Provide the stage')
   .demandOption(['s'])
-  .choices('s', [STAGE_DEV, STAGE_PROD])
+  .choices('s', expectedStages)
   .alias('a', 'action')
   .nargs('a', 1)
   .describe('a', 'Provide an action')
@@ -56,7 +58,7 @@ const argv = require('yargs')
   .argv;
 
 const stage = argv.s;
-const network = `stage_${stage}`;
+const network = stage === 'dev' || stage === 'prod'? `stage_${stage}` : stage;
 const definition = definitions[argv.a];
 console.log('Definition found:', definition);
 if (!definition) {
@@ -76,4 +78,6 @@ return Promise.resolve()
       gasPrice: truffle.networks[network].gasPrice,
       gas: definition.gasLimit
     }
-  }));  
+  }));
+
+

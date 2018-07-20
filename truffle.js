@@ -4,7 +4,7 @@ const HDWalletProvider = require("truffle-hdwallet-provider");
 module.exports = {
   deploy: {
     QuantstampAuditData: false,
-    QuantstampAudit: true,
+    QuantstampAudit: false,
     QuantstampAuditView: false
   },
   networks: {
