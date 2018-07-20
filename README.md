@@ -10,13 +10,13 @@ QSP Protocol audit contract.
 The addresses of the deployed contracts could be fetched from these locations that persist across deployments. 
 Considering the version from `package.json`, the addresses are stored in two locations which are labeled by
 major version and full version. The one with major version contains the lasted addresses of the all minor versions.
-For example, considering three files `QuantstampAuditData-v-1-0-1-meta.json`, 
-`QuantstampAuditData-v-1-0-0-meta.json`, and `QuantstampAuditData-v-1-meta.json`, the last one has the same content
+For example, considering three files `QuantstampAuditData-v-1.0.1-meta.json`, 
+`QuantstampAuditData-v-1.0.0-meta.json`, and `QuantstampAuditData-v-1-meta.json`, the last one has the same content
 as the first one.
 
 Below is the list of links associated for _V1_. To retrieve the minor versions, replace major version with full 
 version in each path. For example, if you want to retrieve address of `QuantstampAudit` for _v1.0.0_, 
-change `QuantstampAudit-v-1-meta.json` to `QuantstampAudit-v-1-0-0-meta.json` in the appropriate uri.
+change `QuantstampAudit-v-1-meta.json` to `QuantstampAudit-v-1.0.0-meta.json` in the appropriate uri.
 
 ### Dev (Ropsten)
 
