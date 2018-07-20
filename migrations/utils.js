@@ -51,7 +51,6 @@ function getAbiFileName(stage, contractName, version) {
 }
 
 async function readAddressFromMetadata(stage, contractName) {
-  console.log('>>>>>',getMetaFileName(stage, contractName, getMajorVersion()));
   const response = await s3.getObject({
     Bucket: getBucketName(),
     Key: getMetaFileName(stage, contractName, getMajorVersion())

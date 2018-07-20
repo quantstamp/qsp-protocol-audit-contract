@@ -79,5 +79,3 @@ return Promise.resolve()
       gas: definition.gasLimit
     }
   }));
-
-
