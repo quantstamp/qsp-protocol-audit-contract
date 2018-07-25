@@ -110,8 +110,8 @@ contract QuantstampAudit is Ownable, Pausable {
     QuantstampAuditData.AuditState state = auditData.getAuditState(requestId);
     // check that the audit exists and is in a valid state
     if (state != QuantstampAuditData.AuditState.Queued &&
-    state != QuantstampAuditData.AuditState.Assigned &&
-    state != QuantstampAuditData.AuditState.Expired) {
+          state != QuantstampAuditData.AuditState.Assigned &&
+            state != QuantstampAuditData.AuditState.Expired) {
       emit LogRefundInvalidState(requestId, state);
       return;
     }
@@ -354,7 +354,7 @@ contract QuantstampAudit is Ownable, Pausable {
   function updateAssignedAudits(uint256 requestId) internal {
     assignedAudits.remove(requestId);
     assignedRequestCount[auditData.getAuditAuditor(requestId)] =
-    assignedRequestCount[auditData.getAuditAuditor(requestId)].sub(1);
+      assignedRequestCount[auditData.getAuditAuditor(requestId)].sub(1);
   }
 
   /**

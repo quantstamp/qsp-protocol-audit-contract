@@ -10,7 +10,7 @@ module.exports = {
   },
   deploy: {
     QuantstampAuditData: false,
-    QuantstampAudit: false,
+    QuantstampAudit: true,
     QuantstampAuditView: false
   },
   networks: {
