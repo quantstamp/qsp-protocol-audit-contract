@@ -219,7 +219,7 @@ contract QuantstampAudit is Ownable, Pausable {
    */
   function anyRequestAvailable() public view returns(AuditAvailabilityState) {
     // there are no audits in the queue
-    if (!auditQueueExists()) {
+    if (!priceList.listExists()) {
       return AuditAvailabilityState.Empty;
     }
 
@@ -360,9 +360,9 @@ contract QuantstampAudit is Ownable, Pausable {
   /**
    * @dev Checks if the list of audits has any elements
    */
-  function auditQueueExists() internal view returns(bool) {
+  /*function auditQueueExists() internal view returns(bool) {
     return priceList.listExists();
-  }
+  }*/
 
   /**
    * @dev Adds an audit request to the queue
