@@ -434,7 +434,7 @@ contract QuantstampAudit is Ownable, Pausable {
     require(auditsByPrice[price].nodeExists(requestId));
 
     auditsByPrice[price].remove(requestId);
-    if (auditsByPrice[price].sizeOf() == 0) {
+    if (!auditsByPrice[price].listExists()) {
       priceList.remove(price);
     }
   }
