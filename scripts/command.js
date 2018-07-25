@@ -3,8 +3,6 @@
 const web3 = require('web3');
 const truffle = require('../truffle.js');
 const definitions = require('./definitions');
-const STAGE_DEV = 'dev';
-const STAGE_PROD = 'prod';
 const utils = require('../migrations/utils.js');
 
 async function callMethod({provider, stage, contractName, methodName, methodArgs, sendArgs}) {
@@ -34,8 +32,7 @@ async function callMethod({provider, stage, contractName, methodName, methodArgs
   });
 }
 
-const expectedStages = Object.keys(truffle.networks).filter(
-  item =>  !['development', 'stage_dev', 'stage_prod'].includes(item)).concat([STAGE_DEV, STAGE_PROD]);
+const expectedStages = Object.keys(truffle.networks).filter(item =>  !['development'].includes(item));
 const actions = Object.keys(definitions);
 
 const argv = require('yargs')
@@ -58,7 +55,7 @@ const argv = require('yargs')
   .argv;
 
 const stage = argv.s;
-const network = stage === 'dev' || stage === 'prod'? `stage_${stage}` : stage;
+const network = stage;
 const definition = definitions[argv.a];
 console.log('Definition found:', definition);
 if (!definition) {

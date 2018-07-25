@@ -12,12 +12,12 @@ function tokenAddress(network, defaultArtifact) {
   // (output of artifacts.require('<contract-name'))
   // whose address will be used when deploying to other networks (e.g., Ganache)
   switch(network) {
-    case 'stage_dev':
+    case 'dev':
     case 'ropsten':
       // 'ropsten' is useful for deploying to the Ropsten network separately,
       // without affecting Dev or Prod
       return QSP_TOKEN_ADDRESS_ROPSTEN;
-    case 'stage_prod':
+    case 'prod':
       return QSP_TOKEN_ADDRESS_MAINNET;
     case 'development':
       return defaultArtifact.address;
@@ -76,25 +76,8 @@ async function contractAddress(network, contractName,  defaultArtifact) {
   // defaultArtifact: the smart contract artifact
   // (output of artifacts.require('<contract-name'))
   // whose address will be used when deploying to other networks (e.g., Ganache)
-  let stage;
-  switch(network) {
-    case 'development':
-      stage = undefined;
-      break;
-    case 'stage_dev':
-    case 'ropsten':
-      // 'ropsten' is useful for deploying to the Ropsten network separately,
-      // without affecting Dev or Prod
-      stage = 'dev';
-      break;
-    case 'stage_prod':
-      stage = 'prod';
-      break;
-    default:
-      stage = network;
-  }
-
-  return !stage ? defaultArtifact.address : await readAddressFromMetadata(stage, contractName);
+  const stage = network;
+  return stage === 'development' ? defaultArtifact.address : await readAddressFromMetadata(stage, contractName);
 }
 
 async function writeOnS3(bucketName, key, content) {
@@ -108,19 +91,10 @@ async function writeOnS3(bucketName, key, content) {
 }
 
 async function updateAbiAndMetadata(network, contractName, contractAddress) {
-  let stage;
-  switch(network) {
-    case 'stage_dev':
-      stage = 'dev';
-      break;
-    case 'stage_prod':
-      stage = 'prod';
-      break;
-    case 'development':
-      console.log(`${contractName}: Skipping metadata and ABI update: network "${network}" is not eligible`);
-      return;
-    default:
-      stage = network;
+  let stage = network;
+  if (stage === 'development'){
+    console.log(`${contractName}: Skipping metadata and ABI update: network "${network}" is not eligible`);
+    return;
   }
 
   const commitHash = require('child_process')

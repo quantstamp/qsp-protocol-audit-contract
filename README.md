@@ -77,8 +77,8 @@ First-time only: manually create the S3 buckets `qsp-protocol-contract-abi-dev` 
 1. If you deploy to Dev or Prod stages of the QSP Protocol, make sure you have AWS credentials that allow write access to the bucket `qsp-protocol-contract/<stage>/<contractName>-v-<vesion>-abi.json`. If deployment is successful, the new contract address and the owner address will be written to the corresponding S3 file automatically.
 1. Go to `truffle.js` and under `deploy`, set values to `true` for the contracts you would like to deploy.
 1. Deploy the contract(s) to the desired stage:
-    * `truffle migrate --network stage_dev` - QSP protocol dev stage.
-    * `truffle migrate --network stage_prod` - QSP protocol prod stage.
+    * `truffle migrate --network dev` - QSP protocol dev stage.
+    * `truffle migrate --network prod` - QSP protocol prod stage.
     * `truffle migrate --network ropsten` - Ropsten for independent testing (does not overwrite address from dev or prod stage).
 1. Whitelist the Audit contract in the Data contract:
     * `npm run command -s=dev -- -a=whitelist-audit-contract` - for the dev stage.
@@ -94,7 +94,7 @@ First-time only: manually create the S3 buckets `qsp-protocol-contract-abi-dev` 
 
 In case you want to setup a different environment for testing purposes, follow:
 
-1. Go to `truffle.js` and add a new network, similar to `stage_dev`, such as `test_net`.
+1. Go to `truffle.js` and add a new network, similar to `dev`, such as `test_net`.
 1. Deploy the contract(s) by passing the new network name, _e.g.,_ `truffle migrate --network test_net`.
 1. Once contract(s) deployed, the addresses are accessible from S3. For example, `qsp-protocol-contract/test_net/QuantstampAudit-v-<vesion>-abi.json`
 is a path associated to the version 1 of the `QuantstampAudit` contract deployed on `test_net`.

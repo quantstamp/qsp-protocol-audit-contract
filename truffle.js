@@ -20,14 +20,14 @@ module.exports = {
       network_id: "*", // Match any network id
       gas: 5500000 // TODO change string->byte32. Th gas usage increased due to changes for QSP-425. One suggestion for decreasing the gas is to change string to bytes32.
     },
-    stage_dev: {
+    dev: {
       provider: new HDWalletProvider(credentials.mnemonic, `https://ropsten.infura.io/${credentials.infura_apikey}`),
       network_id: 3,
       gas: 5500000,
       gasPrice: 110000000000,
       account: '0x0283c049ed4705e2d98c807dbafdaf725f34b8d2'
     },
-    stage_prod: {
+    prod: {
       provider: new HDWalletProvider(credentials.mnemonic, `https://mainnet.infura.io/${credentials.infura_apikey}`),
       network_id: 1,
       gas: 5500000,
