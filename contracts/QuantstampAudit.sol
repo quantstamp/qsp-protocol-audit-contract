@@ -110,8 +110,8 @@ contract QuantstampAudit is Ownable, Pausable {
     QuantstampAuditData.AuditState state = auditData.getAuditState(requestId);
     // check that the audit exists and is in a valid state
     if (state != QuantstampAuditData.AuditState.Queued &&
-          state != QuantstampAuditData.AuditState.Assigned &&
-            state != QuantstampAuditData.AuditState.Expired) {
+    state != QuantstampAuditData.AuditState.Assigned &&
+    state != QuantstampAuditData.AuditState.Expired) {
       emit LogRefundInvalidState(requestId, state);
       return;
     }
@@ -219,7 +219,7 @@ contract QuantstampAudit is Ownable, Pausable {
    */
   function anyRequestAvailable() public view returns(AuditAvailabilityState) {
     // there are no audits in the queue
-    if (!priceList.listExists()) {
+    if (!auditQueueExists()) {
       return AuditAvailabilityState.Empty;
     }
 
@@ -354,15 +354,15 @@ contract QuantstampAudit is Ownable, Pausable {
   function updateAssignedAudits(uint256 requestId) internal {
     assignedAudits.remove(requestId);
     assignedRequestCount[auditData.getAuditAuditor(requestId)] =
-      assignedRequestCount[auditData.getAuditAuditor(requestId)].sub(1);
+    assignedRequestCount[auditData.getAuditAuditor(requestId)].sub(1);
   }
 
   /**
    * @dev Checks if the list of audits has any elements
    */
-  /*function auditQueueExists() internal view returns(bool) {
+  function auditQueueExists() internal view returns(bool) {
     return priceList.listExists();
-  }*/
+  }
 
   /**
    * @dev Adds an audit request to the queue
@@ -434,7 +434,7 @@ contract QuantstampAudit is Ownable, Pausable {
     require(auditsByPrice[price].nodeExists(requestId));
 
     auditsByPrice[price].remove(requestId);
-    if (auditsByPrice[price].sizeOf() == 0) {
+    if (!auditsByPrice[price].listExists()) {
       priceList.remove(price);
     }
   }

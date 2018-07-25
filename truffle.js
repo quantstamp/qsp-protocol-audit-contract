@@ -2,9 +2,15 @@ const credentials = require("./credentials.js");
 const HDWalletProvider = require("truffle-hdwallet-provider");
 
 module.exports = {
+  solc: {
+    optimizer: {
+      enabled: true,
+      runs: 200
+    }
+  },
   deploy: {
     QuantstampAuditData: false,
-    QuantstampAudit: true,
+    QuantstampAudit: false,
     QuantstampAuditView: false
   },
   networks: {
