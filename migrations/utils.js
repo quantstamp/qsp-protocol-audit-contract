@@ -105,7 +105,8 @@ async function updateAbiAndMetadata(network, contractName, contractAddress) {
   const metaContent = new Buffer(JSON.stringify({
     "contractAddress": contractAddress,
     "creatorAddress": stageConfig.account,
-    "commitHash": commitHash
+    "commitHash": commitHash,
+    "version": getVersion()
   }, null, 2));
 
   const abiContent = new Buffer(JSON.stringify(require(`../build/contracts/${contractName}.json`).abi, null, 2));
