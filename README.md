@@ -74,7 +74,7 @@ First-time only: manually create the S3 buckets `qsp-protocol-contract-abi-dev` 
 1. Point MetaMask to the right network (Ropsten or Main Net).
 1. Make sure MetaMask is running throughout the deployment process.
 1. Place the secret mnemonic phrase and the infura API token into `credentials.js`.
-1. If you deploy to Dev or Prod networks of the QSP Protocol, make sure you have AWS credentials that allow write access to the bucket `qsp-protocol-contract/<stage>/<contractName>-v-<vesion>-abi.json`. If deployment is successful, the new contract address and the owner address will be written to the corresponding S3 file automatically.
+1. If you deploy to Dev or Prod networks of the QSP Protocol, make sure you have AWS credentials that allow write access to the bucket `qsp-protocol-contract/<network>/<contractName>-v-<vesion>-abi.json`. If deployment is successful, the new contract address and the owner address will be written to the corresponding S3 file automatically.
 1. Go to `truffle.js` and under `deploy`, set values to `true` for the contracts you would like to deploy.
 1. Deploy the contract(s) to the desired network:
     * `truffle migrate --network dev` - QSP protocol dev network.
