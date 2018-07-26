@@ -74,21 +74,21 @@ First-time only: manually create the S3 buckets `qsp-protocol-contract-abi-dev` 
 1. Point MetaMask to the right network (Ropsten or Main Net).
 1. Make sure MetaMask is running throughout the deployment process.
 1. Place the secret mnemonic phrase and the infura API token into `credentials.js`.
-1. If you deploy to Dev or Prod stages of the QSP Protocol, make sure you have AWS credentials that allow write access to the bucket `qsp-protocol-contract/<stage>/<contractName>-v-<vesion>-abi.json`. If deployment is successful, the new contract address and the owner address will be written to the corresponding S3 file automatically.
+1. If you deploy to Dev or Prod networks of the QSP Protocol, make sure you have AWS credentials that allow write access to the bucket `qsp-protocol-contract/<stage>/<contractName>-v-<vesion>-abi.json`. If deployment is successful, the new contract address and the owner address will be written to the corresponding S3 file automatically.
 1. Go to `truffle.js` and under `deploy`, set values to `true` for the contracts you would like to deploy.
-1. Deploy the contract(s) to the desired stage:
-    * `truffle migrate --network dev` - QSP protocol dev stage.
-    * `truffle migrate --network prod` - QSP protocol prod stage.
-    * `truffle migrate --network ropsten` - Ropsten for independent testing (does not overwrite address from dev or prod stage).
+1. Deploy the contract(s) to the desired network:
+    * `truffle migrate --network dev` - QSP protocol dev network.
+    * `truffle migrate --network prod` - QSP protocol prod network.
+    * `truffle migrate --network ropsten` - Ropsten for independent testing (does not overwrite address from dev or prod network).
 1. Whitelist the Audit contract in the Data contract:
-    * `npm run command -s=dev -- -a=whitelist-audit-contract` - for the dev stage.
-    * `npm run command -s=prod -- -a=whitelist-audit-contract` - for the prod stage.
+    * `npm run command -- -n=dev -a=whitelist-audit-contract` - for the dev network.
+    * `npm run command -- -n=prod -a=whitelist-audit-contract` - for the prod network.
 
     Note: a successful return of the whitelisting script does not necessarily mean the transaction is fully completed. Please check
     the status manually on a block explorer and wait for the desired number of confirmations.
 1. To perform actions on a deployed smart contract, use the following commands:
-    * `npm run command -s=dev -- -p=<parameter>` - QSP protocol dev stage.
-    * `npm run command -s=prod -- -p=<parameter>` - QSP protocol prod stage.
+    * `npm run command -- -n=dev -p=<parameter>` - QSP protocol dev network.
+    * `npm run command -- -n=prod -p=<parameter>` - QSP protocol prod network.
     
     For the full list, check out the next section and `./scripts/definitions.json`. The list is extensible.
 
@@ -105,9 +105,9 @@ is a path associated to the version 1 of the `QuantstampAudit` contract deployed
 
 **Note**: before running a command, setup the credentials as described in the section above.
 
-1. `npm run command -s=dev -- -a=whitelist -p=0x123456789` whitelists a node defined by a given address
-1. `npm run command -s=dev -- -a=set-max-assigned -p=100` sets "maximum assigned nodes"
-1. `npm run command -s=dev -- -a=get-next-audit-request` calls `getNextAuditRequest()` on the contract. May be useful for cleaning up the audit waiting queue.
+1. `npm run command -- -n=dev -a=whitelist -p=0x123456789` whitelists a node defined by a given address
+1. `npm run command -- -n=dev -a=set-max-assigned -p=100` sets "maximum assigned nodes"
+1. `npm run command -- -n=dev -a=get-next-audit-request` calls `getNextAuditRequest()` on the contract. May be useful for cleaning up the audit waiting queue.
 
 ## Deploy to Ganache
 
