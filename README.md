@@ -50,6 +50,10 @@ For querying, go to: https://etherscan.io/address/{address}#readContract , where
     1. Console version: `npm install -g ganache-cli@6.1.0` and then (from another terminal tab): `testrpc -p 7545`
 1. `truffle compile`
 1. `npm test`. To also generate a code coverage report, run `npm run test-cov` instead.
+1. To ensure correct commit hooks:
+    1. `ln -s -f $(git rev-parse --show-toplevel)/pre-commit $(git rev-parse --show-toplevel)/.git/hooks/pre-commit`
+    1. `chmod +x $(git rev-parse --show-toplevel)/.git/hooks/pre-commit`
+
 
 ## CI Tests
 
