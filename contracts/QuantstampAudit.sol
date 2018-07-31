@@ -300,6 +300,14 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
+   * @dev Helper function to get the minimum audit price of a given address
+   * @param addr The address to check
+   */
+  function getAuditNodePrice(address addr) public view returns(uint256) {
+    return auditData.getMinAuditPrice(addr);
+  }
+
+  /**
    * @dev Checks if an audit is finished. It is considered finished when the audit is either completed or failed.
    * @param requestId Unique ID of the audit request.
    */
