@@ -7,32 +7,41 @@ QSP Protocol audit contract.
 
 ## Access deployed contracts
 
-The addresses of the deployed contracts could be fetched from these locations that persist across deployments:
+The addresses of the deployed contracts could be fetched from these locations that persist across deployments. 
+Considering the version from `package.json`, the addresses are stored in two locations which are labeled by
+major version and full version. The one with major version contains the lasted addresses of the all minor versions.
+For example, considering three files `QuantstampAuditData-v-1.0.1-meta.json`, 
+`QuantstampAuditData-v-1.0.0-meta.json`, and `QuantstampAuditData-v-1-meta.json`, the last one has the same content
+as the first one.
+
+Below is the list of links associated for _V1_. To retrieve the minor versions, replace major version with full 
+version in each path. For example, if you want to retrieve address of `QuantstampAudit` for _v1.0.0_, 
+change `QuantstampAudit-v-1-meta.json` to `QuantstampAudit-v-1.0.0-meta.json` in the appropriate uri.
 
 ### Dev (Ropsten)
 
 1. Audit contract:
-    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract-abi-dev/QuantstampAudit.meta.json
-    - ABI: https://s3.amazonaws.com/qsp-protocol-contract-abi-dev/QuantstampAudit.abi.json
+    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract/dev/QuantstampAudit-v-1-meta.json
+    - ABI: https://s3.amazonaws.com/qsp-protocol-contract/dev/QuantstampAudit-v-1-abi.json
 1. Audit Data contract:
-    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract-abi-dev/QuantstampAuditData.meta.json
-    - ABI: https://s3.amazonaws.com/qsp-protocol-contract-abi-dev/QuantstampAuditData.abi.json
+    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract/dev/QuantstampAuditData-v-1-meta.json
+    - ABI: https://s3.amazonaws.com/qsp-protocol-contract/dev/QuantstampAuditData-v-1-abi.json
 1. Audit View contract:
-    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract-abi-dev/QuantstampAuditView.meta.json
-    - ABI: https://s3.amazonaws.com/qsp-protocol-contract-abi-dev/QuantstampAuditView.abi.json
+    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract/dev/QuantstampAuditView-v-1-meta.json
+    - ABI: https://s3.amazonaws.com/qsp-protocol-contract/dev/QuantstampAuditView-v-1-abi.json
 
 For querying, go to: https://ropsten.etherscan.io/address/{address}#readContract , where `{address}` is `contractAddress` copied from the corresponding metadata file.
 
 ### Prod (Main Net)
 1. Audit contract:
-    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract-abi-prod/QuantstampAudit.meta.json
-    - ABI: https://s3.amazonaws.com/qsp-protocol-contract-abi-prod/QuantstampAudit.abi.json
+    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract/prod/QuantstampAudit-v-1-meta.json
+    - ABI: https://s3.amazonaws.com/qsp-protocol-contract/prod/QuantstampAudit-v-1-abi.json
 1. Audit Data contract:
-    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract-abi-prod/QuantstampAuditData.meta.json
-    - ABI: https://s3.amazonaws.com/qsp-protocol-contract-abi-prod/QuantstampAuditData.abi.json
+    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract/prod/QuantstampAuditData-v-1-meta.json
+    - ABI: https://s3.amazonaws.com/qsp-protocol-contract/prod/QuantstampAuditData-v-1-abi.json
 1. Audit View contract:
-    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract-abi-prod/QuantstampAuditView.meta.json
-    - ABI: https://s3.amazonaws.com/qsp-protocol-contract-abi-prod/QuantstampAuditView.abi.json
+    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract/prod/QuantstampAuditView-v-1-meta.json
+    - ABI: https://s3.amazonaws.com/qsp-protocol-contract/prod/QuantstampAuditView-v-1-abi.json
 
 For querying, go to: https://etherscan.io/address/{address}#readContract , where `{address}` is `contractAddress` copied from the corresponding metadata file.
 
@@ -65,31 +74,40 @@ First-time only: manually create the S3 buckets `qsp-protocol-contract-abi-dev` 
 1. Point MetaMask to the right network (Ropsten or Main Net).
 1. Make sure MetaMask is running throughout the deployment process.
 1. Place the secret mnemonic phrase and the infura API token into `credentials.js`.
-1. If you deploy to Dev or Prod stages of the QSP Protocol, make sure you have AWS credentials that allow write access to the bucket `qsp-protocol-contract-abi-<stage>`. If deployment is successful, the new contract address and the owner address will be written to the corresponding S3 file automatically.
+1. If you deploy to Dev or Prod networks of the QSP Protocol, make sure you have AWS credentials that allow write access to the bucket `qsp-protocol-contract/<network>/<contractName>-v-<vesion>-abi.json`. If deployment is successful, the new contract address and the owner address will be written to the corresponding S3 file automatically.
 1. Go to `truffle.js` and under `deploy`, set values to `true` for the contracts you would like to deploy.
-1. Deploy the contract(s) to the desired stage:
-    * `truffle migrate --network stage_dev` - QSP protocol dev stage.
-    * `truffle migrate --network stage_prod` - QSP protocol prod stage.
-    * `truffle migrate --network ropsten` - Ropsten for independent testing (does not write anything to S3).
+1. Deploy the contract(s) to the desired network:
+    * `truffle migrate --network dev` - QSP protocol dev network.
+    * `truffle migrate --network prod` - QSP protocol prod network.
+    * `truffle migrate --network ropsten` - Ropsten for independent testing (does not overwrite address from dev or prod network).
 1. Whitelist the Audit contract in the Data contract:
-    * `npm run command-dev -- -a=whitelist-audit-contract` - for the dev stage.
-    * `npm run command-prod -- -a=whitelist-audit-contract` - for the prod stage.
+    * `npm run command -- -n=dev -a=whitelist-audit-contract` - for the dev network.
+    * `npm run command -- -n=prod -a=whitelist-audit-contract` - for the prod network.
 
     Note: a successful return of the whitelisting script does not necessarily mean the transaction is fully completed. Please check
     the status manually on a block explorer and wait for the desired number of confirmations.
 1. To perform actions on a deployed smart contract, use the following commands:
-    * `npm run command-dev -- -p=<parameter>` - QSP protocol dev stage.
-    * `npm run command-prod -- -p=<parameter>` - QSP protocol prod stage.
+    * `npm run command -- -n=dev -p=<parameter>` - QSP protocol dev network.
+    * `npm run command -- -n=prod -p=<parameter>` - QSP protocol prod network.
     
     For the full list, check out the next section and `./scripts/definitions.json`. The list is extensible.
+
+In case you want to setup a different environment for testing purposes, follow:
+
+1. Go to `truffle.js` and add a new network, similar to `dev`, such as `test_net`.
+1. Deploy the contract(s) by passing the new network name, _e.g.,_ `truffle migrate --network test_net`.
+1. Once contract(s) deployed, the addresses are accessible from S3. For example, `qsp-protocol-contract/test_net/QuantstampAudit-v-<vesion>-abi.json`
+is a path associated to the version 1 of the `QuantstampAudit` contract deployed on `test_net`.
+1. You can run all commands on this network by setting the value `-s` to `npm run command`. For example, for running
+`whitelist-audit-contract` on `test_net`, run: `npm run command -s=test_net -- -a=whitelist-audit-contract`.
 
 ## Commands
 
 **Note**: before running a command, setup the credentials as described in the section above.
 
-1. `npm run command-dev -- -a=whitelist -p=0x123456789` whitelists a node defined by a given address
-1. `npm run command-dev -- -a=set-max-assigned -p=100` sets "maximum assigned nodes"
-1. `npm run command-dev -- -a=get-next-audit-request` calls `getNextAuditRequest()` on the contract. May be useful for cleaning up the audit waiting queue.
+1. `npm run command -- -n=dev -a=whitelist -p=0x123456789` whitelists a node defined by a given address
+1. `npm run command -- -n=dev -a=set-max-assigned -p=100` sets "maximum assigned nodes"
+1. `npm run command -- -n=dev -a=get-next-audit-request` calls `getNextAuditRequest()` on the contract. May be useful for cleaning up the audit waiting queue.
 
 ## Deploy to Ganache
 
