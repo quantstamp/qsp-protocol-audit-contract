@@ -133,4 +133,4 @@ Currently, when a user submits an audit request, multiple nodes try to get the a
  
  `node gas.js suggest_min_price --nodes=N`
 
-The commands fetches the current gas price from Etherscan for calculations. If you wish to specify your own gas price, use the parameter `--gasPrice=X`, where X is the desired gas price in  Wei.
+The commands fetches the current gas price from Etherscan for calculations. If you wish to specify your own gas price, use the parameter `--gasPrice=X`, where X is the desired gas price in Wei.

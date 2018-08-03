@@ -5,6 +5,7 @@ const web3 = new Web3(new Web3.providers.HttpProvider("https://mainnet.infura.io
 const GasLimitGetNextAuditOK = web3.utils.toBN(171081);
 const GasLimitGetNextAuditFail = web3.utils.toBN(32762);
 const GasLimitSubmitReport = web3.utils.toBN(295406);
+const WhitelistedNode = "0xb41f068d6ff6bc5e873196e4d0daa1aca698c64c";
 
 // the number of decimals in an ERC20 token
 const Decimals = 18;
