@@ -122,3 +122,15 @@ is a path associated to the version 1 of the `QuantstampAudit` contract deployed
 1. `docker run -d -p 7545:8545 trufflesuite/ganache-cli:latest`
 1. `truffle test --network development`
 1. `truffle migrate --network development`
+
+## Calculating Minimum Audit Price
+
+Audit nodes need to be profitable to have incentives to operate. They receive payments in QSP tokens, but need to pay for gas (to cover the cost of Ethereum transactions) to interact with the Audit smart contract.
+
+Currently, when a user submits an audit request, multiple nodes try to get the audit, by calling `getNextAuditRequest()` on `QuantstampAudit.sol`, but only one is selected. In a set of N nodes, statistically, each node is chosen once every N attempts. Consequently, the minimum price of an audit needs to be set in such a way that it offsets the N-1 failed attempts.
+
+ For N nodes, to calculate the minimum price per audit, that offsets any costs and loses, call:
+ 
+ `node gas.js suggest_min_price --nodes=N`
+
+The commands fetches the current gas price from Etherscan for calculations. If you wish to specify your own gas price, use the parameter `--gasPrice=X`, where X is the desired gas price in Wei.
