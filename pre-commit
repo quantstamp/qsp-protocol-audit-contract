@@ -1,0 +1,42 @@
+#!/usr/bin/env python
+from __future__ import with_statement, print_function
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+
+
+
+
+def system(*args, **kwargs):
+    kwargs.setdefault('stdout', subprocess.PIPE)
+    proc = subprocess.Popen(args, **kwargs)
+    out, err = proc.communicate()
+    return out
+
+
+def main():
+    try:
+        files = ["QuantstampAudit.sol", "QuantstampAuditView.sol", "QuantstampAuditData.sol"]
+        versions = []
+        for f in files:
+            result = system("git", "grep", "pragma", "contracts/" + f).decode("utf-8").split()[-1].strip(";")
+            versions.append(result)
+
+        if len(set(versions)) != 1:
+            print("Ensure that the solidity versions in QuantstampAudit.sol, QuantstampAuditData.sol," +
+                  " and QuantstampAuditView.sol are in sync.")
+            print("Also ensure that the truffle version in package.json has been updated.")
+            sys.exit(1)
+
+    except Exception as e:
+        print("The format of some files no longer conform to the pre-commit checks.")
+        print("Check '.git/hooks/pre-commit'.")
+        print(e)
+        sys.exit(1)
+
+if __name__ == '__main__':
+    main()
+
