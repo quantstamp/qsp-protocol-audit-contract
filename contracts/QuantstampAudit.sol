@@ -77,6 +77,9 @@ contract QuantstampAudit is Ownable, Pausable {
   // amount corresponds to the current minPrice of the auditor
   event LogAuditNodePriceHigherThanRequests(address auditor, uint256 amount);
 
+  event LogInvalidResolutionCall(uint256 requestId);
+  event LogErrorReportResolved(uint256 requestId, address receiver, uint256 auditPrice);
+
   enum AuditAvailabilityState {
     Error,
     Ready,      // an audit is available to be picked up
@@ -209,9 +212,30 @@ contract QuantstampAudit is Ownable, Pausable {
 
     emit LogAuditFinished(requestId, msg.sender, auditResult, reportUri, reportHash, block.timestamp); // solhint-disable-line not-rely-on-time
 
+    if (state == QuantstampAuditData.AuditState.Completed) {
+      uint256 auditPrice = auditData.getAuditPrice(requestId);
+      auditData.token().transfer(msg.sender, auditPrice);
+      emit LogPayAuditor(requestId, msg.sender, auditPrice);
+    }
+  }
+
+  /**
+   * @dev Determines who has to be paid for a given requestId recorded with an error status
+   * @param requestId Unique identifier of the audit request.
+   * @param toRequester The requester is refunded; otherwise the audit node.
+   */
+  function resolveErrorReport(uint256 requestId, bool toRequester) public onlyOwner {
+    QuantstampAuditData.AuditState auditState = auditData.getAuditState(requestId);
+    if (auditState != QuantstampAuditData.AuditState.Error) {
+      emit LogInvalidResolutionCall(requestId);
+      return;
+    }
+
     uint256 auditPrice = auditData.getAuditPrice(requestId);
-    auditData.token().transfer(msg.sender, auditPrice);
-    emit LogPayAuditor(requestId, msg.sender, auditPrice);
+    address receiver = toRequester ? auditData.getAuditRequestor(requestId) : auditData.getAuditAuditor(requestId);
+    auditData.token().transfer(receiver, auditPrice);
+    auditData.setAuditState(requestId, QuantstampAuditData.AuditState.Resolved);
+    emit LogErrorReportResolved(requestId, receiver, auditPrice);
   }
 
   /**
