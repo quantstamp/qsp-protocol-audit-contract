@@ -17,11 +17,13 @@
    "author": "",
    "license": "ISC",
    "dependencies": {
+      "@daonomic/trezor-wallet-provider": "0.0.9",
       "aws-sdk": "2.194.0",
       "coveralls": "3.0.0",
       "ganache-cli": "6.1.0",
       "openzeppelin-solidity": "1.10.0",
       "solidity-coverage": "0.5.4",
+      "trezor-wallet-provider": "^0.2.0",
       "truffle": "4.1.11",
       "truffle-hdwallet-provider": "0.0.3",
       "web3": "1.0.0-beta.34"
