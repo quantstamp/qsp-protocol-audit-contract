@@ -36,7 +36,6 @@ contract QuantstampAudit is Ownable, Pausable {
     uint256 requestId,
     address auditor,
     QuantstampAuditData.AuditState auditResult,
-    string reportUri,
     string reportHash,
     uint256 reportTimestamp
   );
@@ -170,10 +169,9 @@ contract QuantstampAudit is Ownable, Pausable {
    * @dev Submits the report and pays the auditor node for their work or refunds tokens to the requestor in case of an error.
    * @param requestId Unique identifier of the audit request.
    * @param auditResult Result of an audit.
-   * @param reportUri URI to the generated report.
    * @param reportHash Hash of the generated report.
    */
-  function submitReport(uint256 requestId, QuantstampAuditData.AuditState auditResult, string reportUri, string reportHash) public onlyWhitelisted {
+  function submitReport(uint256 requestId, QuantstampAuditData.AuditState auditResult, string reportHash) public onlyWhitelisted {
     QuantstampAuditData.AuditState auditState = auditData.getAuditState(requestId);
     if (auditState != QuantstampAuditData.AuditState.Assigned) {
       emit LogReportSubmissionError_InvalidState(requestId, msg.sender, auditState);
@@ -200,14 +198,13 @@ contract QuantstampAudit is Ownable, Pausable {
 
     // update the audit information held in this contract
     auditData.setAuditState(requestId, auditResult);
-    auditData.setAuditReportUri(requestId, reportUri);
     auditData.setAuditReportHash(requestId, reportHash);
     auditData.setAuditReportTimestamp(requestId, block.timestamp); // solhint-disable-line not-rely-on-time
 
     // validate the audit state
     require(isAuditFinished(requestId));
 
-    emit LogAuditFinished(requestId, msg.sender, auditResult, reportUri, reportHash, block.timestamp); // solhint-disable-line not-rely-on-time
+    emit LogAuditFinished(requestId, msg.sender, auditResult, reportHash, block.timestamp); // solhint-disable-line not-rely-on-time
 
     uint256 auditPrice = auditData.getAuditPrice(requestId);
     auditData.token().transfer(msg.sender, auditPrice);
