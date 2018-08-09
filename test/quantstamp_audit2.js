@@ -82,7 +82,7 @@ contract('QuantstampAudit2', function(accounts) {
       }
     });
 
-    const result3 = await quantstamp_audit.submitReport(requestId2, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from : auditor});
+    const result3 = await quantstamp_audit.submitReport(requestId2, AuditState.Completed, Util.sha256emptyFile, {from : auditor});
 
     Util.assertEventAtIndex({
       result: result3,
@@ -91,7 +91,6 @@ contract('QuantstampAudit2', function(accounts) {
         assert.equal(args.requestId.toNumber(), requestId2);
         assert.equal(args.auditor, auditor);
         assert.equal(args.auditResult, AuditState.Completed);
-        assert.equal(args.reportUri, Util.reportUri);
         assert.equal(args.reportHash, Util.sha256emptyFile);
       },
       index: 0
@@ -110,7 +109,6 @@ contract('QuantstampAudit2', function(accounts) {
 
     const res = await quantstamp_audit.isAuditFinished(requestId2);
     assert.equal(await quantstamp_audit.isAuditFinished(requestId2), true);
-    assert.equal(await Util.getReportUri(quantstamp_audit_data, requestId2), Util.reportUri);
     // all contract's tokens should be moved to the auditor's wallet
     assert.equal(await Util.balanceOf(quantstamp_token, auditor), price);
   });
@@ -153,9 +151,8 @@ contract('QuantstampAudit2', function(accounts) {
     const result = await quantstamp_audit.getNextAuditRequest({from: auditor});
     const requestId = Util.extractRequestId(result);
 
-    const result2 = await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from : auditor});
+    const result2 = await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.sha256emptyFile, {from : auditor});
     assert.equal(await quantstamp_audit.isAuditFinished(requestId), true);
-    assert.equal(await Util.getReportUri(quantstamp_audit_data, requestId), Util.reportUri);
     assert.equal(result2.logs.length, 2);
     assert.equal(result2.logs[0].event, "LogAuditFinished");
     assert.equal(result2.logs[1].event, "LogPayAuditor");
@@ -179,20 +176,18 @@ contract('QuantstampAudit2', function(accounts) {
     await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor});
     const requestResult = await quantstamp_audit.getNextAuditRequest({from: auditor});
     const requestId = Util.extractRequestId(requestResult);
-    const result = await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from : auditor});
+    const result = await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.sha256emptyFile, {from : auditor});
 
     assert.equal(await quantstamp_audit.isAuditFinished(requestId), true);
 
-    const result2 = await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from : auditor});
-    assert.equal(await Util.getReportUri(quantstamp_audit_data, requestId), Util.reportUri);
+    const result2 = await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.sha256emptyFile, {from : auditor});
     assert.equal(result2.logs.length, 1);
     assert.equal(result2.logs[0].event, "LogReportSubmissionError_InvalidState");
     assert.equal(result2.logs[0].args.requestId.toNumber(), requestId);
     assert.equal(result2.logs[0].args.auditor, auditor);
 
     const bogusId = 123456;
-    const result3 = await quantstamp_audit.submitReport(bogusId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from : auditor});
-    assert.equal(await Util.getReportUri(quantstamp_audit_data, requestId), Util.reportUri);
+    const result3 = await quantstamp_audit.submitReport(bogusId, AuditState.Completed, Util.sha256emptyFile, {from : auditor});
     assert.equal(result3.logs.length, 1);
     assert.equal(result3.logs[0].event, "LogReportSubmissionError_InvalidState");
     assert.equal(result3.logs[0].args.requestId.toNumber(), bogusId);

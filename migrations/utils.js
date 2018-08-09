@@ -12,100 +12,119 @@ function tokenAddress(network, defaultArtifact) {
   // (output of artifacts.require('<contract-name'))
   // whose address will be used when deploying to other networks (e.g., Ganache)
   switch(network) {
-    case 'stage_dev':
+    case 'dev':
     case 'ropsten':
       // 'ropsten' is useful for deploying to the Ropsten network separately,
       // without affecting Dev or Prod
       return QSP_TOKEN_ADDRESS_ROPSTEN;
-    case 'stage_prod':      
+    case 'prod':
       return QSP_TOKEN_ADDRESS_MAINNET;
-    default:
-      // for other networks (e.g., Ganache), the token contract would need
-      // to be deployed as well (See 2_deploy_quantstamp_token.js) and
-      // its address to be used for the Audit contract
+    case 'development':
       return defaultArtifact.address;
+    default:
+      return QSP_TOKEN_ADDRESS_ROPSTEN;
   }
 }
 
-async function readAddressFromMetadata(stage, contractName) {
+function getVersion() {
+  return require('../package.json').version;
+}
+
+function getMajorVersion() {
+  return getVersion().match(/^[^\.]*/g);
+}
+
+function getBucketName() {
+  return `qsp-protocol-contract`;
+}
+
+function getFileName(network, contractName, version, type) {
+  return `${network}/${contractName}-v-${version}-${type}.json`;
+}
+
+function getMetaFileName(network, contractName, version) {
+  return getFileName(network, contractName, version, 'meta');
+}
+
+function getAbiFileName(network, contractName, version) {
+  return getFileName(network, contractName, version, 'abi');
+}
+
+async function readAddressFromMetadata(network, contractName) {
   const response = await s3.getObject({
-    Bucket: `qsp-protocol-contract-abi-${stage}`,
-    Key: `${contractName}.meta.json`
+    Bucket: getBucketName(),
+    Key: getMetaFileName(network, contractName, getMajorVersion())
   }).promise();
   
   const responseJson = JSON.parse(response.Body.toString());
-  console.log(`readAddressFromMetadata(...): ${contractName}:${stage}: response JSON`,
+  console.log(`readAddressFromMetadata(...): ${contractName}:${network}: response JSON`,
     JSON.stringify(responseJson, null, 2));
 
   return responseJson.contractAddress;
 }
 
-async function readAbi(stage, contractName) {
+async function readAbi(network, contractName) {
   const response = await s3.getObject({
-    Bucket: `qsp-protocol-contract-abi-${stage}`,
-    Key: `${contractName}.abi.json`
+    Bucket: getBucketName(),
+    Key: getAbiFileName(network, contractName, getMajorVersion())
   }).promise();
 
   return JSON.parse(response.Body.toString());
 }
 
-async function contractAddress(contractName, network, defaultArtifact) {
+async function contractAddress(network, contractName,  defaultArtifact) {
   // defaultArtifact: the smart contract artifact
   // (output of artifacts.require('<contract-name'))
   // whose address will be used when deploying to other networks (e.g., Ganache)
-  switch(network) {
-    case 'stage_dev':
-    case 'ropsten':
-      // 'ropsten' is useful for deploying to the Ropsten network separately,
-      // without affecting Dev or Prod
-      return await readAddressFromMetadata('dev', contractName);
-    case 'stage_prod':
-      return await readAddressFromMetadata('prod', contractName);
-    default:
-      return defaultArtifact.address;
-  }
+  return network === 'development' ? defaultArtifact.address : await readAddressFromMetadata(network, contractName);
+}
+
+async function writeOnS3(bucketName, key, content) {
+  return await s3.putObject({
+    Bucket: bucketName,
+    Key: key,
+    ContentType: "application/json",
+    Body: content
+  }).promise();
 }
 
 async function updateAbiAndMetadata(network, contractName, contractAddress) {
-  let stage;
-  switch(network) {
-    case 'stage_dev':
-      stage = 'dev';
-      break;
-    case 'stage_prod':      
-      stage = 'prod';
-      break;
-    default:
-      console.log(`${contractName}: Skipping metadata and ABI update: network "${network}" is not eligible`);
-      return;
+  if (network === 'development'){
+    console.log(`${contractName}: Skipping metadata and ABI update: network "${network}" is not eligible`);
+    return;
   }
-  
+
   const commitHash = require('child_process')
     .execSync('git rev-parse HEAD')
     .toString().trim();
 
-  const stageConfig = truffle.networks[network];
-  const metaUpdateResponse = await s3.putObject({
-    Bucket: `qsp-protocol-contract-abi-${stage}`,
-    Key: `${contractName}.meta.json`,
-    ContentType: "application/json",
-    Body: new Buffer(JSON.stringify({
-      "contractAddress": contractAddress,
-      "creatorAddress": stageConfig.account,
-      "commitHash": commitHash
-    }, null, 2))
-  }).promise();
+  const networkConfig = truffle.networks[network];
+  const metaContent = new Buffer(JSON.stringify({
+    "contractAddress": contractAddress,
+    "creatorAddress": networkConfig.account,
+    "commitHash": commitHash,
+    "version": getVersion()
+  }, null, 2));
+
+  const abiContent = new Buffer(JSON.stringify(require(`../build/contracts/${contractName}.json`).abi, null, 2));
+
+  const latestMetaFileName =  getMetaFileName(network, contractName, getMajorVersion());
+  const versionedMetaFileName =  getMetaFileName(network, contractName, getVersion());
+
+  const latestAbiFileName = getAbiFileName(network, contractName, getMajorVersion());
+  const versionedAbiFileName = getAbiFileName(network, contractName, getVersion());
+
+  const metaUpdateResponse = await writeOnS3(getBucketName(), latestMetaFileName, metaContent);
   console.log(`${contractName}: metadata update response:`, JSON.stringify(metaUpdateResponse, null, 2));
 
-  const abiUpdateResponse = await s3.putObject({
-    Bucket: `qsp-protocol-contract-abi-${stage}`,
-    Key: `${contractName}.abi.json`,
-    ContentType: "application/json",
-    Body: new Buffer(JSON.stringify(
-      require(`../build/contracts/${contractName}.json`).abi, null, 2
-    ))
-  }).promise();
+  const versionedMetaUpdateResponse = await writeOnS3(getBucketName(), versionedMetaFileName, metaContent);
+  console.log(`${contractName}: versioned metadata update response:`, JSON.stringify(versionedMetaUpdateResponse, null, 2));
+
+  const abiUpdateResponse = await writeOnS3(getBucketName(), latestAbiFileName, abiContent);
   console.log(`${contractName}: ABI update response:`, JSON.stringify(abiUpdateResponse, null, 2));
+
+  const versionedAbiUpdateResponse = await writeOnS3(getBucketName(), versionedAbiFileName, abiContent);
+  console.log(`${contractName}: versioned ABI update response:`, JSON.stringify(versionedAbiUpdateResponse, null, 2));
 }
 
 function canDeploy(network, contractName) {
