@@ -209,7 +209,7 @@ contract QuantstampAudit is Ownable, Pausable {
 
     emit LogAuditFinished(requestId, msg.sender, auditResult, reportHash, block.timestamp); // solhint-disable-line not-rely-on-time
 
-    if (state == QuantstampAuditData.AuditState.Completed) {
+    if (auditResult == QuantstampAuditData.AuditState.Completed) {
       uint256 auditPrice = auditData.getAuditPrice(requestId);
       auditData.token().transfer(msg.sender, auditPrice);
       emit LogPayAuditor(requestId, msg.sender, auditPrice);
