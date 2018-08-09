@@ -8,7 +8,8 @@ module.exports = {
     methodName: 'addNodeToWhitelist',
     gasLimit: 80000,
     methodArgs: async(stage, argv) => {
-      return [argv.p];
+      console.info(argv);
+      return argv.p;
     }
   },
   'whitelist-audit-contract': {
@@ -24,7 +25,7 @@ module.exports = {
     methodName: 'setMaxAssignedRequests',
     gasLimit: 30000,
     methodArgs: async(stage, argv) => {
-      return [argv.p];
+      return argv.p;
     }
   },
   'get-next-audit-request': {
@@ -33,6 +34,14 @@ module.exports = {
     gasLimit: 200000,
     methodArgs: async(stage, argv) => {
       return [];
+    }
+  },
+  'resolve': {
+    contractName: 'QuantstampAudit',
+    methodName: 'resolveErrorReport',
+    gasLimit: 200000,
+    methodArgs: async(stage, argv) => {
+      return argv.p;
     }
   }
 };
