@@ -101,7 +101,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
     assert.equal(await Util.balanceOf(quantstamp_token, requestor), balanceOfRequesterBeforeAudit.add(price));
   });
 
-  it("should not resolve for a request without an error status", async function () {
+  it("should not resolve a request without an error status", async function () {
     const price = Util.toQsp(35);
     const result = await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     const requestId = Util.extractRequestId(result);
