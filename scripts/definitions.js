@@ -8,7 +8,6 @@ module.exports = {
     methodName: 'addNodeToWhitelist',
     gasLimit: 80000,
     methodArgs: async(stage, argv) => {
-      console.info(argv);
       return argv.p;
     }
   },
