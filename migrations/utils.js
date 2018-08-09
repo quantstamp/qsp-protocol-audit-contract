@@ -1,5 +1,6 @@
 const truffle = require('../truffle.js');
 const AWS = require('aws-sdk');
+const web3 = require('web3');
 const s3 = new AWS.S3({
   region: 'us-east-1'
 });
@@ -100,7 +101,7 @@ async function updateAbiAndMetadata(network, contractName, contractAddress) {
 
   const networkConfig = truffle.networks[network];
   const metaContent = new Buffer(JSON.stringify({
-    "contractAddress": contractAddress,
+    "contractAddress": web3.utils.toChecksumAddress(contractAddress),
     "creatorAddress": networkConfig.account,
     "commitHash": commitHash,
     "version": getVersion()
