@@ -1,28 +1,22 @@
 const QuantstampToken = artifacts.require('QuantstampToken');
 const QuantstampAudit = artifacts.require('QuantstampAudit');
-const QuantstampAuditView = artifacts.require('QuantstampAuditView');
 const QuantstampAuditData = artifacts.require('QuantstampAuditData');
 const Util = require("./util.js");
 const AuditState = Util.AuditState;
 
 contract('QuantstampAudit_resolution', function(accounts) {
   const owner = accounts[0];
-  const admin = accounts[1];
   const requestor = accounts[2];
   const auditor = accounts[3];
-  const price = 123;
   const requestorBudget = Util.toQsp(100000);
 
-  let globalRequestId = 0;
   let quantstamp_audit;
   let quantstamp_audit_data;
-  let quantstamp_audit_view;
   let quantstamp_token;
 
   beforeEach(async function () {
     quantstamp_audit = await QuantstampAudit.deployed();
     quantstamp_audit_data = await QuantstampAuditData.deployed();
-    quantstamp_audit_view = await QuantstampAuditView.deployed();
 
     quantstamp_token = await QuantstampToken.deployed();
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
@@ -40,7 +34,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
     await quantstamp_audit_data.setAuditTimeout(10000);
   });
 
-  it("should not pay the audit node for error report", async function () {
+  it("should not pay the audit node for an error report", async function () {
     const price = Util.toQsp(35);
     const result = await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     const requestId = Util.extractRequestId(result);
@@ -59,7 +53,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
     assert.equal(await Util.balanceOf(quantstamp_token, auditor), balanceOfAuditorBeforeAudit);
   });
 
-  it("should resolve an error report in favor of the auditor", async function () {
+  it("should resolve an error report in favor of the auditor given owner's wish", async function () {
     const price = Util.toQsp(35);
     const result = await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     const requestId = Util.extractRequestId(result);
@@ -83,7 +77,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
     assert.equal(await Util.balanceOf(quantstamp_token, requestor), balanceOfRequesterBeforeAudit);
   });
 
-  it("should resolve an error report in favor of the requester", async function () {
+  it("should resolve an error report in favor of the requester given owner's wish", async function () {
     const price = Util.toQsp(35);
     const result = await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     const requestId = Util.extractRequestId(result);
@@ -107,7 +101,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
     assert.equal(await Util.balanceOf(quantstamp_token, requestor), balanceOfRequesterBeforeAudit.add(price));
   });
 
-  it("should not resolve for a request without Error status", async function () {
+  it("should not resolve for a request without an error status", async function () {
     const price = Util.toQsp(35);
     const result = await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     const requestId = Util.extractRequestId(result);

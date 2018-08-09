@@ -219,7 +219,7 @@ contract QuantstampAudit is Ownable, Pausable {
   /**
    * @dev Determines who has to be paid for a given requestId recorded with an error status
    * @param requestId Unique identifier of the audit request.
-   * @param toRequester The requester is refunded; otherwise the audit node.
+   * @param toRequester The audit price goes to the requester or the audit node.
    */
   function resolveErrorReport(uint256 requestId, bool toRequester) public onlyOwner {
     QuantstampAuditData.AuditState auditState = auditData.getAuditState(requestId);
