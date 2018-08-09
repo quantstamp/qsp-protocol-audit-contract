@@ -91,8 +91,8 @@ First-time only: manually create the S3 buckets `qsp-protocol-contract-abi-dev` 
     Note: a successful return of the whitelisting script does not necessarily mean the transaction is fully completed. Please check
     the status manually on a block explorer and wait for the desired number of confirmations.
 1. To perform actions on a deployed smart contract, use the following commands:
-    * `npm run command -- -n=dev --p <parameter>` - QSP protocol dev network.
-    * `npm run command -- -n=prod --p <parameter>` - QSP protocol prod network.
+    * `npm run command -- -n=dev --p <parameters>` - QSP protocol dev network.
+    * `npm run command -- -n=prod --p <parameters>` - QSP protocol prod network.
     
     For the full list, check out the next section and `./scripts/definitions.json`. The list is extensible.
 
