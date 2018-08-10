@@ -91,8 +91,8 @@ First-time only: manually create the S3 buckets `qsp-protocol-contract-abi-dev` 
     Note: a successful return of the whitelisting script does not necessarily mean the transaction is fully completed. Please check
     the status manually on a block explorer and wait for the desired number of confirmations.
 1. To perform actions on a deployed smart contract, use the following commands:
-    * `npm run command -- -n=dev -p=<parameter>` - QSP protocol dev network.
-    * `npm run command -- -n=prod -p=<parameter>` - QSP protocol prod network.
+    * `npm run command -- -n=dev --p <parameters>` - QSP protocol dev network.
+    * `npm run command -- -n=prod --p <parameters>` - QSP protocol prod network.
     
     For the full list, check out the next section and `./scripts/definitions.json`. The list is extensible.
 
@@ -109,9 +109,11 @@ is a path associated to the version 1 of the `QuantstampAudit` contract deployed
 
 **Note**: before running a command, setup the credentials as described in the section above.
 
-1. `npm run command -- -n=dev -a=whitelist -p=0x123456789` whitelists a node defined by a given address
-1. `npm run command -- -n=dev -a=set-max-assigned -p=100` sets "maximum assigned nodes"
+1. `npm run command -- -n=dev -a=whitelist --p 0x123456789` whitelists a node defined by a given address
+1. `npm run command -- -n=dev -a=set-max-assigned --p 100` sets "maximum assigned nodes"
 1. `npm run command -- -n=dev -a=get-next-audit-request` calls `getNextAuditRequest()` on the contract. May be useful for cleaning up the audit waiting queue.
+1. `npm run command -- -n=dev -a=resolve --p 1 false` calls `resolveErrorReport()` on the contract to resolve the incentive of a given requestId. If the second parameter is true, the requester is paid; otherwise, the audit node. 
+
 
 ## Deploy to Ganache
 
