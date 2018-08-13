@@ -1,7 +1,6 @@
 const QuantstampAudit = artifacts.require('QuantstampAudit');
 const QuantstampAuditView = artifacts.require('QuantstampAuditView');
 
-const networkConfig = require('../truffle.js');
 const utils = require('./utils');
 
 module.exports = function(deployer, network, accounts) {
