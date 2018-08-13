@@ -36,7 +36,6 @@ contract QuantstampAudit is Ownable, Pausable {
     uint256 requestId,
     address auditor,
     QuantstampAuditData.AuditState auditResult,
-    string reportUri,
     string reportHash,
     uint256 reportTimestamp
   );
@@ -76,6 +75,9 @@ contract QuantstampAudit is Ownable, Pausable {
   // the audit queue has elements, but none satisfy the minPrice of the audit node
   // amount corresponds to the current minPrice of the auditor
   event LogAuditNodePriceHigherThanRequests(address auditor, uint256 amount);
+
+  event LogInvalidResolutionCall(uint256 requestId);
+  event LogErrorReportResolved(uint256 requestId, address receiver, uint256 auditPrice);
 
   enum AuditAvailabilityState {
     Error,
@@ -170,10 +172,9 @@ contract QuantstampAudit is Ownable, Pausable {
    * @dev Submits the report and pays the auditor node for their work or refunds tokens to the requestor in case of an error.
    * @param requestId Unique identifier of the audit request.
    * @param auditResult Result of an audit.
-   * @param reportUri URI to the generated report.
    * @param reportHash Hash of the generated report.
    */
-  function submitReport(uint256 requestId, QuantstampAuditData.AuditState auditResult, string reportUri, string reportHash) public onlyWhitelisted {
+  function submitReport(uint256 requestId, QuantstampAuditData.AuditState auditResult, string reportHash) public onlyWhitelisted {
     QuantstampAuditData.AuditState auditState = auditData.getAuditState(requestId);
     if (auditState != QuantstampAuditData.AuditState.Assigned) {
       emit LogReportSubmissionError_InvalidState(requestId, msg.sender, auditState);
@@ -200,18 +201,38 @@ contract QuantstampAudit is Ownable, Pausable {
 
     // update the audit information held in this contract
     auditData.setAuditState(requestId, auditResult);
-    auditData.setAuditReportUri(requestId, reportUri);
     auditData.setAuditReportHash(requestId, reportHash);
     auditData.setAuditReportTimestamp(requestId, block.timestamp); // solhint-disable-line not-rely-on-time
 
     // validate the audit state
     require(isAuditFinished(requestId));
 
-    emit LogAuditFinished(requestId, msg.sender, auditResult, reportUri, reportHash, block.timestamp); // solhint-disable-line not-rely-on-time
+    emit LogAuditFinished(requestId, msg.sender, auditResult, reportHash, block.timestamp); // solhint-disable-line not-rely-on-time
+
+    if (auditResult == QuantstampAuditData.AuditState.Completed) {
+      uint256 auditPrice = auditData.getAuditPrice(requestId);
+      auditData.token().transfer(msg.sender, auditPrice);
+      emit LogPayAuditor(requestId, msg.sender, auditPrice);
+    }
+  }
+
+  /**
+   * @dev Determines who has to be paid for a given requestId recorded with an error status
+   * @param requestId Unique identifier of the audit request.
+   * @param toRequester The audit price goes to the requester or the audit node.
+   */
+  function resolveErrorReport(uint256 requestId, bool toRequester) public onlyOwner {
+    QuantstampAuditData.AuditState auditState = auditData.getAuditState(requestId);
+    if (auditState != QuantstampAuditData.AuditState.Error) {
+      emit LogInvalidResolutionCall(requestId);
+      return;
+    }
 
     uint256 auditPrice = auditData.getAuditPrice(requestId);
-    auditData.token().transfer(msg.sender, auditPrice);
-    emit LogPayAuditor(requestId, msg.sender, auditPrice);
+    address receiver = toRequester ? auditData.getAuditRequestor(requestId) : auditData.getAuditAuditor(requestId);
+    auditData.token().transfer(receiver, auditPrice);
+    auditData.setAuditState(requestId, QuantstampAuditData.AuditState.Resolved);
+    emit LogErrorReportResolved(requestId, receiver, auditPrice);
   }
 
   /**
