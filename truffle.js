@@ -11,7 +11,7 @@ module.exports = {
   deploy: {
     QuantstampAuditData: false,
     QuantstampAudit: false,
-    QuantstampAuditView: false
+    QuantstampAuditView: false,
   },
   networks: {
     development: {
@@ -37,9 +37,10 @@ module.exports = {
     prod: {
       provider: new HDWalletProvider(credentials.mnemonic, `https://mainnet.infura.io/${credentials.infura_apikey}`),
       network_id: 1,
-      gas: 7984695,
-      gasPrice: 5000000000,
-      account: '0x2Fa5295056866634D21f5595d74AB19fde83D933'
+      gas: 4012388,
+      gasPrice: 14000000000,
+      account: '0x2Fa5295056866634D21f5595d74AB19fde83D933',
+      delayBetweenDeploys: 60000
     },
     ropsten: {
       provider: new HDWalletProvider(credentials.mnemonic, `https://ropsten.infura.io/${credentials.infura_apikey}`),
