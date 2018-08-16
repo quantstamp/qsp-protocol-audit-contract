@@ -1,6 +1,6 @@
 {
    "name": "audit-contract",
-   "version": "1.0.1",
+   "version": "0.1.0",
    "description": "",
    "main": "truffle-config.js",
    "directories": {
@@ -24,7 +24,6 @@
       "openzeppelin-solidity": "1.10.0",
       "solidity-coverage": "0.5.4",
       "superagent": "^3.8.2",
-      "trezor-wallet-provider": "^0.2.0",
       "truffle": "4.1.11",
       "truffle-hdwallet-provider": "0.0.3",
       "web3": "^1.0.0-beta.34"
