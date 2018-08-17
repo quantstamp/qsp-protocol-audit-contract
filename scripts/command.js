@@ -73,10 +73,6 @@ const argv = require('yargs')
   .alias('h', 'help')
   .argv;
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 const network = argv.n;
 
 const definition = definitions[argv.a];
