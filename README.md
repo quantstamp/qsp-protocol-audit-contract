@@ -140,3 +140,15 @@ Currently, when a user submits an audit request, multiple nodes try to get the a
  `node gas.js suggest_min_price --nodes=N`
 
 The commands fetches the current gas price from Etherscan for calculations. If you wish to specify your own gas price, use the parameter `--gasPrice=X`, where X is the desired gas price in Wei.
+
+## Hardware wallet
+
+Interacting with the smart contracts, one can use a Trezor hardware wallet for signing transaction. All he needs to do are alter `truffle.js`
+and set the provider field of a desired network to an instance of `TrezorWalletProvider`.
+This class accepts an address of a web3 provider, such as infura.
+
+For accepting a wallet PIN, make sure a recent version of [JRE](http://www.oracle.com/technetwork/java/javase/downloads/jre8-downloads-2133155.html)
+is executable from the command-line. A successful execution of `java -version` shows the validity of this fact.
+
+Without using a  hardware wallet, one alternatively use `HDWalletProvider` for signing transactions. This wallet accepts 
+a mnemonic key and a web3 provider address for signing transactions.  
