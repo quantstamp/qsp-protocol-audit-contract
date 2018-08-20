@@ -1,5 +1,7 @@
 const credentials = require("./credentials.js");
 const HDWalletProvider = require("truffle-hdwallet-provider");
+const TrezorWalletProvider = require("@daonomic/trezor-wallet-provider/trezor_wallet_provider.js");
+
 
 module.exports = {
   solc: {
@@ -35,7 +37,7 @@ module.exports = {
       account: '0x0283c049ed4705e2d98c807dbafdaf725f34b8d2'
     },
     prod: {
-      provider: new HDWalletProvider(credentials.mnemonic, `https://mainnet.infura.io/${credentials.infura_apikey}`),
+      provider: TrezorWalletProvider.getInstance(`https://mainnet.infura.io/${credentials.infura_apikey}`),
       network_id: 1,
       gas: 4012388,
       gasPrice: 14000000000,
