@@ -33,12 +33,12 @@ contract QuantstampAuditData is Whitelist {
     address requestor;
     string contractUri;
     uint256 price;
-    uint256 requestTimestamp; // approximate time of when audit was requested
+    uint256 requestTimestamp; // approximate time (block number) of when audit was requested
     QuantstampAuditData.AuditState state;
     address auditor;       // the address of the node assigned to the audit
-    uint256 assignTimestamp;  // approximate time of when audit was assigned
+    uint256 assignTimestamp;  // approximate time (block number) of when audit was assigned
     string reportHash;     // stores the hash of audit report
-    uint256 reportTimestamp;  // approximate time of when the payment and the audit report were submitted
+    uint256 reportTimestamp;  // approximate time (block number) of when the payment and the audit report were submitted
   }
 
   // map audits (requestId, Audit)
@@ -79,7 +79,7 @@ contract QuantstampAuditData is Whitelist {
     // assign the next request ID
     uint256 requestId = ++requestCounter;
     // store the audit
-    audits[requestId] = Audit(requestor, contractUri, price, block.timestamp, AuditState.Queued, address(0), 0, "", 0);  // solhint-disable-line not-rely-on-time
+    audits[requestId] = Audit(requestor, contractUri, price, block.number, AuditState.Queued, address(0), 0, "", 0);  // solhint-disable-line not-rely-on-time
     return requestId;
   }
 

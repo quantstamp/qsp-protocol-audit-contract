@@ -161,7 +161,7 @@ contract QuantstampAudit is Ownable, Pausable {
     // TODO: use existing price instead of HEAD (optimization)
     queueAuditRequest(requestId, HEAD);
 
-    emit LogAuditRequested(requestId, msg.sender, contractUri, price, block.timestamp); // solhint-disable-line not-rely-on-time
+    emit LogAuditRequested(requestId, msg.sender, contractUri, price, block.number); // solhint-disable-line not-rely-on-time
 
     return requestId;
   }
@@ -200,12 +200,12 @@ contract QuantstampAudit is Ownable, Pausable {
     // update the audit information held in this contract
     auditData.setAuditState(requestId, auditResult);
     auditData.setAuditReportHash(requestId, reportHash);
-    auditData.setAuditReportTimestamp(requestId, block.timestamp); // solhint-disable-line not-rely-on-time
+    auditData.setAuditReportTimestamp(requestId, block.number); // solhint-disable-line not-rely-on-time
 
     // validate the audit state
     require(isAuditFinished(requestId));
 
-    emit LogAuditFinished(requestId, msg.sender, auditResult, reportHash, block.timestamp); // solhint-disable-line not-rely-on-time
+    emit LogAuditFinished(requestId, msg.sender, auditResult, reportHash, block.number); // solhint-disable-line not-rely-on-time
 
     if (auditResult == QuantstampAuditData.AuditState.Completed) {
       uint256 auditPrice = auditData.getAuditPrice(requestId);
