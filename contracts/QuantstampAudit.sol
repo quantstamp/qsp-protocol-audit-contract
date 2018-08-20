@@ -57,9 +57,9 @@ contract QuantstampAudit is Ownable, Pausable {
   /* solhint-disable event-name-camelcase */
   event LogReportSubmissionError_InvalidAuditor(uint256 requestId, address auditor);
   event LogReportSubmissionError_InvalidState(uint256 requestId, address auditor, QuantstampAuditData.AuditState state);
-  event LogReportSubmissionError_ExpiredAudit(uint256 requestId, address auditor, uint allowanceBlockNumber);
+  event LogReportSubmissionError_ExpiredAudit(uint256 requestId, address auditor, uint256 allowanceBlockNumber);
   event LogAuditAssignmentError_ExceededMaxAssignedRequests(address auditor);
-  event LogAuditAssignmentUpdate_Expired(uint256 requestId, uint allowanceBlockNumber);
+  event LogAuditAssignmentUpdate_Expired(uint256 requestId, uint256 allowanceBlockNumber);
   /* solhint-enable event-name-camelcase */
 
   event LogAuditQueueIsEmpty();
@@ -115,31 +115,30 @@ contract QuantstampAudit is Ownable, Pausable {
           state != QuantstampAuditData.AuditState.Assigned &&
             state != QuantstampAuditData.AuditState.Expired) {
       emit LogRefundInvalidState(requestId, state);
-      return;
+      return false;
     }
     address requestor = auditData.getAuditRequestor(requestId);
     if (requestor != msg.sender) {
       emit LogRefundInvalidRequestor(requestId, msg.sender);
       return;
     }
-    uint refundTimestamp = auditData.getAuditAssignTimestamp(requestId) + auditData.auditTimeoutInBlocks();
+    uint256 refundTimestamp = auditData.getAuditAssignTimestamp(requestId) + auditData.auditTimeoutInBlocks();
     // check that the auditor has not recently started the audit (locking the funds)
     if (state == QuantstampAuditData.AuditState.Assigned) {
       if (block.number <= refundTimestamp) {
         emit LogRefundInvalidFundsLocked(requestId, block.number, refundTimestamp);
-        return;
+        return false;
       }
       // the request is expired but not detected by getNextAuditRequest
       updateAssignedAudits(requestId);
     }
-
     // remove the request from the queue
     // note that if an audit node is currently assigned the request, it is already removed from the queue
-    if (state == QuantstampAuditData.AuditState.Queued) {
+    else if (state == QuantstampAuditData.AuditState.Queued) {
       removeQueueElement(requestId);
     }
 
-    // set the audit state the refunded
+    // set the audit state to refunded
     auditData.setAuditState(requestId, QuantstampAuditData.AuditState.Refunded);
 
     // return the funds to the user
@@ -156,7 +155,7 @@ contract QuantstampAudit is Ownable, Pausable {
   function requestAudit(string contractUri, uint256 price) external whenNotPaused returns(uint256) {
     require(price > 0);
     // transfer tokens to this contract
-    auditData.token().transferFrom(msg.sender, this, price);
+    auditData.token().transferFrom(msg.sender, address(this), price);
     // store the audit
     uint256 requestId = auditData.addAuditRequest(msg.sender, contractUri, price);
 
@@ -169,7 +168,7 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Submits the report and pays the auditor node for their work or refunds tokens to the requestor in case of an error.
+   * @dev Submits the report and pays the auditor node for their work if the audit is completed.
    * @param requestId Unique identifier of the audit request.
    * @param auditResult Result of an audit.
    * @param reportHash Hash of the generated report.
@@ -191,7 +190,7 @@ contract QuantstampAudit is Ownable, Pausable {
     updateAssignedAudits(requestId);
 
     // auditor should not send a report after its allowed period
-    uint allowanceBlockNumber = auditData.getAuditAssignTimestamp(requestId) + auditData.auditTimeoutInBlocks();
+    uint256 allowanceBlockNumber = auditData.getAuditAssignTimestamp(requestId) + auditData.auditTimeoutInBlocks();
     if (allowanceBlockNumber <= block.number) {
       // update assigned to expired state
       auditData.setAuditState(requestId, QuantstampAuditData.AuditState.Expired);
@@ -262,10 +261,10 @@ contract QuantstampAudit is Ownable, Pausable {
   function getNextAuditRequest() public onlyWhitelisted {
     // remove an expired audit request
     if (assignedAudits.listExists()) {
-      bool direction;
+      bool exists;
       uint256 potentialExpiredRequestId;
-      (direction, potentialExpiredRequestId) = assignedAudits.getAdjacent(HEAD, NEXT);
-      uint allowanceBlockNumber = auditData.getAuditAssignTimestamp(potentialExpiredRequestId) + auditData.auditTimeoutInBlocks();
+      (exists, potentialExpiredRequestId) = assignedAudits.getAdjacent(HEAD, NEXT);
+      uint256 allowanceBlockNumber = auditData.getAuditAssignTimestamp(potentialExpiredRequestId) + auditData.auditTimeoutInBlocks();
       if (allowanceBlockNumber <= block.number) {
         updateAssignedAudits(potentialExpiredRequestId);
         auditData.setAuditState(potentialExpiredRequestId, QuantstampAuditData.AuditState.Expired);
@@ -335,9 +334,9 @@ contract QuantstampAudit is Ownable, Pausable {
    * @return next price in the linked list
    */
   function getNextPrice(uint256 price) public view returns(uint256) {
-    bool direction;
+    bool exists;
     uint256 next;
-    (direction, next) = priceList.getAdjacent(price, NEXT);
+    (exists, next) = priceList.getAdjacent(price, NEXT);
     return next;
   }
 
@@ -347,9 +346,9 @@ contract QuantstampAudit is Ownable, Pausable {
    * @return next requestId in the linked list
    */
   function getNextAssignedRequest(uint256 requestId) public view returns(uint256) {
-    bool direction;
+    bool exists;
     uint256 next;
-    (direction, next) = assignedAudits.getAdjacent(requestId, NEXT);
+    (exists, next) = assignedAudits.getAdjacent(requestId, NEXT);
     return next;
   }
 
@@ -361,9 +360,9 @@ contract QuantstampAudit is Ownable, Pausable {
    * @return next requestId with the same price
    */
   function getNextAuditByPrice(uint256 price, uint256 requestId) public view returns(uint256) {
-    bool direction;
+    bool exists;
     uint256 next;
-    (direction, next) = auditsByPrice[price].getAdjacent(requestId, NEXT);
+    (exists, next) = auditsByPrice[price].getAdjacent(requestId, NEXT);
     return next;
   }
 
