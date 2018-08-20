@@ -147,6 +147,11 @@ Interacting with the smart contracts, one can use a Trezor hardware wallet for s
 and set the provider field of a desired network to an instance of `TrezorWalletProvider`.
 This class accepts an address of a web3 provider, such as infura.
 
+### prerequisites
+#### Trezor Drivers
+If you are using the Trezor for the first time on your machine, please visit [trezor.io/start](https://trezor.io/start/)
+for installing your device's drivers.
+#### Java Runtime Edition
 For accepting a wallet PIN, make sure a recent version of [JRE](http://www.oracle.com/technetwork/java/javase/downloads/jre8-downloads-2133155.html)
 is executable from the command-line. A successful execution of `java -version` shows the validity of this fact.
 
