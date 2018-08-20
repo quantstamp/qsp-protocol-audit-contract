@@ -131,10 +131,9 @@ contract QuantstampAudit is Ownable, Pausable {
       }
       // the request is expired but not detected by getNextAuditRequest
       updateAssignedAudits(requestId);
-    }
-    // remove the request from the queue
-    // note that if an audit node is currently assigned the request, it is already removed from the queue
-    else if (state == QuantstampAuditData.AuditState.Queued) {
+    } else if (state == QuantstampAuditData.AuditState.Queued) {
+      // remove the request from the queue
+      // note that if an audit node is currently assigned the request, it is already removed from the queue
       removeQueueElement(requestId);
     }
 
