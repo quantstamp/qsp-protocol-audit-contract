@@ -311,7 +311,7 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Allows the audit node to set its minimum price per audit
+   * @dev Allows the audit node to set its minimum price per audit in wei-QSP
    * @param price The minimum price.
    */
   function setAuditNodePrice(uint256 price) public onlyWhitelisted {

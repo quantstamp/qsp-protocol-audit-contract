@@ -33,12 +33,12 @@ contract QuantstampAuditData is Whitelist {
     address requestor;
     string contractUri;
     uint256 price;
-    uint requestTimestamp; // approximate time of when audit was requested
+    uint256 requestTimestamp; // approximate time of when audit was requested
     QuantstampAuditData.AuditState state;
     address auditor;       // the address of the node assigned to the audit
-    uint assignTimestamp;  // approximate time of when audit was assigned
+    uint256 assignTimestamp;  // approximate time of when audit was assigned
     string reportHash;     // stores the hash of audit report
-    uint reportTimestamp;  // approximate time of when the payment and the audit report were submitted
+    uint256 reportTimestamp;  // approximate time of when the payment and the audit report were submitted
   }
 
   // map audits (requestId, Audit)
@@ -48,7 +48,6 @@ contract QuantstampAuditData is Whitelist {
   // that transfer function (such as transferFrom, transfer) do the right thing
   StandardToken public token;
 
-  // 10 blocks seems like a reasonable default timeout
   // Once an audit node gets an audit request, the audit price is locked for this many blocks.
   // After that, the requestor can asks for a refund.
   uint256 public auditTimeoutInBlocks = 25;
@@ -120,7 +119,7 @@ contract QuantstampAuditData is Whitelist {
     return audits[requestId].assignTimestamp;
   }
 
-  function setAuditAssignTimestamp (uint256 requestId, uint assignTimestamp) public onlyWhitelisted {
+  function setAuditAssignTimestamp (uint256 requestId, uint256 assignTimestamp) public onlyWhitelisted {
     audits[requestId].assignTimestamp = assignTimestamp;
   }
 
@@ -128,7 +127,7 @@ contract QuantstampAuditData is Whitelist {
     audits[requestId].reportHash = reportHash;
   }
 
-  function setAuditReportTimestamp (uint256 requestId, uint reportTimestamp) public onlyWhitelisted {
+  function setAuditReportTimestamp (uint256 requestId, uint256 reportTimestamp) public onlyWhitelisted {
     audits[requestId].reportTimestamp = reportTimestamp;
   }
 
@@ -149,7 +148,7 @@ contract QuantstampAuditData is Whitelist {
   }
 
   /**
-   * @dev Allows the audit node to set its minimum price per audit
+   * @dev Allows the audit node to set its minimum price per audit in wei-QSP
    * @param price The minimum price.
    */
   function setMinAuditPrice(address auditor, uint256 price) public onlyWhitelisted {
