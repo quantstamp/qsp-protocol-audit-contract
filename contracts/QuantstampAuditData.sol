@@ -33,12 +33,12 @@ contract QuantstampAuditData is Whitelist {
     address requestor;
     string contractUri;
     uint256 price;
-    uint256 requestBlockNumber; // approximate time (block number) of when audit was requested
+    uint256 requestBlockNumber; // block number that audit was requested
     QuantstampAuditData.AuditState state;
     address auditor;       // the address of the node assigned to the audit
-    uint256 assignBlockNumber;  // approximate time (block number) of when audit was assigned
+    uint256 assignBlockNumber;  // block number that audit was assigned
     string reportHash;     // stores the hash of audit report
-    uint256 reportBlockNumber;  // approximate time (block number) of when the payment and the audit report were submitted
+    uint256 reportBlockNumber;  // block number that the payment and the audit report were submitted
   }
 
   // map audits (requestId, Audit)
