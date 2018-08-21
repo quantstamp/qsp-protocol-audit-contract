@@ -129,16 +129,6 @@ contract('QuantstampAudit2', function(accounts) {
     assert.equal(secondAuditRequestResult.logs[0].args.requestId.toNumber(), firstRequestId + 1);
   });
 
-  it("should log block timestamp when requesting audits", async function () {
-    const requestUri = "http://www.quantstamp.com/contract03.sol";
-    const price = Util.toQsp(25);
-
-    const result = await quantstamp_audit.requestAudit(requestUri, price, {from : requestor});
-    assert.equal(result.logs.length, 1);
-    assert.equal(result.logs[0].event, "LogAuditRequested");
-    assert(result.logs[0].args.requestTimestamp.toNumber() > 0);
-  });
-
   it("should log start and end timestamp when paying auditors", async function () {
     const requestUri = "http://www.quantstamp.com/contract04.sol";
     const price = Util.toQsp(25);

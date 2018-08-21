@@ -43,8 +43,7 @@ contract QuantstampAudit is Ownable, Pausable {
   event LogAuditRequested(uint256 requestId,
     address requestor,
     string uri,
-    uint256 price,
-    uint256 requestTimestamp
+    uint256 price
   );
 
   event LogAuditAssigned(uint256 requestId,
@@ -161,7 +160,7 @@ contract QuantstampAudit is Ownable, Pausable {
     // TODO: use existing price instead of HEAD (optimization)
     queueAuditRequest(requestId, HEAD);
 
-    emit LogAuditRequested(requestId, msg.sender, contractUri, price, block.number); // solhint-disable-line not-rely-on-time
+    emit LogAuditRequested(requestId, msg.sender, contractUri, price); // solhint-disable-line not-rely-on-time
 
     return requestId;
   }
