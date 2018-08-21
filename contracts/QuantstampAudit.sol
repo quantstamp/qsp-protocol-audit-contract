@@ -36,8 +36,7 @@ contract QuantstampAudit is Ownable, Pausable {
     uint256 requestId,
     address auditor,
     QuantstampAuditData.AuditState auditResult,
-    string reportHash,
-    uint256 reportTimestamp
+    string reportHash
   );
 
   event LogAuditRequested(uint256 requestId,
@@ -204,7 +203,7 @@ contract QuantstampAudit is Ownable, Pausable {
     // validate the audit state
     require(isAuditFinished(requestId));
 
-    emit LogAuditFinished(requestId, msg.sender, auditResult, reportHash, block.number); // solhint-disable-line not-rely-on-time
+    emit LogAuditFinished(requestId, msg.sender, auditResult, reportHash); // solhint-disable-line not-rely-on-time
 
     if (auditResult == QuantstampAuditData.AuditState.Completed) {
       uint256 auditPrice = auditData.getAuditPrice(requestId);

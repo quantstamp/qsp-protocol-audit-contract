@@ -146,7 +146,6 @@ contract('QuantstampAudit2', function(accounts) {
     assert.equal(result2.logs.length, 2);
     assert.equal(result2.logs[0].event, "LogAuditFinished");
     assert.equal(result2.logs[1].event, "LogPayAuditor");
-    assert(result2.logs[0].args.reportTimestamp.toNumber() > 0);
   });
 
   it("should revert if the user tries to request an audit with an insufficient token allowance", async function () {
