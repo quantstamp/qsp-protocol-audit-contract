@@ -55,7 +55,8 @@ contract QuantstampAudit is Ownable, Pausable {
   /* solhint-disable event-name-camelcase */
   event LogReportSubmissionError_InvalidAuditor(uint256 requestId, address auditor);
   event LogReportSubmissionError_InvalidState(uint256 requestId, address auditor, QuantstampAuditData.AuditState state);
-  event LogReportSubmissionError_ExpiredAudit(uint256 requestId, address auditor, uint256 allowanceBlockNumber);
+  event LogReportSubmissionError_InvalidResult(uint256 requestId, address auditor, QuantstampAuditData.AuditState state);
+  event LogReportSubmissionError_ExpiredAudit(uint256 requestId, address auditor, uint allowanceBlockNumber);
   event LogAuditAssignmentError_ExceededMaxAssignedRequests(address auditor);
   event LogAuditAssignmentUpdate_Expired(uint256 requestId, uint256 allowanceBlockNumber);
   /* solhint-enable event-name-camelcase */
@@ -171,6 +172,11 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param reportHash Hash of the generated report.
    */
   function submitReport(uint256 requestId, QuantstampAuditData.AuditState auditResult, string reportHash) public onlyWhitelisted {
+    if (QuantstampAuditData.AuditState.Completed != auditResult && QuantstampAuditData.AuditState.Error != auditResult) {
+      emit LogReportSubmissionError_InvalidResult(requestId, msg.sender, auditResult);
+      return;
+    }
+
     QuantstampAuditData.AuditState auditState = auditData.getAuditState(requestId);
     if (auditState != QuantstampAuditData.AuditState.Assigned) {
       emit LogReportSubmissionError_InvalidState(requestId, msg.sender, auditState);
