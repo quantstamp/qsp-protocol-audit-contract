@@ -230,46 +230,11 @@ contract('QuantstampAudit', function(accounts) {
     const result = await quantstamp_audit.getNextAuditRequest({from: auditor});
     const requestId = Util.extractRequestId(result);
 
-    Util.assertEvent({
-      result: await quantstamp_audit.submitReport(requestId, AuditState.None, Util.sha256emptyFile, {from: auditor}),
-      name: "LogReportSubmissionError_InvalidResult",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId);
-        assert.equal(args.auditor, auditor);
-      }
-    });
-    Util.assertEvent({
-      result: await quantstamp_audit.submitReport(requestId, AuditState.Queued, Util.sha256emptyFile, {from: auditor}),
-      name: "LogReportSubmissionError_InvalidResult",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId);
-        assert.equal(args.auditor, auditor);
-      }
-    });
-    Util.assertEvent({
-      result: await quantstamp_audit.submitReport(requestId, AuditState.Assigned, Util.sha256emptyFile, {from: auditor}),
-      name: "LogReportSubmissionError_InvalidResult",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId);
-        assert.equal(args.auditor, auditor);
-      }
-    });
-    Util.assertEvent({
-      result: await quantstamp_audit.submitReport(requestId, AuditState.Refunded, Util.sha256emptyFile, {from: auditor}),
-      name: "LogReportSubmissionError_InvalidResult",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId);
-        assert.equal(args.auditor, auditor);
-      }
-    });
-    Util.assertEvent({
-      result: await quantstamp_audit.submitReport(requestId, AuditState.Expired, Util.sha256emptyFile, {from: auditor}),
-      name: "LogReportSubmissionError_InvalidResult",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId);
-        assert.equal(args.auditor, auditor);
-      }
-    });
+    Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.None, Util.sha256emptyFile, {from: auditor}));
+    Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.Queued, Util.sha256emptyFile, {from: auditor}));
+    Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.Assigned, Util.sha256emptyFile, {from: auditor}));
+    Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.Refunded, Util.sha256emptyFile, {from: auditor}));
+
 
     await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.sha256emptyFile, {from: auditor});
   });
@@ -415,4 +380,5 @@ contract('QuantstampAudit', function(accounts) {
   it("should not let ask for request with zero price", async function() {
     Util.assertTxFail(quantstamp_audit.requestAudit(Util.uri, 0, {from: requestor}));
   });
+
 });
