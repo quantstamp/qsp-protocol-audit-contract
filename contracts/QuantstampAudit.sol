@@ -56,7 +56,7 @@ contract QuantstampAudit is Ownable, Pausable {
   event LogReportSubmissionError_InvalidAuditor(uint256 requestId, address auditor);
   event LogReportSubmissionError_InvalidState(uint256 requestId, address auditor, QuantstampAuditData.AuditState state);
   event LogReportSubmissionError_InvalidResult(uint256 requestId, address auditor, QuantstampAuditData.AuditState state);
-  event LogReportSubmissionError_ExpiredAudit(uint256 requestId, address auditor, uint allowanceBlockNumber);
+  event LogReportSubmissionError_ExpiredAudit(uint256 requestId, address auditor, uint256 allowanceBlockNumber);
   event LogAuditAssignmentError_ExceededMaxAssignedRequests(address auditor);
   event LogAuditAssignmentUpdate_Expired(uint256 requestId, uint256 allowanceBlockNumber);
   /* solhint-enable event-name-camelcase */
