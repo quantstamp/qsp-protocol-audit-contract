@@ -39,7 +39,7 @@ contract QuantstampAuditData is Whitelist {
     uint256 assignBlockNumber;  // block number that audit was assigned
     string reportHash;     // stores the hash of audit report
     uint256 reportBlockNumber;  // block number that the payment and the audit report were submitted
-    address registrar;  // address of the contract registers this request
+    address registrar;  // address of the contract which registers this request
   }
 
   // map audits (requestId, Audit)
