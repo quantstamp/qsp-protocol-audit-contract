@@ -12,7 +12,7 @@ async function callMethod({provider, network, contractName, methodName, methodAr
   new Promise((resolve, reject) => {
     intervalHandle = setInterval(() => {
       new Promise(() => {
-        if (provider.engine.currentBlock != null) {
+        if (provider().engine.currentBlock != null) {
           clearInterval(intervalHandle);
           resolve(null);
         }
@@ -20,7 +20,7 @@ async function callMethod({provider, network, contractName, methodName, methodAr
     }, 1000)
   })
     .then(async () => {
-      const web3Provider = new web3(provider);
+      const web3Provider = new web3(provider());
       console.log('callMethod(...)');
       console.log('- network:', network);
       console.log('- contractName:', contractName);
