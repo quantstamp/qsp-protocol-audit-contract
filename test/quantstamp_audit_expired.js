@@ -63,7 +63,7 @@ contract('QuantstampAudit_expires', function(accounts) {
     });
   });
 
-  it("should not adjust expired requests while there is time", async function () {
+  it("should not adjust expired requests in while there is time", async function () {
     const requestedId = Util.extractRequestId(await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor}));
 
     Util.extractRequestId(await quantstamp_audit.getNextAuditRequest({from:auditor}));
