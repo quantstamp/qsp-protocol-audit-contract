@@ -33,12 +33,12 @@ contract QuantstampAuditData is Whitelist {
     address requestor;
     string contractUri;
     uint256 price;
-    uint256 requestBlockNumber; // block number that audit was requested
+    uint256 requestTimestamp; // approximate time of when audit was requested
     QuantstampAuditData.AuditState state;
     address auditor;       // the address of the node assigned to the audit
-    uint256 assignBlockNumber;  // block number that audit was assigned
+    uint256 assignTimestamp;  // approximate time of when audit was assigned
     string reportHash;     // stores the hash of audit report
-    uint256 reportBlockNumber;  // block number that the payment and the audit report were submitted
+    uint256 reportTimestamp;  // approximate time of when the payment and the audit report were submitted
   }
 
   // map audits (requestId, Audit)
@@ -79,7 +79,7 @@ contract QuantstampAuditData is Whitelist {
     // assign the next request ID
     uint256 requestId = ++requestCounter;
     // store the audit
-    audits[requestId] = Audit(requestor, contractUri, price, block.number, AuditState.Queued, address(0), 0, "", 0);  // solhint-disable-line not-rely-on-time
+    audits[requestId] = Audit(requestor, contractUri, price, block.timestamp, AuditState.Queued, address(0), 0, "", 0);  // solhint-disable-line not-rely-on-time
     return requestId;
   }
 
@@ -99,8 +99,8 @@ contract QuantstampAuditData is Whitelist {
     return audits[requestId].state;
   }
 
-  function getAuditRequestBlockNumber (uint256 requestId) public view returns(uint) {
-    return audits[requestId].requestBlockNumber;
+  function getAuditRequestTimestamp (uint256 requestId) public view returns(uint) {
+    return audits[requestId].requestTimestamp;
   }
 
   function setAuditState (uint256 requestId, AuditState state) public onlyWhitelisted {
@@ -115,20 +115,20 @@ contract QuantstampAuditData is Whitelist {
     audits[requestId].auditor = auditor;
   }
 
-  function getAuditAssignBlockNumber (uint256 requestId) public view returns(uint) {
-    return audits[requestId].assignBlockNumber;
+  function getAuditAssignTimestamp (uint256 requestId) public view returns(uint) {
+    return audits[requestId].assignTimestamp;
   }
 
-  function setAuditAssignBlockNumber (uint256 requestId, uint256 assignBlockNumber) public onlyWhitelisted {
-    audits[requestId].assignBlockNumber = assignBlockNumber;
+  function setAuditAssignTimestamp (uint256 requestId, uint256 assignTimestamp) public onlyWhitelisted {
+    audits[requestId].assignTimestamp = assignTimestamp;
   }
 
   function setAuditReportHash (uint256 requestId, string reportHash) public onlyWhitelisted {
     audits[requestId].reportHash = reportHash;
   }
 
-  function setAuditReportBlockNumber (uint256 requestId, uint256 reportBlockNumber) public onlyWhitelisted {
-    audits[requestId].reportBlockNumber = reportBlockNumber;
+  function setAuditReportTimestamp (uint256 requestId, uint256 reportTimestamp) public onlyWhitelisted {
+    audits[requestId].reportTimestamp = reportTimestamp;
   }
 
   function setAuditTimeout (uint256 timeoutInBlocks) public onlyOwner {
