@@ -44,9 +44,38 @@ contract('QuantstampAudit_expires', function(accounts) {
     const requestedId = Util.extractRequestId(await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor}));
 
     Util.extractRequestId(await quantstamp_audit.getNextAuditRequest({from:auditor}));
-    await Util.mineNBlocks(timeout-2);
+    await Util.mineNBlocks(timeout-1);
 
     // let's spend one block
+    Util.assertEvent({
+      result: await quantstamp_audit.getNextAuditRequest({from:auditor}),
+      name: "LogAuditQueueIsEmpty",
+      args: (args) => {}
+    });
+
+    Util.assertEventAtIndex({
+      result: await quantstamp_audit.getNextAuditRequest({from:auditor}),
+      name: "LogAuditAssignmentUpdate_Expired",
+      args: (args) => {
+        assert.equal(args.requestId.toNumber(), requestedId);
+      },
+      index: 0
+    });
+  });
+
+  it("should not adjust expired requests while there is time", async function () {
+    const requestedId = Util.extractRequestId(await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor}));
+
+    Util.extractRequestId(await quantstamp_audit.getNextAuditRequest({from:auditor}));
+
+    // let's spend one block
+    Util.assertEvent({
+      result: await quantstamp_audit.getNextAuditRequest({from:auditor}),
+      name: "LogAuditQueueIsEmpty",
+      args: (args) => {}
+    });
+
+    // let's spend another block
     Util.assertEvent({
       result: await quantstamp_audit.getNextAuditRequest({from:auditor}),
       name: "LogAuditQueueIsEmpty",
@@ -73,6 +102,7 @@ contract('QuantstampAudit_expires', function(accounts) {
     await Util.mineNBlocks(timeout - 1);
     assert.equal((await quantstamp_audit.getNextAssignedRequest(0)).toNumber(), requestedId2);
     await quantstamp_audit.getNextAuditRequest({from:auditor});
+    await Util.mineNBlocks(1);
     assert.equal((await quantstamp_audit.getNextAssignedRequest(0)).toNumber(), requestedId1);
     assert.equal((await quantstamp_audit_data.getAuditState(requestedId2)).toNumber(), Util.AuditState.Expired);
     // clean the assigned queue
