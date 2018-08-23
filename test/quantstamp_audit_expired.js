@@ -101,8 +101,8 @@ contract('QuantstampAudit_expires', function(accounts) {
     assert.equal((await quantstamp_audit.getNextAssignedRequest(0)).toNumber(), requestedId2);
     await Util.mineNBlocks(timeout - 1);
     assert.equal((await quantstamp_audit.getNextAssignedRequest(0)).toNumber(), requestedId2);
-    await quantstamp_audit.getNextAuditRequest({from:auditor});
     await Util.mineNBlocks(1);
+    await quantstamp_audit.getNextAuditRequest({from:auditor});
     assert.equal((await quantstamp_audit.getNextAssignedRequest(0)).toNumber(), requestedId1);
     assert.equal((await quantstamp_audit_data.getAuditState(requestedId2)).toNumber(), Util.AuditState.Expired);
     // clean the assigned queue
