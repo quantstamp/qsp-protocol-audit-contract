@@ -36,15 +36,13 @@ contract QuantstampAudit is Ownable, Pausable {
     uint256 requestId,
     address auditor,
     QuantstampAuditData.AuditState auditResult,
-    string reportHash,
-    uint256 reportTimestamp
+    string reportHash
   );
 
   event LogAuditRequested(uint256 requestId,
     address requestor,
     string uri,
-    uint256 price,
-    uint256 requestTimestamp
+    uint256 price
   );
 
   event LogAuditAssigned(uint256 requestId,
@@ -52,7 +50,7 @@ contract QuantstampAudit is Ownable, Pausable {
     address requestor,
     string uri,
     uint256 price,
-    uint256 requestTimestamp);
+    uint256 requestBlockNumber);
 
   /* solhint-disable event-name-camelcase */
   event LogReportSubmissionError_InvalidAuditor(uint256 requestId, address auditor);
@@ -123,11 +121,11 @@ contract QuantstampAudit is Ownable, Pausable {
       emit LogRefundInvalidRequestor(requestId, msg.sender);
       return;
     }
-    uint256 refundTimestamp = auditData.getAuditAssignTimestamp(requestId) + auditData.auditTimeoutInBlocks();
+    uint256 refundBlockNumber = auditData.getAuditAssignBlockNumber(requestId) + auditData.auditTimeoutInBlocks();
     // check that the auditor has not recently started the audit (locking the funds)
     if (state == QuantstampAuditData.AuditState.Assigned) {
-      if (block.number <= refundTimestamp) {
-        emit LogRefundInvalidFundsLocked(requestId, block.number, refundTimestamp);
+      if (block.number <= refundBlockNumber) {
+        emit LogRefundInvalidFundsLocked(requestId, block.number, refundBlockNumber);
         return false;
       }
       // the request is expired but not detected by getNextAuditRequest
@@ -162,7 +160,7 @@ contract QuantstampAudit is Ownable, Pausable {
     // TODO: use existing price instead of HEAD (optimization)
     queueAuditRequest(requestId, HEAD);
 
-    emit LogAuditRequested(requestId, msg.sender, contractUri, price, block.timestamp); // solhint-disable-line not-rely-on-time
+    emit LogAuditRequested(requestId, msg.sender, contractUri, price); // solhint-disable-line not-rely-on-time
 
     return requestId;
   }
@@ -195,7 +193,7 @@ contract QuantstampAudit is Ownable, Pausable {
     updateAssignedAudits(requestId);
 
     // auditor should not send a report after its allowed period
-    uint256 allowanceBlockNumber = auditData.getAuditAssignTimestamp(requestId) + auditData.auditTimeoutInBlocks();
+    uint256 allowanceBlockNumber = auditData.getAuditAssignBlockNumber(requestId) + auditData.auditTimeoutInBlocks();
     if (allowanceBlockNumber <= block.number) {
       // update assigned to expired state
       auditData.setAuditState(requestId, QuantstampAuditData.AuditState.Expired);
@@ -206,12 +204,12 @@ contract QuantstampAudit is Ownable, Pausable {
     // update the audit information held in this contract
     auditData.setAuditState(requestId, auditResult);
     auditData.setAuditReportHash(requestId, reportHash);
-    auditData.setAuditReportTimestamp(requestId, block.timestamp); // solhint-disable-line not-rely-on-time
+    auditData.setAuditReportBlockNumber(requestId, block.number); // solhint-disable-line not-rely-on-time
 
     // validate the audit state
     require(isAuditFinished(requestId));
 
-    emit LogAuditFinished(requestId, msg.sender, auditResult, reportHash, block.timestamp); // solhint-disable-line not-rely-on-time
+    emit LogAuditFinished(requestId, msg.sender, auditResult, reportHash); // solhint-disable-line not-rely-on-time
 
     if (auditResult == QuantstampAuditData.AuditState.Completed) {
       uint256 auditPrice = auditData.getAuditPrice(requestId);
@@ -269,7 +267,7 @@ contract QuantstampAudit is Ownable, Pausable {
       bool exists;
       uint256 potentialExpiredRequestId;
       (exists, potentialExpiredRequestId) = assignedAudits.getAdjacent(HEAD, NEXT);
-      uint256 allowanceBlockNumber = auditData.getAuditAssignTimestamp(potentialExpiredRequestId) + auditData.auditTimeoutInBlocks();
+      uint256 allowanceBlockNumber = auditData.getAuditAssignBlockNumber(potentialExpiredRequestId) + auditData.auditTimeoutInBlocks();
       if (allowanceBlockNumber <= block.number) {
         updateAssignedAudits(potentialExpiredRequestId);
         auditData.setAuditState(potentialExpiredRequestId, QuantstampAuditData.AuditState.Expired);
@@ -300,7 +298,7 @@ contract QuantstampAudit is Ownable, Pausable {
 
     auditData.setAuditState(requestId, QuantstampAuditData.AuditState.Assigned);
     auditData.setAuditAuditor(requestId, msg.sender);
-    auditData.setAuditAssignTimestamp(requestId, block.number);
+    auditData.setAuditAssignBlockNumber(requestId, block.number);
     assignedRequestCount[msg.sender]++;
 
     // push to the tail
@@ -312,7 +310,7 @@ contract QuantstampAudit is Ownable, Pausable {
       auditData.getAuditRequestor(requestId),
       auditData.getAuditContractUri(requestId),
       auditData.getAuditPrice(requestId),
-      auditData.getAuditRequestTimestamp(requestId));
+      auditData.getAuditRequestBlockNumber(requestId));
   }
 
   /**
