@@ -39,6 +39,7 @@ contract QuantstampAuditData is Whitelist {
     uint256 assignBlockNumber;  // block number that audit was assigned
     string reportHash;     // stores the hash of audit report
     uint256 reportBlockNumber;  // block number that the payment and the audit report were submitted
+    address registrar;  // address of the contract which registers this request
   }
 
   // map audits (requestId, Audit)
@@ -79,7 +80,7 @@ contract QuantstampAuditData is Whitelist {
     // assign the next request ID
     uint256 requestId = ++requestCounter;
     // store the audit
-    audits[requestId] = Audit(requestor, contractUri, price, block.number, AuditState.Queued, address(0), 0, "", 0);  // solhint-disable-line not-rely-on-time
+    audits[requestId] = Audit(requestor, contractUri, price, block.number, AuditState.Queued, address(0), 0, "", 0, msg.sender);  // solhint-disable-line not-rely-on-time
     return requestId;
   }
 
@@ -111,6 +112,10 @@ contract QuantstampAuditData is Whitelist {
     return audits[requestId].auditor;
   }
 
+  function getAuditRegistrar (uint256 requestId) public view returns(address) {
+    return audits[requestId].registrar;
+  }
+
   function setAuditAuditor (uint256 requestId, address auditor) public onlyWhitelisted {
     audits[requestId].auditor = auditor;
   }
@@ -129,6 +134,10 @@ contract QuantstampAuditData is Whitelist {
 
   function setAuditReportBlockNumber (uint256 requestId, uint256 reportBlockNumber) public onlyWhitelisted {
     audits[requestId].reportBlockNumber = reportBlockNumber;
+  }
+
+  function setAuditRegistrar (uint256 requestId, address registrar) public onlyWhitelisted {
+    audits[requestId].registrar = registrar;
   }
 
   function setAuditTimeout (uint256 timeoutInBlocks) public onlyOwner {

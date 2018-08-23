@@ -412,7 +412,22 @@ contract('QuantstampAudit', function(accounts) {
     Util.assertTxFail(quantstamp_audit.requestAudit(Util.uri, 0, {from: requestor}));
   });
 
-  it("should not let ask for request with zero price", async function() {
-    Util.assertTxFail(quantstamp_audit.requestAudit(Util.uri, 0, {from: requestor}));
+  it("should record the requests's registrar", async function() {
+    const fakeContract = accounts[5];
+    assert.equal(await quantstamp_audit_view.getQueueLength.call(), 0);
+
+    const requestedId = Util.extractRequestId(await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor}));
+    assert.equal(await quantstamp_audit_data.getAuditRegistrar.call(requestedId), quantstamp_audit.address);
+
+    await quantstamp_audit_data.addAddressToWhitelist(fakeContract);
+
+    await quantstamp_audit_data.setAuditRegistrar(requestedId, fakeContract, {from: fakeContract});
+    assert.equal(await quantstamp_audit_data.getAuditRegistrar.call(requestedId), fakeContract);
+
+    // clean up
+    await quantstamp_audit_data.removeAddressFromWhitelist(fakeContract);
+    const requestId2 = Util.extractRequestId(await quantstamp_audit.getNextAuditRequest({from: auditor}));
+    await quantstamp_audit.submitReport(requestId2, AuditState.Completed, Util.sha256emptyFile, {from: auditor});
+    assert.equal(await quantstamp_audit_view.getQueueLength.call(), 0);
   });
 });
