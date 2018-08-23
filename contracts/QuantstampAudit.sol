@@ -194,7 +194,7 @@ contract QuantstampAudit is Ownable, Pausable {
 
     // auditor should not send a report after its allowed period
     uint256 allowanceBlockNumber = auditData.getAuditAssignBlockNumber(requestId) + auditData.auditTimeoutInBlocks();
-    if (allowanceBlockNumber <= block.number) {
+    if (allowanceBlockNumber < block.number) {
       // update assigned to expired state
       auditData.setAuditState(requestId, QuantstampAuditData.AuditState.Expired);
       emit LogReportSubmissionError_ExpiredAudit(requestId, msg.sender, allowanceBlockNumber);
@@ -268,7 +268,7 @@ contract QuantstampAudit is Ownable, Pausable {
       uint256 potentialExpiredRequestId;
       (exists, potentialExpiredRequestId) = assignedAudits.getAdjacent(HEAD, NEXT);
       uint256 allowanceBlockNumber = auditData.getAuditAssignBlockNumber(potentialExpiredRequestId) + auditData.auditTimeoutInBlocks();
-      if (allowanceBlockNumber <= block.number) {
+      if (allowanceBlockNumber < block.number) {
         updateAssignedAudits(potentialExpiredRequestId);
         auditData.setAuditState(potentialExpiredRequestId, QuantstampAuditData.AuditState.Expired);
         emit LogAuditAssignmentUpdate_Expired(potentialExpiredRequestId, allowanceBlockNumber);
