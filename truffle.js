@@ -56,7 +56,7 @@ module.exports = {
       network_id: 1,
       gas: 4012388,
       gasPrice: 14000000000,
-      account: '0x2Fa5295056866634D21f5595d74AB19fde83D933',
+      account: '0x8FD88a2457f74Ec62e6115B2Eb20f05F24B51c62',
       delayBetweenDeploys: 60000
     },
     ropsten: {
