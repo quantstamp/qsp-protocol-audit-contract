@@ -7,7 +7,7 @@ const utils = require('../migrations/utils.js');
 
 let intervalHandle = null;
 
-async function callMethod({provider, network, contractName, methodName, methodArgs, sendArgs}) {
+async function callMethod({provider, network, contractName, methodName, methodArgsFn, sendArgs}) {
 
   new Promise((resolve, reject) => {
     intervalHandle = setInterval(() => {
@@ -25,6 +25,7 @@ async function callMethod({provider, network, contractName, methodName, methodAr
       console.log('- network:', network);
       console.log('- contractName:', contractName);
       console.log('- methodName:', methodName);
+      const methodArgs = await methodArgsFn();
       console.log('- methodArgs:', methodArgs);
       console.log('- sendArgs:', sendArgs);
       const contractAbi = await utils.readAbi(network, contractName);
@@ -89,7 +90,7 @@ return Promise.resolve()
       network,
       contractName: definition.contractName,
       methodName: definition.methodName,
-      methodArgs: await definition.methodArgs(network, argv),
+      methodArgsFn: definition.methodArgs.bind(null, network, argv),
       sendArgs: {
         from: truffle.networks[network].account,
         gasPrice: truffle.networks[network].gasPrice,

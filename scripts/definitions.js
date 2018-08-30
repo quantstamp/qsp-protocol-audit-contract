@@ -2,6 +2,7 @@
 
 const utils = require('../migrations/utils.js');
 const BN = require('web3').utils.BN;
+const Web3 = require('web3');
 
 module.exports = {
   'whitelist': {
@@ -17,10 +18,15 @@ module.exports = {
     methodName: 'addAddressToWhitelist',
     gasLimit: 80000,
     methodArgs: async(stage, argv) => {
-      return [require('../truffle.js').networks[stage].account];
+      const contractAddress = await utils.readAddressFromMetadata(stage, 'QuantstampAuditData');
+      const contractAbi = await utils.readAbi(stage, 'QuantstampAuditData');
+      const web3Provider = new Web3(require('../truffle.js').networks[stage].provider());
+      const contractInstance = new web3Provider.eth.Contract(contractAbi, contractAddress);
+      const owner = await contractInstance.methods.owner().call();
+      return [owner];
     }
   },
-  'update-min-price-to-max': {
+  'reset-min-price': {
     contractName: 'QuantstampAuditData',
     methodName: 'setMinAuditPrice',
     gasLimit: 80000,
