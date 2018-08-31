@@ -110,6 +110,8 @@ is a path associated to the version 1 of the `QuantstampAudit` contract deployed
 **Note**: before running a command, setup the credentials as described in the section above.
 
 1. `npm run command -- -n=dev -a=whitelist --p 0x123456789` whitelists a node defined by a given address
+1. `npm run command -- -n=dev -a=whitelist-owner-in-data-contract` whitelists the owner of the QuantstampAuditData contract (required for updating nodes' min audit price)
+1. `npm run command -- -n=dev -a=reset-min-price --p 0x123456789` resets the min price of the given node address to max-uint256
 1. `npm run command -- -n=dev -a=set-max-assigned --p 100` sets "maximum assigned nodes"
 1. `npm run command -- -n=dev -a=get-next-audit-request` calls `getNextAuditRequest()` on the contract. May be useful for cleaning up the audit waiting queue.
 1. `npm run command -- -n=dev -a=resolve --p 1 false` calls `resolveErrorReport()` on the contract to resolve the incentive of a given requestId. If the second parameter is true, the requester is paid; otherwise, the audit node. 

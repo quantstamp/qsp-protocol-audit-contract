@@ -1,4 +1,5 @@
 const Util = require("./util.js");
+const BN = require('web3').utils.BN;
 
 const QuantstampAudit = artifacts.require('QuantstampAudit');
 const QuantstampAuditData = artifacts.require('QuantstampAuditData');
@@ -89,6 +90,29 @@ contract('QuantstampAuditView_stats', function(accounts) {
     assert.equal(await quantstamp_audit_view.getMinAuditPriceCount(), prices.length);
     assert.equal(await quantstamp_audit_view.getMinAuditPriceMin(), Math.min(...prices));
     assert.equal(await quantstamp_audit_view.getMinAuditPriceMax(), Math.max(...prices));
+
+    // remove two auditors from the whitelist
+    for (i in auditors) {
+      await quantstamp_audit_data.removeNodeFromWhitelist(auditors[i]);
+    }
+  });
+
+  it("should exclude prices with max integer", async function () {
+    let maxUint256 = new BN(0).notn(256).toString();
+    const prices = [maxUint256, 1, maxUint256];
+    // adding accounts to the whitelist
+    const auditors = [auditor, accounts[4], accounts[5]];
+    for (i in auditors) {
+      // whitelisting auditor
+      await quantstamp_audit_data.addNodeToWhitelist(auditors[i]);
+      // advertise min price
+      await quantstamp_audit.setAuditNodePrice(prices[i], {from: auditors[i]});
+    }
+
+    assert.equal(await quantstamp_audit_view.getMinAuditPriceSum(), 1);
+    assert.equal(await quantstamp_audit_view.getMinAuditPriceCount(), 1);
+    assert.equal(await quantstamp_audit_view.getMinAuditPriceMin(), 1);
+    assert.equal(await quantstamp_audit_view.getMinAuditPriceMax(), 1);
 
     // remove two auditors from the whitelist
     for (i in auditors) {

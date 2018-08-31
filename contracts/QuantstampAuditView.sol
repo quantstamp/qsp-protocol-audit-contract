@@ -11,6 +11,7 @@ contract QuantstampAuditView is Ownable {
   using SafeMath for uint256;
 
   uint256 constant internal HEAD = 0;
+  uint256 constant internal MAX_INT = 2**256 - 1;
 
   QuantstampAudit public audit;
   QuantstampAuditData public auditData;
@@ -97,19 +98,21 @@ contract QuantstampAuditView is Ownable {
   function findMinAuditPricesStats() internal view returns (AuditPriceStat) {
     uint256 sum;
     uint256 n;
-    uint256 min = 2**256 - 1;
+    uint256 min = MAX_INT;
     uint256 max;
 
     address currentWhitelistedAddress = auditData.getNextWhitelistedNode(address(HEAD));
     while (currentWhitelistedAddress != address(HEAD)) {
-      n++;
       uint256 minPrice = auditData.minAuditPrice(currentWhitelistedAddress);
-      sum += minPrice;
-      if (minPrice < min) {
-        min = minPrice;
-      }
-      if (minPrice > max) {
-        max = minPrice;
+      if (minPrice != MAX_INT) {
+        n++;
+        sum += minPrice;
+        if (minPrice < min) {
+          min = minPrice;
+        }
+        if (minPrice > max) {
+          max = minPrice;
+        }
       }
       currentWhitelistedAddress = auditData.getNextWhitelistedNode(currentWhitelistedAddress);
     }
