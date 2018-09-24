@@ -17,6 +17,7 @@ contract QuantstampAudit is Ownable, Pausable {
   uint256 constant internal HEAD = 0;
   bool constant internal PREV = false;
   bool constant internal NEXT = true;
+  uint256 constant internal MAX_INT = 2**256 - 1;
 
   // mapping from an auditor address to the number of requests that it currently processes
   mapping(address => uint256) public assignedRequestCount;
@@ -163,6 +164,53 @@ contract QuantstampAudit is Ownable, Pausable {
     emit LogAuditRequested(requestId, msg.sender, contractUri, price); // solhint-disable-line not-rely-on-time
 
     return requestId;
+  }
+
+  struct MultiRequestRange {
+    uint256 start;
+    uint256 end;
+  }
+
+  mapping(uint256 => MultiRequestRange) public multiRequestIdToRequestIdRange;
+  mapping(uint256 => uint256) public requestIdToMultiRequestId;
+  // MultiRequestId starts from maxInt to be distinguished from individual requestIds
+  uint256 multiRequestIDCounter = MAX_INT;
+
+  /**
+   * @dev retrieve requestIds given a multiRequestId
+   * @param multiRequestId multiRequestId that will be mapped to associated requestIds
+   */
+  function multiRequestIdToRequestIds(uint256 multiRequestId) view public returns(uint256[]) {
+    uint256 firstRequestId = multiRequestIdToRequestIdRange[multiRequestId].start;
+    uint256 lastRequestId = multiRequestIdToRequestIdRange[multiRequestId].end;
+    uint256 resultLength = 0;
+    if (lastRequestId > 0) {
+      resultLength = lastRequestId - firstRequestId  + 1;
+    }
+    uint256[] memory result = new uint256[](resultLength);
+    for (uint256 i = 0; i <= resultLength; ++i) {
+      result[i] = firstRequestId + i;
+    }
+    return result;
+  }
+
+  /**
+   * @dev Submits a request to be audited multiple times
+   * @param contractUri Identifier of the resource to audit.
+   * @param price The total amount of tokens that will be paid per audit. The requester should
+   * eventually pay price * count qsp.
+   * @param count Number of audits by different Auditors
+   */
+  function multiRequestAudit(string contractUri, uint256 price, uint256 count) external whenNotPaused returns(uint256[]) {
+    require(count > 1, 'multiRequest must not be zero');
+    uint256[] memory result = new uint256[](count);
+    uint256 newMultiRequestId = multiRequestIDCounter--;
+    for (uint256 i = 0; i < count; ++i) {
+      result[i] = this.requestAudit(contractUri, price);
+      requestIdToMultiRequestId[result[i]] = newMultiRequestId;
+    }
+    multiRequestIdToRequestIdRange[newMultiRequestId] = MultiRequestRange(result[0], result[result.length-1]);
+    return result;
   }
 
   /**
