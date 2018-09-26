@@ -62,6 +62,7 @@ contract QuantstampAuditData is Whitelist {
   // whitelist audit nodes
   LinkedListLib.LinkedList internal whitelistedNodesList;
 
+  // For generating requestIds starting from 1
   uint256 private requestCounter;
 
   event WhitelistedNodeAdded(address addr);
