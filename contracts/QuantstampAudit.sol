@@ -311,7 +311,7 @@ contract QuantstampAudit is Ownable, Pausable {
     }
 
     requestId = anyAuditRequestMatchesPrice(auditData.getMinAuditPrice(msg.sender), msg.sender);
-    if (requestId > 0) {
+    if (requestId == 0) {
       return AuditAvailabilityState.Underprice;
     }
 
@@ -490,7 +490,7 @@ contract QuantstampAudit is Ownable, Pausable {
 
     // picks the tail of price buckets
     (priceExists, price) = priceList.getAdjacent(HEAD, PREV);
-    while (price != HEAD || price < minPrice){
+    while (price != HEAD && price >= minPrice){
       requestId = getNextAuditByPrice(price, HEAD);
       while (requestId != HEAD) {
         (auditorExists, auditorPrev, auditorNext) =

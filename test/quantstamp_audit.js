@@ -396,7 +396,7 @@ contract('QuantstampAudit', function(accounts) {
 
     const currentMinPrice = (await quantstamp_audit_data.getMinAuditPrice(auditor2, {from: auditor2})).toNumber();
     await quantstamp_audit.setAuditNodePrice(price + 1, {from: auditor2});
-    assert.equal((await quantstamp_audit.anyRequestAvailable({from: auditor2})), 4);
+    assert.equal((await quantstamp_audit.anyRequestAvailable({from: auditor2})).toNumber(), 4);
 
     // make sure there is not pending assigned or unassigned request
     await quantstamp_audit.setAuditNodePrice(currentMinPrice, {from: auditor2});
