@@ -169,7 +169,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param contractUri Identifier of the resource to audit.
    * @param price The total amount of tokens that will be paid for the audit.
    */
-  function requestAudit(string contractUri, uint256 price) external whenNotPaused returns(uint256) {
+  function requestAudit(string contractUri, uint256 price) public whenNotPaused returns(uint256) {
     require(price > 0);
     // transfer tokens to this contract
     auditData.token().transferFrom(msg.sender, address(this), price);
@@ -214,7 +214,7 @@ contract QuantstampAudit is Ownable, Pausable {
     uint256[] memory result = new uint256[](count);
     uint256 newMultiRequestId = multiRequestIDCounter--;
     for (uint256 i = 0; i < count; ++i) {
-      result[i] = this.requestAudit(contractUri, price);
+      result[i] = requestAudit(contractUri, price);
       requestIdToMultiRequestId[result[i]] = newMultiRequestId;
     }
     multiRequestIdToRequestIdRange[newMultiRequestId] = MultiRequestRange(result[0], result[result.length-1]);
@@ -310,11 +310,10 @@ contract QuantstampAudit is Ownable, Pausable {
       return AuditAvailabilityState.Exceeded;
     }
 
-    requestId = anyAuditRequestMatchesPrice(auditData.getMinAuditPrice(msg.sender), msg.sender);
+    requestId = anyAuditRequestMatchesPrice(auditData.getMinAuditPrice(msg.sender));
     if (requestId == 0) {
       return AuditAvailabilityState.Underprice;
     }
-
     return AuditAvailabilityState.Ready;
   }
 
@@ -478,9 +477,8 @@ contract QuantstampAudit is Ownable, Pausable {
    * Note that there should not be any audit with price as 0. Also, this function evaluates if the given auditor has not
    * yet assigned to any individual audit of a multiRequest.
    * @param minPrice The minimum audit price.
-   * @param auditor address of the auditor wants to pick an audit request
    */
-  function anyAuditRequestMatchesPrice(uint256 minPrice, address auditor) internal view returns(uint256) {
+  function anyAuditRequestMatchesPrice(uint256 minPrice) internal view returns(uint256) {
     bool priceExists;
     bool auditorExists;
     uint256 price;
@@ -494,7 +492,7 @@ contract QuantstampAudit is Ownable, Pausable {
       requestId = getNextAuditByPrice(price, HEAD);
       while (requestId != HEAD) {
         (auditorExists, auditorPrev, auditorNext) =
-          multiRequestsAssignedToAuditor[requestIdToMultiRequestId[requestId]].getNode(uint256(auditor));
+          multiRequestsAssignedToAuditor[requestIdToMultiRequestId[requestId]].getNode(uint256(msg.sender));
         if (!auditorExists) {
           return requestId;
         } else {
@@ -523,7 +521,7 @@ contract QuantstampAudit is Ownable, Pausable {
     // TODO seems the following statement is redundantly called from getNextAuditRequest. If this is the only place
     // to call dequeueAuditRequest, then removing the following line saves gas, but leaves dequeueAuditRequest
     // unsafe for further extension by noobies.
-    requestId = anyAuditRequestMatchesPrice(minPrice, msg.sender);
+    requestId = anyAuditRequestMatchesPrice(minPrice);
 
     if (requestId > 0) {
       price = auditData.getAuditPrice(requestId);
