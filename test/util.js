@@ -71,6 +71,10 @@ function extractRequestId (result) {
   return result.logs[0].args.requestId.toNumber();
 }
 
+function extractMultirequestId (result) {
+  return result.logs[result.logs.length-1].args.multiRequestId.toNumber();
+}
+
 async function mineOneBlock () {
   await web3.currentProvider.send({
     jsonrpc: '2.0',
@@ -106,6 +110,7 @@ module.exports = {
   getAuditState : getAuditState,
   getEthBalance : getEthBalance,
   extractRequestId : extractRequestId,
+  extractMultirequestId: extractMultirequestId,
   mineOneBlock: mineOneBlock,
   mineNBlocks: mineNBlocks
 };
