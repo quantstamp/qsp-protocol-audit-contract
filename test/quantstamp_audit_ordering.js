@@ -66,10 +66,6 @@ contract('QuantstampAudit_ordering', function(accounts) {
     var request_ids = await submitMultipleRequests(prices);
     var audit_ids = await getMultipleRequests(prices.length);
 
-    // console.log("IDs: " + request_ids);
-    // console.log("Sorted Indices: " + sorted_indices);
-    // console.log("Audit IDs: " + audit_ids);
-
     for(let i = 0; i < audit_ids.length; i++){
       assert.equal(audit_ids[i], request_ids[sorted_indices[i]]);
     }

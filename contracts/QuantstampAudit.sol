@@ -42,10 +42,9 @@ contract QuantstampAudit is Ownable, Pausable {
   // mapping from individual audit to an associated multiRequestId
   mapping(uint256 => uint256) public requestIdToMultiRequestId;
   // MultiRequestId starts from maxInt to be distinguished from individual requestIds
-  uint256 multiRequestIDCounter;
+  uint256 private multiRequestIDCounter;
   // A map from multiRequestIDs to auditors assigned an audit
   mapping(uint256 => LinkedListLib.LinkedList) internal multiRequestsAssignedToAuditor;
-
 
   event LogAuditFinished(
     uint256 requestId,
@@ -164,6 +163,26 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
+   * @dev Submits a request to be audited multiple times
+   * @param contractUri Identifier of the resource to audit.
+   * @param price The total amount of tokens that will be paid per audit. The requester should
+   * eventually pay price * count qsp.
+   * @param count Number of audits by different Auditors
+   */
+  function multiRequestAudit(string contractUri, uint256 price, uint256 count) external whenNotPaused returns(uint256[]) {
+    require(count > 1, "multiRequest must not be zero");
+    uint256[] memory result = new uint256[](count);
+    uint256 newMultiRequestId = ++multiRequestIDCounter;
+    for (uint256 i = 0; i < count; ++i) {
+      result[i] = requestAudit(contractUri, price);
+      requestIdToMultiRequestId[result[i]] = newMultiRequestId;
+    }
+    multiRequestIdToRequestIdRange[newMultiRequestId] = MultiRequestRange(result[0], result[result.length-1]);
+    emit LogMultiRequestRequested(newMultiRequestId, result[0], result[result.length-1]);
+    return result;
+  }
+
+  /**
    * @dev Submits audit request.
    * @param contractUri Identifier of the resource to audit.
    * @param price The total amount of tokens that will be paid for the audit.
@@ -184,7 +203,7 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Retrieve requestIds given a multiRequestId
+   * @dev Retrieves requestIds given a multiRequestId
    * @param multiRequestId multiRequestId that will be mapped to associated requestIds
    */
   function multiRequestIdToRequestIds(uint256 multiRequestId) public view returns(uint256[]) {
@@ -192,32 +211,12 @@ contract QuantstampAudit is Ownable, Pausable {
     uint256 lastRequestId = multiRequestIdToRequestIdRange[multiRequestId].end;
     uint256 resultLength = 0;
     if (lastRequestId > 0) {
-      resultLength = lastRequestId - firstRequestId  + 1;
+      resultLength = lastRequestId - firstRequestId + 1;
     }
     uint256[] memory result = new uint256[](resultLength);
     for (uint256 i = 0; i < resultLength; ++i) {
       result[i] = firstRequestId + i;
     }
-    return result;
-  }
-
-  /**
-   * @dev Submits a request to be audited multiple times
-   * @param contractUri Identifier of the resource to audit.
-   * @param price The total amount of tokens that will be paid per audit. The requester should
-   * eventually pay price * count qsp.
-   * @param count Number of audits by different Auditors
-   */
-  function multiRequestAudit(string contractUri, uint256 price, uint256 count) external whenNotPaused returns(uint256[]) {
-    require(count > 1, 'multiRequest must not be zero');
-    uint256[] memory result = new uint256[](count);
-    uint256 newMultiRequestId = ++multiRequestIDCounter;
-    for (uint256 i = 0; i < count; ++i) {
-      result[i] = requestAudit(contractUri, price);
-      requestIdToMultiRequestId[result[i]] = newMultiRequestId;
-    }
-    multiRequestIdToRequestIdRange[newMultiRequestId] = MultiRequestRange(result[0], result[result.length-1]);
-    emit LogMultiRequestRequested(newMultiRequestId, result[0], result[result.length-1]);
     return result;
   }
 
@@ -358,20 +357,10 @@ contract QuantstampAudit is Ownable, Pausable {
     auditData.setAuditAuditor(requestId, msg.sender);
     auditData.setAuditAssignBlockNumber(requestId, block.number);
     assignedRequestCount[msg.sender]++;
-
     // push to the tail
     assignedAudits.push(requestId, PREV);
 
-    // record, if the requestId belongs to a multiRequestId
-    if (requestIdToMultiRequestId[requestId] > 0) {
-      if (multiRequestIdToRequestIdRange[requestIdToMultiRequestId[requestId]].end == requestId) {
-        // there is no associated requestId to the multiRequestId
-        delete multiRequestsAssignedToAuditor[requestIdToMultiRequestId[requestId]];
-      } else {
-        multiRequestsAssignedToAuditor[requestIdToMultiRequestId[requestId]].push(uint256(msg.sender), PREV);
-      }
-      emit LogRequestAssignedFromMultiRequest(requestId, requestIdToMultiRequestId[requestId], msg.sender);
-    }
+    handleNewMultirequest(requestId);
 
     emit LogAuditAssigned(
       requestId,
@@ -487,7 +476,7 @@ contract QuantstampAudit is Ownable, Pausable {
 
     // picks the tail of price buckets
     (priceExists, price) = priceList.getAdjacent(HEAD, PREV);
-    while (price != HEAD && price >= minPrice){
+    while (price != HEAD && price >= minPrice) {
       requestId = getNextAuditByPrice(price, HEAD);
       while (requestId != HEAD) {
         (auditorExists, auditorPrev, auditorNext) =
@@ -548,6 +537,23 @@ contract QuantstampAudit is Ownable, Pausable {
     auditsByPrice[price].remove(requestId);
     if (!auditsByPrice[price].listExists()) {
       priceList.remove(price);
+    }
+  }
+
+  /**
+   * @dev Manages request if it is from a multirequest
+   * @param requestId Unique ID of the audit request.
+   */
+  function handleNewMultirequest(uint256 requestId) internal {
+    // record, if the requestId belongs to a multiRequestId
+    if (requestIdToMultiRequestId[requestId] > 0) {
+      if (multiRequestIdToRequestIdRange[requestIdToMultiRequestId[requestId]].end == requestId) {
+        // there is no associated requestId to the multiRequestId
+        delete multiRequestsAssignedToAuditor[requestIdToMultiRequestId[requestId]];
+      } else {
+        multiRequestsAssignedToAuditor[requestIdToMultiRequestId[requestId]].push(uint256(msg.sender), PREV);
+      }
+      emit LogRequestAssignedFromMultiRequest(requestId, requestIdToMultiRequestId[requestId], msg.sender);
     }
   }
 }
