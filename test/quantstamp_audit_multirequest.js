@@ -13,8 +13,8 @@ contract('QuantstampAudit_multirequest', function(accounts) {
   const price = 123;
   const requestorBudget = Util.toQsp(100000);
   const maxAssignedRequests = 100;
+  const approvalAmount = 1000;
 
-  let requestCounter = 1;
   let quantstamp_audit;
   let quantstamp_audit_data;
   let quantstamp_audit_view;
@@ -46,7 +46,7 @@ contract('QuantstampAudit_multirequest', function(accounts) {
     // transfer 100,000 QSP tokens to the requestor
     await quantstamp_token.transfer(requestor, requestorBudget, {from : owner});
     // allow the audit contract use up to 65QSP for audits
-    await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(1000), {from : requestor});
+    await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(approvalAmount), {from : requestor});
     // whitelisting auditor
     await quantstamp_audit_data.addNodeToWhitelist(auditor);
     // timeout requests
@@ -66,6 +66,14 @@ contract('QuantstampAudit_multirequest', function(accounts) {
         await quantstamp_audit.multiRequestAudit(Util.uri, price, requestCount, {from:requestor}));
     });
 
+    it("should make sure there is enough QSP is approved to be transferred", async function() {
+      const approvedRequestorBudget = requestCount * price - 1;
+      await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(approvedRequestorBudget), {from : requestor});
+      Util.assertTxFail(quantstamp_audit.multiRequestAudit(Util.uri, Util.toQsp(price), requestCount, {from:requestor}));
+      // restore aproval
+      await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(approvalAmount), {from : requestor});
+    });
+
     it("increases the queue size", async function() {
       assert(await quantstamp_audit_view.getQueueLength.call(), 2);
     });
@@ -80,6 +88,11 @@ contract('QuantstampAudit_multirequest', function(accounts) {
         assert.equal((await quantstamp_audit_data.getAuditPrice(requestId1)).toNumber(),
           (await quantstamp_audit_data.getAuditPrice(requestId2)).toNumber());
       }
+    });
+
+    it("and returns empty array for a multiRequestId not added to the contract", async function() {
+      const requestIds = await quantstamp_audit.multiRequestIdToRequestIds(multiRequestId * 10000);
+      assert.equal(requestIds.length, 0)
     });
 
     it("and does not assign more than one request forked from a multirequest to an auditor", async function() {
@@ -157,4 +170,5 @@ contract('QuantstampAudit_multirequest', function(accounts) {
       await emptyQueue();
     });
   });
+
 });
