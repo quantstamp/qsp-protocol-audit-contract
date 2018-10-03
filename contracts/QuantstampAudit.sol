@@ -44,8 +44,10 @@ contract QuantstampAudit is Ownable, Pausable {
   // mapping from individual audit to an associated multiRequestId
   mapping(uint256 => uint256) public requestIdToMultiRequestId;
   // MultiRequestId starts from 1
-  uint256 private multiRequestIDCounter;
-  // A map from multiRequestIDs to auditors assigned an audit
+  uint256 private multiRequestIdCounter;
+  // A map from multiRequestIDs to auditors assigned an audit. Note that the time complexity of accessing
+  // a random node in the linked-list implemented in LinkedListLib.LinkedList, i.e., LinkedListLib.LinkedList.getNode
+  // is O(1) instead of O(n).
   mapping(uint256 => LinkedListLib.LinkedList) internal multiRequestsAssignedToAuditor;
 
   event LogAuditFinished(
@@ -176,13 +178,14 @@ contract QuantstampAudit is Ownable, Pausable {
     require(price.mul(count) <= auditData.token().allowance(msg.sender, address(this)),
       "token transfer must be approved more than price*count");
     uint256[] memory result = new uint256[](count);
-    uint256 newMultiRequestId = ++multiRequestIDCounter;
+    uint256 newMultiRequestId = ++multiRequestIdCounter;
     for (uint256 i = 0; i < count; ++i) {
       result[i] = requestAudit(contractUri, price);
       requestIdToMultiRequestId[result[i]] = newMultiRequestId;
     }
     multiRequestIdToRequestIdRange[newMultiRequestId] = MultiRequestRange(result[0], result[result.length-1]);
-    emit LogMultiRequestRequested(newMultiRequestId, result[0], result[result.length-1]);
+    emit LogMultiRequestRequested(newMultiRequestId, multiRequestIdToRequestIdRange[newMultiRequestId].start,
+      multiRequestIdToRequestIdRange[newMultiRequestId].end);
     return result;
   }
 
