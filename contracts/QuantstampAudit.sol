@@ -9,7 +9,6 @@ import "./QuantstampAuditData.sol";
 import "./QuantstampAuditMultiRequestData.sol";
 
 
-
 contract QuantstampAudit is Ownable, Pausable {
   using SafeMath for uint256;
   using LinkedListLib for LinkedListLib.LinkedList;

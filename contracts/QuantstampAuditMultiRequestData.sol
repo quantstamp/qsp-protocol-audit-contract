@@ -5,14 +5,7 @@ import "openzeppelin-solidity/contracts/ownership/Whitelist.sol";
 
 contract QuantstampAuditMultiRequestData is Whitelist {
 
-  // constants used by LinkedListLib
-  uint256 constant internal NULL = 0;
-  uint256 constant internal HEAD = 0;
-  bool constant internal PREV = false;
-  bool constant internal NEXT = true;
-
-  // As a multirequest consists of requests, its id can be mapped to a series of integers representing
-  // associated requests. The start and end are inclusive.
+  // As a multirequest consists of requests. The first and last requestId are inclusive.
   struct MultiRequest {
     address requester;
     uint256 firstRequestId;
@@ -26,9 +19,7 @@ contract QuantstampAuditMultiRequestData is Whitelist {
   mapping(uint256 => uint256) public requestIdToMultiRequestId;
   // MultiRequestId starts from 1
   uint256 private multiRequestIdCounter;
-  // A map from multiRequestIDs to auditors assigned an audit. Note that the time complexity of accessing
-  // a random node in the linked-list implemented in LinkedListLib.LinkedList, i.e., LinkedListLib.LinkedList.getNode
-  // is O(1) instead of O(n).
+  // A map from multiRequestIDs to auditors assigned an audit.
   mapping(uint256 => mapping(address => bool)) internal multiRequestsAssignedToAuditor;
 
   /**

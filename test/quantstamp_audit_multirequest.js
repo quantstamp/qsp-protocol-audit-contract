@@ -176,4 +176,34 @@ contract('QuantstampAudit_multirequest', function(accounts) {
     });
   });
 
+  describe("when the test-coverage is not full for QuantstampAuditMultiRequestData", async function() {
+    before(async function() {
+      await initialize();
+      await quantstamp_audit_multirequest_data.addAddressToWhitelist(owner);
+    });
+
+    it("requester should be properly set", async function() {
+      const multiRequestId = 10000;
+      await quantstamp_audit_multirequest_data.setMultiRequestRequester(multiRequestId, requestor, {from: owner});
+      assert(await quantstamp_audit_multirequest_data.getMultiRequestRequester(multiRequestId), requestor);
+    });
+
+    it("and registrar should be properly set", async function() {
+      const multiRequestId = 10001;
+      const registrar = accounts[4];
+      await quantstamp_audit_multirequest_data.setMultiRequestRegistrar(multiRequestId, registrar, {from:owner});
+      assert(await quantstamp_audit_multirequest_data.getMultiRequestRegistrar(multiRequestId), registrar);
+    });
+
+    it("and also multirequest to auditors map should be properly set", async function() {
+      const multiRequestId = 10002;
+      assert(!(await quantstamp_audit_multirequest_data.existsAuditorFromMultiRequestAssignment(multiRequestId, auditor)));
+      await quantstamp_audit_multirequest_data.addAuditorToMultiRequestAssignment(multiRequestId, auditor, {from:owner});
+      assert(await quantstamp_audit_multirequest_data.existsAuditorFromMultiRequestAssignment(multiRequestId, auditor));
+      await quantstamp_audit_multirequest_data.removeAuditorFromMultiRequestAssignment(multiRequestId, auditor, {from:owner});
+      assert(!(await quantstamp_audit_multirequest_data.existsAuditorFromMultiRequestAssignment(multiRequestId, auditor)));
+    });
+
+  });
+
 });
