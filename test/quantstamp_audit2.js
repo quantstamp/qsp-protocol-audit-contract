@@ -1,5 +1,6 @@
 const QuantstampToken = artifacts.require('QuantstampToken');
 const QuantstampAuditData = artifacts.require('QuantstampAuditData');
+const QuantstampAuditMultiRequestData = artifacts.require('QuantstampAuditMultiRequestData');
 const QuantstampAudit = artifacts.require('QuantstampAudit');
 const Util = require("./util.js");
 const AuditState = Util.AuditState;
@@ -16,14 +17,18 @@ contract('QuantstampAudit2', function(accounts) {
   let requestCounter = 1;
 
   let quantstamp_audit_data;
+  let quantstamp_audit_multirequest_data;
   let quantstamp_audit;
   let quantstamp_token;
 
   beforeEach(async function () {
     quantstamp_token = await QuantstampToken.deployed();
     quantstamp_audit_data = await QuantstampAuditData.deployed();
+    quantstamp_audit_multirequest_data = await QuantstampAuditMultiRequestData.deployed();
     quantstamp_audit = await QuantstampAudit.deployed();
+
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
+    await quantstamp_audit_multirequest_data.addAddressToWhitelist(quantstamp_audit.address);
     // enable transfers before any payments are allowed
     await quantstamp_token.enableTransfer({from : owner});
     // transfer 100,000 QSP tokens to the requestor

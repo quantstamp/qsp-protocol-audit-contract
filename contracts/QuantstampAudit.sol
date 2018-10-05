@@ -6,6 +6,8 @@ import "openzeppelin-solidity/contracts/lifecycle/Pausable.sol";
 
 import "./LinkedListLib.sol";
 import "./QuantstampAuditData.sol";
+import "./QuantstampAuditMultiRequestData.sol";
+
 
 
 contract QuantstampAudit is Ownable, Pausable {
@@ -32,23 +34,8 @@ contract QuantstampAudit is Ownable, Pausable {
   // contract that stores audit data (separate from the auditing logic)
   QuantstampAuditData public auditData;
 
-  // As a multirequest consists of requests, its id can be mapped to a series of integers representing
-  // associated requests. The start and end are inclusive.
-  struct MultiRequestRange {
-    uint256 start;
-    uint256 end;
-  }
-
-  // mapping from multiRequestID to a range of generated individual requestIds
-  mapping(uint256 => MultiRequestRange) public multiRequestIdToRequestIdRange;
-  // mapping from individual audit to an associated multiRequestId
-  mapping(uint256 => uint256) public requestIdToMultiRequestId;
-  // MultiRequestId starts from 1
-  uint256 private multiRequestIdCounter;
-  // A map from multiRequestIDs to auditors assigned an audit. Note that the time complexity of accessing
-  // a random node in the linked-list implemented in LinkedListLib.LinkedList, i.e., LinkedListLib.LinkedList.getNode
-  // is O(1) instead of O(n).
-  mapping(uint256 => LinkedListLib.LinkedList) internal multiRequestsAssignedToAuditor;
+  // contract that stores multirequest audit data
+  QuantstampAuditMultiRequestData public multiRequestData;
 
   event LogAuditFinished(
     uint256 requestId,
@@ -111,9 +98,11 @@ contract QuantstampAudit is Ownable, Pausable {
    * @dev The constructor creates an audit contract.
    * @param auditDataAddress The address of a AuditData that stores data used for performing audits.
    */
-  constructor (address auditDataAddress) public {
+  constructor (address auditDataAddress, address multiRequestDataAddress) public {
     require(auditDataAddress != address(0));
+    require(multiRequestDataAddress != address(0));
     auditData = QuantstampAuditData(auditDataAddress);
+    multiRequestData = QuantstampAuditMultiRequestData(multiRequestDataAddress);
   }
 
   /**
@@ -178,14 +167,16 @@ contract QuantstampAudit is Ownable, Pausable {
     require(price.mul(count) <= auditData.token().allowance(msg.sender, address(this)),
       "token transfer must be approved more than price*count");
     uint256[] memory result = new uint256[](count);
-    uint256 newMultiRequestId = ++multiRequestIdCounter;
+    uint256 newMultiRequestId = multiRequestData.addMultiRequest(address(msg.sender), 0, 0, address(this));
     for (uint256 i = 0; i < count; ++i) {
       result[i] = requestAudit(contractUri, price);
-      requestIdToMultiRequestId[result[i]] = newMultiRequestId;
+      multiRequestData.setRequestIdToMultiRequestId(result[i], newMultiRequestId);
     }
-    multiRequestIdToRequestIdRange[newMultiRequestId] = MultiRequestRange(result[0], result[result.length-1]);
-    emit LogMultiRequestRequested(newMultiRequestId, multiRequestIdToRequestIdRange[newMultiRequestId].start,
-      multiRequestIdToRequestIdRange[newMultiRequestId].end);
+    multiRequestData.setMultiRequestFirstRequestId(newMultiRequestId, result[0]);
+    multiRequestData.setMultiRequestLastRequestId(newMultiRequestId, result[result.length-1]);
+    emit LogMultiRequestRequested(newMultiRequestId,
+      multiRequestData.getMultiRequestFirstRequestId(newMultiRequestId),
+      multiRequestData.getMultiRequestLastRequestId(newMultiRequestId));
     return result;
   }
 
@@ -194,8 +185,8 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param multiRequestId multiRequestId that will be mapped to associated requestIds
    */
   function multiRequestIdToRequestIds(uint256 multiRequestId) external view returns(uint256[]) {
-    uint256 firstRequestId = multiRequestIdToRequestIdRange[multiRequestId].start;
-    uint256 lastRequestId = multiRequestIdToRequestIdRange[multiRequestId].end;
+    uint256 firstRequestId = multiRequestData.getMultiRequestFirstRequestId(multiRequestId);
+    uint256 lastRequestId = multiRequestData.getMultiRequestLastRequestId(multiRequestId);
     uint256 resultLength = 0;
     if (lastRequestId > 0) {
       resultLength = lastRequestId - firstRequestId + 1;
@@ -475,11 +466,9 @@ contract QuantstampAudit is Ownable, Pausable {
    */
   function anyAuditRequestMatchesPrice(uint256 minPrice) internal view returns(uint256) {
     bool priceExists;
-    bool auditorExists;
     uint256 price;
     uint256 requestId;
-    uint256 auditorPrev;
-    uint256 auditorNext;
+    uint256 multirequestId;
 
     // picks the tail of price buckets
     (priceExists, price) = priceList.getAdjacent(HEAD, PREV);
@@ -488,17 +477,16 @@ contract QuantstampAudit is Ownable, Pausable {
       requestId = getNextAuditByPrice(price, HEAD);
       // iterating over requests in each price bucket. the iteration starts from older requests to younger ones.
       while (requestId != HEAD) {
+        multirequestId = multiRequestData.getMultiRequestIdGivenRequestId(requestId);
         // if this request belongs to a multirequest, find out whether an auditor calling this function has been
         // already assigned to another request from the same multirequest.
-        // if requestIdToMultiRequestId[requestId] returns zero, then this request is not associated to a multirequest.
-        (auditorExists, auditorPrev, auditorNext) =
-          multiRequestsAssignedToAuditor[requestIdToMultiRequestId[requestId]].getNode(uint256(msg.sender));
-        if (!auditorExists) {
+        // true condition means that this request is not associated to a multirequest.
+        if (multirequestId == 0 || !multiRequestData.existsAuditorFromMultiRequestAssignment(multirequestId, msg.sender) ) {
           return requestId;
         } else {
           // the given auditor already audited an individual audit from this multi audit request. Let's
           // jump to the last individual associated requestId.
-          requestId = multiRequestIdToRequestIdRange[requestIdToMultiRequestId[requestId]].end;
+          requestId = multiRequestData.getMultiRequestLastRequestId(multirequestId);
         }
         requestId = getNextAuditByPrice(price, requestId);
       }
@@ -557,16 +545,11 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param requestId Unique ID of the audit request.
    */
   function handleNewMultirequest(uint256 requestId) internal {
+    uint256 multirequestId = multiRequestData.getMultiRequestIdGivenRequestId(requestId);
     // record, if the requestId belongs to a multiRequestId
-    if (requestIdToMultiRequestId[requestId] > 0) {
-      if (multiRequestIdToRequestIdRange[requestIdToMultiRequestId[requestId]].end == requestId) {
-        // there is no associated requestId to the multiRequestId. This happens once an auditor gets a request that
-        // is the last one associated to the multirequest.
-        delete multiRequestsAssignedToAuditor[requestIdToMultiRequestId[requestId]];
-      } else {
-        multiRequestsAssignedToAuditor[requestIdToMultiRequestId[requestId]].push(uint256(msg.sender), PREV);
-      }
-      emit LogRequestAssignedFromMultiRequest(requestId, requestIdToMultiRequestId[requestId], msg.sender);
+    if (multirequestId > 0) {
+      multiRequestData.addAuditorToMultiRequestAssignment(multirequestId, msg.sender);
+      emit LogRequestAssignedFromMultiRequest(requestId, multirequestId, msg.sender);
     }
   }
 }

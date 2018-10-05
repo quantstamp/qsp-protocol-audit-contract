@@ -32,11 +32,19 @@ module.exports = {
     gasLimit: 80000,
     methodArgs: async(stage, argv) => {
       let maxUint256 = new BN(0).notn(256);
-      return [argv.p[0], maxUint256.toString()];
+      return [argv.p[0], '1000000000000000000'];
     }
   },
-  'whitelist-audit-contract': {
+  'whitelist-audit-contract-in-data': {
     contractName: 'QuantstampAuditData',
+    methodName: 'addAddressToWhitelist',
+    gasLimit: 80000,
+    methodArgs: async(stage, argv) => {
+      return [await utils.readAddressFromMetadata(stage, 'QuantstampAudit')];
+    }
+  },
+  'whitelist-audit-contract-in-multirequest-data': {
+    contractName: 'QuantstampAuditMultiRequestData',
     methodName: 'addAddressToWhitelist',
     gasLimit: 80000,
     methodArgs: async(stage, argv) => {

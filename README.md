@@ -85,9 +85,12 @@ First-time only: manually create the S3 buckets `qsp-protocol-contract-abi-dev` 
     * `truffle migrate --network prod` - QSP protocol prod network.
     * `truffle migrate --network ropsten` - Ropsten for independent testing (does not overwrite address from dev or prod network).
 1. Whitelist the Audit contract in the Data contract:
-    * `npm run command -- -n=dev -a=whitelist-audit-contract` - for the dev network.
-    * `npm run command -- -n=prod -a=whitelist-audit-contract` - for the prod network.
-
+    * `npm run command -- -n=dev -a=whitelist-audit-contract-in-data` - for the dev network.
+    * `npm run command -- -n=prod -a=whitelist-audit-contract-in-data` - for the prod network.
+1. Whitelist the Audit contract in the MultiRequest Data contract:
+    * `npm run command -- -n=dev -a=whitelist-audit-contract-in-multirequest-data` - for the dev network.
+    * `npm run command -- -n=prod -a=whitelist-audit-contract-in-multirequest-data` - for the prod network.
+    
     Note: a successful return of the whitelisting script does not necessarily mean the transaction is fully completed. Please check
     the status manually on a block explorer and wait for the desired number of confirmations.
 1. To perform actions on a deployed smart contract, use the following commands:
