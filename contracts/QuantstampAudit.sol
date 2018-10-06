@@ -480,7 +480,7 @@ contract QuantstampAudit is Ownable, Pausable {
         // if this request belongs to a multirequest, find out whether an auditor calling this function has been
         // already assigned to another request from the same multirequest.
         // true condition means that this request is not associated to a multirequest.
-        if (multirequestId == 0 || !multiRequestData.existsAuditorFromMultiRequestAssignment(multirequestId, msg.sender) ) {
+        if (multirequestId == 0 || !multiRequestData.existsAuditorFromMultiRequestAssignment(multirequestId, msg.sender)) {
           return requestId;
         } else {
           // the given auditor already audited an individual audit from this multi audit request. Let's
