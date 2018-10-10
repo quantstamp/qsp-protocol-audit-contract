@@ -180,24 +180,6 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Retrieves requestIds given a multiRequestId
-   * @param multiRequestId multiRequestId that will be mapped to associated requestIds
-   */
-  function multiRequestIdToRequestIds(uint256 multiRequestId) external view returns(uint256[]) {
-    uint256 firstRequestId = multiRequestData.getMultiRequestFirstRequestId(multiRequestId);
-    uint256 lastRequestId = multiRequestData.getMultiRequestLastRequestId(multiRequestId);
-    uint256 resultLength = 0;
-    if (lastRequestId > 0) {
-      resultLength = lastRequestId - firstRequestId + 1;
-    }
-    uint256[] memory result = new uint256[](resultLength);
-    for (uint256 i = 0; i < resultLength; ++i) {
-      result[i] = firstRequestId + i;
-    }
-    return result;
-  }
-
-  /**
    * @dev Submits audit request.
    * @param contractUri Identifier of the resource to audit.
    * @param price The total amount of tokens that will be paid for the audit.
@@ -357,7 +339,7 @@ contract QuantstampAudit is Ownable, Pausable {
     // push to the tail
     assignedAudits.push(requestId, PREV);
 
-    handleNewMultirequest(requestId);
+    assignMultirequest(requestId);
 
     emit LogAuditAssigned(
       requestId,
@@ -543,7 +525,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @dev Manages request if it is from a multirequest
    * @param requestId Unique ID of the audit request.
    */
-  function handleNewMultirequest(uint256 requestId) internal {
+  function assignMultirequest(uint256 requestId) internal {
     uint256 multirequestId = multiRequestData.getMultiRequestIdGivenRequestId(requestId);
     // record, if the requestId belongs to a multiRequestId
     if (multirequestId > 0) {

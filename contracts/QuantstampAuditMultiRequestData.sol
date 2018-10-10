@@ -7,7 +7,7 @@ contract QuantstampAuditMultiRequestData is Whitelist {
 
   // As a multirequest consists of requests. The first and last requestId are inclusive.
   struct MultiRequest {
-    address requester;
+    address requestor;
     uint256 firstRequestId;
     uint256 lastRequestId;
     address registrar;
@@ -22,13 +22,13 @@ contract QuantstampAuditMultiRequestData is Whitelist {
   // A map from multiRequestIDs to auditors assigned an audit.
   mapping(uint256 => mapping(address => bool)) internal multiRequestsAssignedToAuditor;
 
-  function addMultiRequest(address requester, uint256 firstRequestId, uint256 lastRequestId, address registrar) external onlyWhitelisted returns(uint256) {
-    multiRequests[++multiRequestIdCounter] = MultiRequest(requester, firstRequestId, lastRequestId, registrar);
+  function addMultiRequest(address requestor, uint256 firstRequestId, uint256 lastRequestId, address registrar) external onlyWhitelisted returns(uint256) {
+    multiRequests[++multiRequestIdCounter] = MultiRequest(requestor, firstRequestId, lastRequestId, registrar);
     return multiRequestIdCounter;
   }
 
-  function setMultiRequestRequester(uint256 multiRequestId, address requester) external onlyWhitelisted {
-    multiRequests[multiRequestId].requester = requester;
+  function setMultiRequestRequestor(uint256 multiRequestId, address requestor) external onlyWhitelisted {
+    multiRequests[multiRequestId].requestor = requestor;
   }
 
   function setMultiRequestFirstRequestId(uint256 multiRequestId, uint256 firstRequestId) external onlyWhitelisted {
@@ -54,9 +54,9 @@ contract QuantstampAuditMultiRequestData is Whitelist {
   function removeAuditorFromMultiRequestAssignment(uint256 multiRequestId, address auditor) external onlyWhitelisted {
     delete multiRequestsAssignedToAuditor[multiRequestId][auditor];
   }
-  
-  function getMultiRequestRequester(uint256 multiRequestId) external view returns(address) {
-    return multiRequests[multiRequestId].requester;
+
+  function getMultiRequestRequestor(uint256 multiRequestId) external view returns(address) {
+    return multiRequests[multiRequestId].requestor;
   }
 
   function getMultiRequestFirstRequestId(uint256 multiRequestId) external view returns(uint256) {

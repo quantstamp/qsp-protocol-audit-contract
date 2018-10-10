@@ -15,6 +15,7 @@ contract QuantstampAuditView is Ownable {
 
   QuantstampAudit public audit;
   QuantstampAuditData public auditData;
+  QuantstampAuditMultiRequestData public multiRequestData;
 
   struct AuditPriceStat {
     uint256 sum;
@@ -31,6 +32,7 @@ contract QuantstampAuditView is Ownable {
     require(auditAddress != address(0));
     audit = QuantstampAudit(auditAddress);
     auditData = audit.auditData();
+    multiRequestData = audit.multiRequestData();
   }
 
   /**
@@ -121,5 +123,23 @@ contract QuantstampAuditView is Ownable {
       min = 0;
     }
     return AuditPriceStat(sum, max, min, n);
+  }
+
+  /**
+   * @dev Retrieves requestIds given a multiRequestId
+   * @param multiRequestId multiRequestId that will be mapped to associated requestIds
+   */
+  function multiRequestIdToRequestIds(uint256 multiRequestId) external view returns(uint256[]) {
+    uint256 firstRequestId = multiRequestData.getMultiRequestFirstRequestId(multiRequestId);
+    uint256 lastRequestId = multiRequestData.getMultiRequestLastRequestId(multiRequestId);
+    uint256 resultLength = 0;
+    if (lastRequestId > 0) {
+      resultLength = lastRequestId - firstRequestId + 1;
+    }
+    uint256[] memory result = new uint256[](resultLength);
+    for (uint256 i = 0; i < resultLength; ++i) {
+      result[i] = firstRequestId + i;
+    }
+    return result;
   }
 }

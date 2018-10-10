@@ -11,10 +11,10 @@ module.exports = {
     }
   },
   deploy: {
-    QuantstampAuditData: true,
-    QuantstampAuditMultiRequestData: true,
-    QuantstampAudit: true,
-    QuantstampAuditView: true,
+    QuantstampAuditData: false,
+    QuantstampAuditMultiRequestData: false,
+    QuantstampAudit: false,
+    QuantstampAuditView: false,
   },
   networks: {
     development: {

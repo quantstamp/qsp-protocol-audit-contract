@@ -84,7 +84,7 @@ contract('QuantstampAudit_multirequest', function(accounts) {
     });
 
     it("and makes requests accessible from the multiRequestId", async function() {
-      const requestIds = await quantstamp_audit.multiRequestIdToRequestIds(multiRequestId);
+      const requestIds = await quantstamp_audit_view.multiRequestIdToRequestIds(multiRequestId);
       for(let i = 1; i < requestCount; ++i) {
         const requestId1 = requestIds[i-1].toNumber();
         const requestId2 = requestIds[i].toNumber();
@@ -96,7 +96,7 @@ contract('QuantstampAudit_multirequest', function(accounts) {
     });
 
     it("and returns empty array for a multiRequestId not added to the contract", async function() {
-      const requestIds = await quantstamp_audit.multiRequestIdToRequestIds(multiRequestId * 10000);
+      const requestIds = await quantstamp_audit_view.multiRequestIdToRequestIds(multiRequestId * 10000);
       assert.equal(requestIds.length, 0)
     });
 
@@ -182,10 +182,10 @@ contract('QuantstampAudit_multirequest', function(accounts) {
       await quantstamp_audit_multirequest_data.addAddressToWhitelist(owner);
     });
 
-    it("requester should be properly set", async function() {
+    it("requestor should be properly set", async function() {
       const multiRequestId = 10000;
-      await quantstamp_audit_multirequest_data.setMultiRequestRequester(multiRequestId, requestor, {from: owner});
-      assert(await quantstamp_audit_multirequest_data.getMultiRequestRequester(multiRequestId), requestor);
+      await quantstamp_audit_multirequest_data.setMultiRequestRequestor(multiRequestId, requestor, {from: owner});
+      assert(await quantstamp_audit_multirequest_data.getMultiRequestRequestor(multiRequestId), requestor);
     });
 
     it("and registrar should be properly set", async function() {

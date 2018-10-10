@@ -32,7 +32,7 @@ module.exports = {
     gasLimit: 80000,
     methodArgs: async(stage, argv) => {
       let maxUint256 = new BN(0).notn(256);
-      return [argv.p[0], '1000000000000000000'];
+      return [argv.p[0], maxUint256.toString()];
     }
   },
   'whitelist-audit-contract-in-data': {
