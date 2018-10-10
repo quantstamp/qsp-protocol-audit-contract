@@ -35,7 +35,15 @@ module.exports = {
       return [argv.p[0], maxUint256.toString()];
     }
   },
-  'whitelist-audit-contract-in-data': {
+  'set-min-price-to-accept-any-request': {
+    contractName: 'QuantstampAuditData',
+    methodName: 'setMinAuditPrice',
+    gasLimit: 80000,
+    methodArgs: async(stage, argv) => {
+      return [argv.p[0], "0"];
+    }
+  },
+  'whitelist-audit-contract': {
     contractName: 'QuantstampAuditData',
     methodName: 'addAddressToWhitelist',
     gasLimit: 80000,
