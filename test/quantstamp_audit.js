@@ -31,6 +31,7 @@ contract('QuantstampAudit', function(accounts) {
     quantstamp_token = await QuantstampToken.deployed();
 
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
+    await quantstamp_audit_multirequest_data.addAddressToWhitelist(quantstamp_audit.address);
     // enable transfers before any payments are allowed
     await quantstamp_token.enableTransfer({from : owner});
     // transfer 100,000 QSP tokens to the requestor
