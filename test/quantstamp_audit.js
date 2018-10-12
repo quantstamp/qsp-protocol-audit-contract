@@ -31,7 +31,6 @@ contract('QuantstampAudit', function(accounts) {
     quantstamp_token = await QuantstampToken.deployed();
 
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
-    await quantstamp_audit_multirequest_data.addAddressToWhitelist(quantstamp_audit.address);
     // enable transfers before any payments are allowed
     await quantstamp_token.enableTransfer({from : owner});
     // transfer 100,000 QSP tokens to the requestor
@@ -372,6 +371,7 @@ contract('QuantstampAudit', function(accounts) {
   it("should return proper codes for different audit availability cases", async function() {
     await quantstamp_audit_data.setMaxAssignedRequests(maxAssignedRequests);
     const auditor2 = accounts[5];
+    const auditor3 = accounts[6];
 
     await quantstamp_audit_data.addNodeToWhitelist(auditor2);
     // auditor2 does not have any pending assigned request
@@ -387,6 +387,7 @@ contract('QuantstampAudit', function(accounts) {
     // the queue is supposed to be empty for this test-case
     assert.equal(await quantstamp_audit_view.getQueueLength.call(), 0);
     assert.equal((await quantstamp_audit.anyRequestAvailable({from: auditor2})).toNumber(), 2);
+    assert.equal((await quantstamp_audit.anyRequestAvailable({from: auditor3})).toNumber(), 0);
 
     await quantstamp_audit_data.setMaxAssignedRequests(1);
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});

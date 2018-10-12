@@ -277,6 +277,11 @@ contract QuantstampAudit is Ownable, Pausable {
   function anyRequestAvailable() public view returns(AuditAvailabilityState) {
     uint256 requestId;
 
+    // only whitelisted nodes are able to call this function
+    if (!auditData.isWhitelisted(msg.sender)) {
+      return AuditAvailabilityState.Error;
+    }
+
     // there are no audits in the queue
     if (!auditQueueExists()) {
       return AuditAvailabilityState.Empty;
