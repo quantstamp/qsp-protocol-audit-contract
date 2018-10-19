@@ -6,6 +6,8 @@ const QuantstampAuditData = artifacts.require('QuantstampAuditData');
 const QuantstampAuditView = artifacts.require('QuantstampAuditView');
 const QuantstampToken = artifacts.require('QuantstampToken');
 const QuantstampAuditMultiRequestData = artifacts.require('QuantstampAuditMultiRequestData');
+const QuantstampAuditReportData = artifacts.require('QuantstampAuditReportData');
+
 
 contract('QuantstampAuditView_stats', function(accounts) {
   const owner = accounts[0];
@@ -17,6 +19,7 @@ contract('QuantstampAuditView_stats', function(accounts) {
   let quantstamp_audit;
   let quantstamp_audit_data;
   let quantstamp_audit_multirequest_data;
+  let quantstamp_audit_report_data;
   let quantstamp_audit_view;
   let quantstamp_token;
 
@@ -35,11 +38,13 @@ contract('QuantstampAuditView_stats', function(accounts) {
     quantstamp_token = await QuantstampToken.deployed();
     quantstamp_audit_data = await QuantstampAuditData.deployed();
     quantstamp_audit_multirequest_data = await QuantstampAuditMultiRequestData.deployed();
+    quantstamp_audit_report_data = await QuantstampAuditReportData.deployed();
     quantstamp_audit = await QuantstampAudit.deployed();
     quantstamp_audit_view = await QuantstampAuditView.deployed();
 
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_multirequest_data.addAddressToWhitelist(quantstamp_audit.address);
+    await quantstamp_audit_report_data.addAddressToWhitelist(quantstamp_audit.address);
 
     // enable transfers before any payments are allowed
     await quantstamp_token.enableTransfer({from : owner});
@@ -57,7 +62,10 @@ contract('QuantstampAuditView_stats', function(accounts) {
     const audit = await quantstamp_audit_view.audit.call();
     const another_quantstamp_audit_data = (await QuantstampAuditData.new(quantstamp_token.contract.address)).contract.address;
     const another_quantstamp_audit_multirequest_data = (await QuantstampAuditMultiRequestData.new()).contract.address;
-    const another_quantstamp_audit = (await QuantstampAudit.new(another_quantstamp_audit_data, another_quantstamp_audit_multirequest_data)).contract.address;
+    const another_quantstamp_audit_report_data = (await QuantstampAuditReportData.new()).contract.address;
+    const another_quantstamp_audit = (await QuantstampAudit.new(another_quantstamp_audit_data,
+                                                                another_quantstamp_audit_multirequest_data,
+                                                                another_quantstamp_audit_report_data)).contract.address;
 
     // change QuantstampAudit to something else
     await quantstamp_audit_view.setQuantstampAudit(another_quantstamp_audit);

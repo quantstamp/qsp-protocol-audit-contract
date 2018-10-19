@@ -7,6 +7,7 @@ import "openzeppelin-solidity/contracts/lifecycle/Pausable.sol";
 import "./LinkedListLib.sol";
 import "./QuantstampAuditData.sol";
 import "./QuantstampAuditMultiRequestData.sol";
+import "./QuantstampAuditReportData.sol";
 
 
 contract QuantstampAudit is Ownable, Pausable {
@@ -35,6 +36,9 @@ contract QuantstampAudit is Ownable, Pausable {
 
   // contract that stores multirequest audit data
   QuantstampAuditMultiRequestData public multiRequestData;
+
+  // contract that stores audit reports on-chain
+  QuantstampAuditReportData public reportData;
 
   event LogAuditFinished(
     uint256 requestId,
@@ -97,11 +101,13 @@ contract QuantstampAudit is Ownable, Pausable {
    * @dev The constructor creates an audit contract.
    * @param auditDataAddress The address of a AuditData that stores data used for performing audits.
    */
-  constructor (address auditDataAddress, address multiRequestDataAddress) public {
+  constructor (address auditDataAddress, address multiRequestDataAddress, address reportDataAddress) public {
     require(auditDataAddress != address(0));
     require(multiRequestDataAddress != address(0));
+    require(reportDataAddress != address(0));
     auditData = QuantstampAuditData(auditDataAddress);
     multiRequestData = QuantstampAuditMultiRequestData(multiRequestDataAddress);
+    reportData = QuantstampAuditReportData(reportDataAddress);
   }
 
   /**
@@ -205,7 +211,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param auditResult Result of an audit.
    * @param reportHash Hash of the generated report.
    */
-  function submitReport(uint256 requestId, QuantstampAuditData.AuditState auditResult, string reportHash) public onlyWhitelisted {
+  function submitReport(uint256 requestId, QuantstampAuditData.AuditState auditResult, string reportHash, bytes1[] report) public onlyWhitelisted {
     if (QuantstampAuditData.AuditState.Completed != auditResult && QuantstampAuditData.AuditState.Error != auditResult) {
       emit LogReportSubmissionError_InvalidResult(requestId, msg.sender, auditResult);
       return;
@@ -242,6 +248,9 @@ contract QuantstampAudit is Ownable, Pausable {
 
     // validate the audit state
     require(isAuditFinished(requestId));
+
+    // store reports on-chain
+    reportData.setReport(requestId, report);
 
     emit LogAuditFinished(requestId, msg.sender, auditResult, reportHash); // solhint-disable-line not-rely-on-time
 

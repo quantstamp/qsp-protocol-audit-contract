@@ -1,6 +1,7 @@
 const QuantstampToken = artifacts.require('QuantstampToken');
 const QuantstampAuditData = artifacts.require('QuantstampAuditData');
 const QuantstampAuditMultiRequestData = artifacts.require('QuantstampAuditMultiRequestData');
+const QuantstampAuditReportData = artifacts.require('QuantstampAuditReportData');
 const QuantstampAudit = artifacts.require('QuantstampAudit');
 const Util = require("./util.js");
 const AuditState = Util.AuditState;
@@ -18,6 +19,7 @@ contract('QuantstampAudit2', function(accounts) {
 
   let quantstamp_audit_data;
   let quantstamp_audit_multirequest_data;
+  let quantstamp_audit_report_data;
   let quantstamp_audit;
   let quantstamp_token;
 
@@ -25,10 +27,13 @@ contract('QuantstampAudit2', function(accounts) {
     quantstamp_token = await QuantstampToken.deployed();
     quantstamp_audit_data = await QuantstampAuditData.deployed();
     quantstamp_audit_multirequest_data = await QuantstampAuditMultiRequestData.deployed();
+    quantstamp_audit_report_data = await QuantstampAuditReportData.deployed();
     quantstamp_audit = await QuantstampAudit.deployed();
 
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_multirequest_data.addAddressToWhitelist(quantstamp_audit.address);
+    await quantstamp_audit_report_data.addAddressToWhitelist(quantstamp_audit.address);
+
     // enable transfers before any payments are allowed
     await quantstamp_token.enableTransfer({from : owner});
     // transfer 100,000 QSP tokens to the requestor
@@ -87,7 +92,7 @@ contract('QuantstampAudit2', function(accounts) {
       }
     });
 
-    const result3 = await quantstamp_audit.submitReport(requestId2, AuditState.Completed, Util.sha256emptyFile, {from : auditor});
+    const result3 = await quantstamp_audit.submitReport(requestId2, AuditState.Completed, Util.sha256emptyFile, Util.emptyReport, {from : auditor});
 
     Util.assertEventAtIndex({
       result: result3,
@@ -146,7 +151,7 @@ contract('QuantstampAudit2', function(accounts) {
     const result = await quantstamp_audit.getNextAuditRequest({from: auditor});
     const requestId = Util.extractRequestId(result);
 
-    const result2 = await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.sha256emptyFile, {from : auditor});
+    const result2 = await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.sha256emptyFile, Util.emptyReport, {from : auditor});
     assert.equal(await quantstamp_audit.isAuditFinished(requestId), true);
     assert.equal(result2.logs.length, 2);
     assert.equal(result2.logs[0].event, "LogAuditFinished");
@@ -170,18 +175,18 @@ contract('QuantstampAudit2', function(accounts) {
     await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor});
     const requestResult = await quantstamp_audit.getNextAuditRequest({from: auditor});
     const requestId = Util.extractRequestId(requestResult);
-    const result = await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.sha256emptyFile, {from : auditor});
+    const result = await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.sha256emptyFile, Util.emptyReport, {from : auditor});
 
     assert.equal(await quantstamp_audit.isAuditFinished(requestId), true);
 
-    const result2 = await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.sha256emptyFile, {from : auditor});
+    const result2 = await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.sha256emptyFile, Util.emptyReport, {from : auditor});
     assert.equal(result2.logs.length, 1);
     assert.equal(result2.logs[0].event, "LogReportSubmissionError_InvalidState");
     assert.equal(result2.logs[0].args.requestId.toNumber(), requestId);
     assert.equal(result2.logs[0].args.auditor, auditor);
 
     const bogusId = 123456;
-    const result3 = await quantstamp_audit.submitReport(bogusId, AuditState.Completed, Util.sha256emptyFile, {from : auditor});
+    const result3 = await quantstamp_audit.submitReport(bogusId, AuditState.Completed, Util.sha256emptyFile, Util.emptyReport, {from : auditor});
     assert.equal(result3.logs.length, 1);
     assert.equal(result3.logs[0].event, "LogReportSubmissionError_InvalidState");
     assert.equal(result3.logs[0].args.requestId.toNumber(), bogusId);

@@ -19,7 +19,7 @@ def system(*args, **kwargs):
 
 def main():
     try:
-        files = ["QuantstampAudit.sol", "QuantstampAuditView.sol", "QuantstampAuditData.sol", "QuantstampAuditMultiRequestData.sol"]
+        files = ["QuantstampAudit.sol", "QuantstampAuditView.sol", "QuantstampAuditData.sol", "QuantstampAuditMultiRequestData.sol", "QuantstampAuditReportData.sol"]
         versions = []
         for f in files:
             result = system("git", "grep", "pragma", "contracts/" + f).decode("utf-8").split()[-1].strip(";")
@@ -27,7 +27,7 @@ def main():
 
         if len(set(versions)) != 1:
             print("Ensure that the solidity versions in QuantstampAudit.sol, QuantstampAuditData.sol," +
-                  "QuantstampAuditView.sol, and QuantstampAuditMultiRequestData.sol are in sync.")
+                  "QuantstampAuditView.sol, QuantstampAuditMultiRequestData.sol, and QuantstampAuditReportData are in sync.")
             print("Also ensure that the truffle version in package.json has been updated.")
             sys.exit(1)
 

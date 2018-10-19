@@ -1,5 +1,6 @@
 const uri = "http://www.quantstamp.com/contract.sol";
 const sha256emptyFile = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+const emptyReport = [];
 
 const AuditState = Object.freeze({
   None : 0,
@@ -93,6 +94,7 @@ async function mineNBlocks (n) {
 module.exports = {
   uri : uri,
   sha256emptyFile : sha256emptyFile,
+  emptyReport: emptyReport,
   toEther : toEther,
   toQsp : toEther,
   oneEther : toEther(1),
