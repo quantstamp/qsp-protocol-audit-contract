@@ -99,7 +99,8 @@ contract QuantstampAudit is Ownable, Pausable {
 
   /**
    * @dev The constructor creates an audit contract.
-   * @param auditDataAddress The address of a AuditData that stores data used for performing audits.
+   * @param auditDataAddress The address of an AuditData that stores data used for performing audits.
+   * @param reportDataAddress The address of a ReportData that stores audit reports.
    */
   constructor (address auditDataAddress, address multiRequestDataAddress, address reportDataAddress) public {
     require(auditDataAddress != address(0));
@@ -210,8 +211,9 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param requestId Unique identifier of the audit request.
    * @param auditResult Result of an audit.
    * @param reportHash Hash of the generated report.
+   * @param report fixed size array stores a compressed report. TODO, let's document the report format.
    */
-  function submitReport(uint256 requestId, QuantstampAuditData.AuditState auditResult, string reportHash, bytes1[] report) public onlyWhitelisted {
+  function submitReport(uint256 requestId, QuantstampAuditData.AuditState auditResult, string reportHash, bytes32 report) public onlyWhitelisted {
     if (QuantstampAuditData.AuditState.Completed != auditResult && QuantstampAuditData.AuditState.Error != auditResult) {
       emit LogReportSubmissionError_InvalidResult(requestId, msg.sender, auditResult);
       return;

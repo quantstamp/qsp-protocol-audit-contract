@@ -53,7 +53,7 @@ contract('QuantstampAudit_report', function(accounts) {
   describe("when a an audit node submits report", async function () {
 
     let requestId;
-    const submittedReport = [0x10,0x20];
+    const submittedReport = '0x1'.padEnd(66, '0');
 
     before(async function() {
       await initialize();
@@ -78,7 +78,7 @@ contract('QuantstampAudit_report', function(accounts) {
     });
 
     it("then the report is stored properly", async function() {
-      assert.deepEqual((await quantstamp_audit_report_data.getReport(requestId)).map(byte => parseInt(byte)), submittedReport);
+      assert.equal(await quantstamp_audit_report_data.getReport(requestId), submittedReport);
     });
 
   });
