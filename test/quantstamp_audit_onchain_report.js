@@ -53,7 +53,8 @@ contract('QuantstampAudit_report', function(accounts) {
   describe("when a an audit node submits report", async function () {
 
     let requestId;
-    const submittedReport = '0x1'.padEnd(66, '0');
+    // two bytes
+    const submittedReport = 0xFFAB;
 
     before(async function() {
       await initialize();
@@ -78,7 +79,7 @@ contract('QuantstampAudit_report', function(accounts) {
     });
 
     it("then the report is stored properly", async function() {
-      assert.equal(await quantstamp_audit_report_data.getReport(requestId), submittedReport);
+      assert.equal(parseInt(await quantstamp_audit_report_data.getReport(requestId)), submittedReport);
     });
 
   });

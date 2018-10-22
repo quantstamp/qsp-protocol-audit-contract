@@ -213,7 +213,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param reportHash Hash of the generated report.
    * @param report fixed size array stores a compressed report. TODO, let's document the report format.
    */
-  function submitReport(uint256 requestId, QuantstampAuditData.AuditState auditResult, string reportHash, bytes32 report) public onlyWhitelisted {
+  function submitReport(uint256 requestId, QuantstampAuditData.AuditState auditResult, string reportHash, bytes report) public onlyWhitelisted {
     if (QuantstampAuditData.AuditState.Completed != auditResult && QuantstampAuditData.AuditState.Error != auditResult) {
       emit LogReportSubmissionError_InvalidResult(requestId, msg.sender, auditResult);
       return;
