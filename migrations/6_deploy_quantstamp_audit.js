@@ -16,13 +16,19 @@ module.exports = function(deployer, network, accounts) {
   deployer.deploy(LinkedListLib)
     .then(() => deployer.link(LinkedListLib, QuantstampAudit))
     .then(() => new Promise(resolve => setTimeout(() => resolve(), networkConfig.networks[network].delayBetweenDeploys)))
-    .then(async() => {return {dataContractAddress: await utils.contractAddress(network, 'QuantstampAuditData', QuantstampAuditData),
-                              multiRequestDataContractAddress: await utils.contractAddress(network, 'QuantstampAuditMultiRequestData', QuantstampAuditMultiRequestData),
-                              reportDataContractAddress: await utils.contractAddress(network, 'QuantstampAuditReportData', QuantstampAuditReportData)}})
-    .then(dataContractsAddresses => deployer.deploy(QuantstampAudit,
-                                                    dataContractsAddresses.dataContractAddress,
-                                                    dataContractsAddresses.multiRequestDataContractAddress,
-                                                    dataContractsAddresses.reportDataContractAddress))
+    .then(
+      async() => {
+        return {
+          dataContractAddress: await utils.contractAddress(network, 'QuantstampAuditData', QuantstampAuditData),
+          multiRequestDataContractAddress: await utils.contractAddress(network, 'QuantstampAuditMultiRequestData',QuantstampAuditMultiRequestData),
+          reportDataContractAddress: await utils.contractAddress(network, 'QuantstampAuditReportData', QuantstampAuditReportData)
+        }
+      })
+    .then(dataContractsAddresses => deployer.deploy(
+      QuantstampAudit,
+      dataContractsAddresses.dataContractAddress,
+      dataContractsAddresses.multiRequestDataContractAddress,
+      dataContractsAddresses.reportDataContractAddress))
     .then(() => new Promise(resolve => setTimeout(() => resolve(), networkConfig.networks[network].delayBetweenDeploys)))
     .then(async() => await utils.updateAbiAndMetadata(network, 'QuantstampAudit', QuantstampAudit.address));
 };

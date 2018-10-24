@@ -64,14 +64,14 @@ contract('QuantstampAudit_report', function(accounts) {
     });
 
     it("QuantstampAuditReportData should not let QuantstampAudit submits a report,", async function() {
-      Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.sha256emptyFile, submittedReport, {from: auditor}));
+      Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.Completed, submittedReport, {from: auditor}));
     });
 
     it("unless QuantstampAudit is whitelisted in QuantstampAuditReportData,", async function() {
       await quantstamp_audit_report_data.addAddressToWhitelist(quantstamp_audit.address);
 
       Util.assertEventAtIndex({
-        result: await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.sha256emptyFile, submittedReport, {from: auditor}),
+        result: await quantstamp_audit.submitReport(requestId, AuditState.Completed, submittedReport, {from: auditor}),
         name: "LogAuditFinished",
         args: (args) => {},
         index: 0

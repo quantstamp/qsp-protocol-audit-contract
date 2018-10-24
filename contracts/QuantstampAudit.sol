@@ -43,8 +43,7 @@ contract QuantstampAudit is Ownable, Pausable {
   event LogAuditFinished(
     uint256 requestId,
     address auditor,
-    QuantstampAuditData.AuditState auditResult,
-    string reportHash
+    QuantstampAuditData.AuditState auditResult
   );
 
   event LogAuditRequested(uint256 requestId,
@@ -210,10 +209,9 @@ contract QuantstampAudit is Ownable, Pausable {
    * @dev Submits the report and pays the auditor node for their work if the audit is completed.
    * @param requestId Unique identifier of the audit request.
    * @param auditResult Result of an audit.
-   * @param reportHash Hash of the generated report.
-   * @param report fixed size array stores a compressed report. TODO, let's document the report format.
+   * @param report a compressed report. TODO, let's document the report format.
    */
-  function submitReport(uint256 requestId, QuantstampAuditData.AuditState auditResult, string reportHash, bytes report) public onlyWhitelisted {
+  function submitReport(uint256 requestId, QuantstampAuditData.AuditState auditResult, bytes report) public onlyWhitelisted {
     if (QuantstampAuditData.AuditState.Completed != auditResult && QuantstampAuditData.AuditState.Error != auditResult) {
       emit LogReportSubmissionError_InvalidResult(requestId, msg.sender, auditResult);
       return;
@@ -245,7 +243,6 @@ contract QuantstampAudit is Ownable, Pausable {
 
     // update the audit information held in this contract
     auditData.setAuditState(requestId, auditResult);
-    auditData.setAuditReportHash(requestId, reportHash);
     auditData.setAuditReportBlockNumber(requestId, block.number); // solhint-disable-line not-rely-on-time
 
     // validate the audit state
@@ -254,7 +251,7 @@ contract QuantstampAudit is Ownable, Pausable {
     // store reports on-chain
     reportData.setReport(requestId, report);
 
-    emit LogAuditFinished(requestId, msg.sender, auditResult, reportHash); // solhint-disable-line not-rely-on-time
+    emit LogAuditFinished(requestId, msg.sender, auditResult); // solhint-disable-line not-rely-on-time
 
     if (auditResult == QuantstampAuditData.AuditState.Completed) {
       uint256 auditPrice = auditData.getAuditPrice(requestId);

@@ -131,7 +131,7 @@ contract('QuantstampAudit_expires', function(accounts) {
     assert.equal((await quantstamp_audit.getNextAssignedRequest(0)).toNumber(), requestedId);
 
     Util.assertEvent({
-      result: await quantstamp_audit.submitReport(requestedId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, Util.emptyReport, {from: auditor}),
+      result: await quantstamp_audit.submitReport(requestedId, AuditState.Completed, Util.reportUri, Util.emptyReport, {from: auditor}),
       name: "LogReportSubmissionError_ExpiredAudit",
       args: (args) => {
         assert.equal(args.requestId.toNumber(), requestedId);
@@ -216,7 +216,7 @@ contract('QuantstampAudit_expires', function(accounts) {
     await Util.mineNBlocks(timeout);
 
     Util.assertEvent({
-      result: await quantstamp_audit.submitReport(requestedId1, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, Util.emptyReport, {from: auditor}),
+      result: await quantstamp_audit.submitReport(requestedId1, AuditState.Completed, Util.emptyReport, {from: auditor}),
       name: "LogReportSubmissionError_ExpiredAudit",
       args: (args) => {
         assert.equal(args.requestId.toNumber(), requestedId1);
@@ -229,14 +229,12 @@ contract('QuantstampAudit_expires', function(accounts) {
     // let's cleanup the queues
     await quantstamp_audit.getNextAuditRequest({from:auditor});
     Util.assertEventAtIndex({
-      result: await quantstamp_audit.submitReport(requestedId2, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, Util.emptyReport, {from: auditor}),
+      result: await quantstamp_audit.submitReport(requestedId2, AuditState.Completed, Util.emptyReport, {from: auditor}),
       name: "LogAuditFinished",
       args: (args) => {
         assert.equal(args.requestId.toNumber(), requestedId2);
         assert.equal(args.auditor, auditor);
         assert.equal(args.auditResult, AuditState.Completed);
-        assert.equal(args.reportUri, Util.reportUri);
-        assert.equal(args.reportHash, Util.sha256emptyFile);
       },
       index: 0
     });
@@ -278,7 +276,7 @@ contract('QuantstampAudit_expires', function(accounts) {
     assert.equal((await quantstamp_audit.assignedRequestCount.call(auditor)).toNumber(), 0);
 
     // clean up
-    await quantstamp_audit.submitReport(requestedId2, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, Util.emptyReport, {from: auditor2});
+    await quantstamp_audit.submitReport(requestedId2, AuditState.Completed, Util.emptyReport, {from: auditor2});
     await quantstamp_audit_data.removeNodeFromWhitelist(auditor2);
   });
 

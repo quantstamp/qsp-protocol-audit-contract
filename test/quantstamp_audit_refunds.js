@@ -103,7 +103,7 @@ contract('QuantstampAudit_refunds', function(accounts) {
   it("should not allow a requestor to get a refund after a report has been submitted", async function () {
     assert(await quantstamp_audit_view.getQueueLength.call(), 1);
     await quantstamp_audit.getNextAuditRequest({from:auditor});
-    await quantstamp_audit.submitReport(globalRequestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, Util.emptyReport, {from: auditor});
+    await quantstamp_audit.submitReport(globalRequestId, AuditState.Completed, Util.reportUri, Util.emptyReport, {from: auditor});
 
     Util.assertEvent({
       result: await quantstamp_audit.refund(globalRequestId, {from: requestor}),
@@ -120,7 +120,7 @@ contract('QuantstampAudit_refunds', function(accounts) {
     const requestId = Util.extractRequestId(result);
     await quantstamp_audit.refund(requestId, {from: requestor});
     Util.assertEvent({
-      result: await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, Util.emptyReport, {from: auditor}),
+      result: await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.emptyReport, {from: auditor}),
       name: "LogReportSubmissionError_InvalidState",
       args: (args) => {
         assert.equal(args.requestId, requestId);

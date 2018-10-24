@@ -34,7 +34,7 @@ contract('QuantstampAudit_multirequest', function(accounts) {
       assert.equal((await quantstamp_audit.assignedRequestCount.call(auditorTmp)).toNumber(), 0);
       const result = await quantstamp_audit.getNextAuditRequest({from: auditorTmp});
       const requestId = Util.extractRequestId(result);
-      await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.sha256emptyFile, Util.emptyReport, {from: auditorTmp});
+      await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.emptyReport, {from: auditorTmp});
       await quantstamp_audit_data.removeNodeFromWhitelist(auditorTmp);
     }
   }
