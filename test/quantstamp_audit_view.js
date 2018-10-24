@@ -9,7 +9,7 @@ const QuantstampAuditMultiRequestData = artifacts.require('QuantstampAuditMultiR
 const QuantstampAuditReportData = artifacts.require('QuantstampAuditReportData');
 
 
-contract('QuantstampAuditView_stats', function(accounts) {
+contract('QuantstampAuditView', function(accounts) {
   const owner = accounts[0];
   const requestor = accounts[2];
   const auditor = accounts[3];
@@ -153,6 +153,25 @@ contract('QuantstampAuditView_stats', function(accounts) {
     let price = 0;
     Util.assertTxFail(quantstamp_audit.requestAudit(uri, price, {from:requestor}));
     assert.equal(await quantstamp_audit_view.getQueueLength(), 0);
+  });
+
+  it("should return proper hash for an on-chain report", async function () {
+    assert.equal(await quantstamp_audit_view.getQueueLength(), 0);
+
+    const notRequestedRequestId = 11111;
+    const price = 123;
+    const report = 0xab;
+    const hashOfNonExistedReport = await quantstamp_audit_view.getReportHash(notRequestedRequestId);
+
+    await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
+    await quantstamp_audit_data.addNodeToWhitelist(auditor);
+    const requestId = Util.extractRequestId(await quantstamp_audit.getNextAuditRequest({from: auditor}));
+    await quantstamp_audit.submitReport(requestId, Util.AuditState.Completed, report, {from: auditor});
+    await quantstamp_audit_data.removeNodeFromWhitelist(auditor);
+
+    const hashOfReport = await quantstamp_audit_view.getReportHash(requestId);
+
+    assert.notEqual(hashOfNonExistedReport, hashOfReport);
   });
 
 });
