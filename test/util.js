@@ -59,9 +59,13 @@ async function allowance (token, owner, spender) {
   return (await token.allowance(owner, spender)).toNumber();
 }
 
+async function getAuditData (quantstamp_audit_data, requestId, stateIndex) {
+  return (await quantstamp_audit_data.audits.call(requestId))[stateIndex];
+}
+
 async function getAuditState (quantstamp_audit_data, requestId) {
   const stateIndex = 4;
-  return (await quantstamp_audit_data.audits.call(requestId))[stateIndex];
+  return await getAuditData(quantstamp_audit_data, requestId, stateIndex);
 }
 
 async function getEthBalance (user) {
@@ -109,6 +113,7 @@ module.exports = {
   AuditState : AuditState,
   balanceOf : balanceOf,
   allowance : allowance,
+  getAuditData: getAuditData,
   getAuditState : getAuditState,
   getEthBalance : getEthBalance,
   extractRequestId : extractRequestId,

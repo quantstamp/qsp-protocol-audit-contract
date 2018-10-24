@@ -81,6 +81,21 @@ contract('QuantstampAudit_report', function(accounts) {
     it("then the report is stored properly", async function() {
       assert.equal(parseInt(await quantstamp_audit_report_data.getReport(requestId)), submittedReport);
     });
+  });
 
+  describe("when there is no report hash in QuantstampAudit yet in QuantstampAuditData", async function () {
+    const address = accounts[2];
+
+    before(async function() {
+      await initialize();
+      await quantstamp_audit_data.addAddressToWhitelist(address);
+    });
+
+    it("should covers unreachable codes that still exist for avoiding redeployment", async function() {
+      const requestId = 10;
+      await quantstamp_audit_data.setAuditReportHash(requestId, Util.sha256emptyFile, {from: address});
+      const auditHashIndex = 7;
+      assert.equal(await Util.getAuditData(quantstamp_audit_data, requestId, auditHashIndex), Util.sha256emptyFile);
+    });
   });
 });
