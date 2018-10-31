@@ -7,6 +7,7 @@ import "openzeppelin-solidity/contracts/lifecycle/Pausable.sol";
 import "./LinkedListLib.sol";
 import "./QuantstampAuditData.sol";
 import "./QuantstampAuditMultiRequestData.sol";
+import "./QuantstampAuditReportData.sol";
 
 
 contract QuantstampAudit is Ownable, Pausable {
@@ -36,11 +37,13 @@ contract QuantstampAudit is Ownable, Pausable {
   // contract that stores multirequest audit data
   QuantstampAuditMultiRequestData public multiRequestData;
 
+  // contract that stores audit reports on-chain
+  QuantstampAuditReportData public reportData;
+
   event LogAuditFinished(
     uint256 requestId,
     address auditor,
-    QuantstampAuditData.AuditState auditResult,
-    string reportHash
+    QuantstampAuditData.AuditState auditResult
   );
 
   event LogAuditRequested(uint256 requestId,
@@ -95,13 +98,16 @@ contract QuantstampAudit is Ownable, Pausable {
 
   /**
    * @dev The constructor creates an audit contract.
-   * @param auditDataAddress The address of a AuditData that stores data used for performing audits.
+   * @param auditDataAddress The address of an AuditData that stores data used for performing audits.
+   * @param reportDataAddress The address of a ReportData that stores audit reports.
    */
-  constructor (address auditDataAddress, address multiRequestDataAddress) public {
+  constructor (address auditDataAddress, address multiRequestDataAddress, address reportDataAddress) public {
     require(auditDataAddress != address(0));
     require(multiRequestDataAddress != address(0));
+    require(reportDataAddress != address(0));
     auditData = QuantstampAuditData(auditDataAddress);
     multiRequestData = QuantstampAuditMultiRequestData(multiRequestDataAddress);
+    reportData = QuantstampAuditReportData(reportDataAddress);
   }
 
   /**
@@ -203,9 +209,9 @@ contract QuantstampAudit is Ownable, Pausable {
    * @dev Submits the report and pays the auditor node for their work if the audit is completed.
    * @param requestId Unique identifier of the audit request.
    * @param auditResult Result of an audit.
-   * @param reportHash Hash of the generated report.
+   * @param report a compressed report. TODO, let's document the report format.
    */
-  function submitReport(uint256 requestId, QuantstampAuditData.AuditState auditResult, string reportHash) public onlyWhitelisted {
+  function submitReport(uint256 requestId, QuantstampAuditData.AuditState auditResult, bytes report) public onlyWhitelisted {
     if (QuantstampAuditData.AuditState.Completed != auditResult && QuantstampAuditData.AuditState.Error != auditResult) {
       emit LogReportSubmissionError_InvalidResult(requestId, msg.sender, auditResult);
       return;
@@ -237,13 +243,15 @@ contract QuantstampAudit is Ownable, Pausable {
 
     // update the audit information held in this contract
     auditData.setAuditState(requestId, auditResult);
-    auditData.setAuditReportHash(requestId, reportHash);
     auditData.setAuditReportBlockNumber(requestId, block.number); // solhint-disable-line not-rely-on-time
 
     // validate the audit state
     require(isAuditFinished(requestId));
 
-    emit LogAuditFinished(requestId, msg.sender, auditResult, reportHash); // solhint-disable-line not-rely-on-time
+    // store reports on-chain
+    reportData.setReport(requestId, report);
+
+    emit LogAuditFinished(requestId, msg.sender, auditResult); // solhint-disable-line not-rely-on-time
 
     if (auditResult == QuantstampAuditData.AuditState.Completed) {
       uint256 auditPrice = auditData.getAuditPrice(requestId);

@@ -1,5 +1,6 @@
 const uri = "http://www.quantstamp.com/contract.sol";
 const sha256emptyFile = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+const emptyReport = 0x0;
 
 const AuditState = Object.freeze({
   None : 0,
@@ -58,9 +59,13 @@ async function allowance (token, owner, spender) {
   return (await token.allowance(owner, spender)).toNumber();
 }
 
+async function getAuditData (quantstamp_audit_data, requestId, stateIndex) {
+  return (await quantstamp_audit_data.audits.call(requestId))[stateIndex];
+}
+
 async function getAuditState (quantstamp_audit_data, requestId) {
   const stateIndex = 4;
-  return (await quantstamp_audit_data.audits.call(requestId))[stateIndex];
+  return await getAuditData(quantstamp_audit_data, requestId, stateIndex);
 }
 
 async function getEthBalance (user) {
@@ -93,6 +98,7 @@ async function mineNBlocks (n) {
 module.exports = {
   uri : uri,
   sha256emptyFile : sha256emptyFile,
+  emptyReport: emptyReport,
   toEther : toEther,
   toQsp : toEther,
   oneEther : toEther(1),
@@ -107,6 +113,7 @@ module.exports = {
   AuditState : AuditState,
   balanceOf : balanceOf,
   allowance : allowance,
+  getAuditData: getAuditData,
   getAuditState : getAuditState,
   getEthBalance : getEthBalance,
   extractRequestId : extractRequestId,

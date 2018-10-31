@@ -5,6 +5,7 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 import "./QuantstampAudit.sol";
 import "./QuantstampAuditData.sol";
+import "./QuantstampAuditReportData.sol";
 
 
 contract QuantstampAuditView is Ownable {
@@ -15,6 +16,7 @@ contract QuantstampAuditView is Ownable {
 
   QuantstampAudit public audit;
   QuantstampAuditData public auditData;
+  QuantstampAuditReportData public reportData;
   QuantstampAuditMultiRequestData public multiRequestData;
 
   struct AuditPriceStat {
@@ -32,6 +34,7 @@ contract QuantstampAuditView is Ownable {
     require(auditAddress != address(0));
     audit = QuantstampAudit(auditAddress);
     auditData = audit.auditData();
+    reportData = audit.reportData();
     multiRequestData = audit.multiRequestData();
   }
 
@@ -45,6 +48,14 @@ contract QuantstampAuditView is Ownable {
     auditData = audit.auditData();
   }
 
+  /**
+   * @dev computing hash of the report stored on-chain
+   * @param requestId corresponding requestId
+   */
+  function getReportHash(uint256 requestId) public view returns (bytes32) {
+    return keccak256(reportData.getReport(requestId));
+  }
+  
   /**
    * @dev Returns sum of min audit prices
    */

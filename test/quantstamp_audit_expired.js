@@ -3,6 +3,8 @@ const QuantstampAudit = artifacts.require('QuantstampAudit');
 const QuantstampAuditView = artifacts.require('QuantstampAuditView');
 const QuantstampAuditData = artifacts.require('QuantstampAuditData');
 const QuantstampAuditMultiRequestData = artifacts.require('QuantstampAuditMultiRequestData');
+const QuantstampAuditReportData = artifacts.require('QuantstampAuditReportData');
+
 
 const Util = require("./util.js");
 const AuditState = Util.AuditState;
@@ -19,6 +21,7 @@ contract('QuantstampAudit_expires', function(accounts) {
   let quantstamp_audit;
   let quantstamp_audit_data;
   let quantstamp_audit_multirequest_data;
+  let quantstamp_audit_report_data;
   let quantstamp_audit_view;
   let quantstamp_token;
 
@@ -26,11 +29,14 @@ contract('QuantstampAudit_expires', function(accounts) {
     quantstamp_audit = await QuantstampAudit.deployed();
     quantstamp_audit_data = await QuantstampAuditData.deployed();
     quantstamp_audit_multirequest_data = await QuantstampAuditMultiRequestData.deployed();
+    quantstamp_audit_report_data = await QuantstampAuditReportData.deployed();
     quantstamp_audit_view = await QuantstampAuditView.deployed();
     quantstamp_token = await QuantstampToken.deployed();
 
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_multirequest_data.addAddressToWhitelist(quantstamp_audit.address);
+    await quantstamp_audit_report_data.addAddressToWhitelist(quantstamp_audit.address);
+
     // enable transfers before any payments are allowed
     await quantstamp_token.enableTransfer({from : owner});
     // transfer 100,000 QSP tokens to the requestor
@@ -125,7 +131,7 @@ contract('QuantstampAudit_expires', function(accounts) {
     assert.equal((await quantstamp_audit.getNextAssignedRequest(0)).toNumber(), requestedId);
 
     Util.assertEvent({
-      result: await quantstamp_audit.submitReport(requestedId, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor}),
+      result: await quantstamp_audit.submitReport(requestedId, AuditState.Completed, Util.reportUri, Util.emptyReport, {from: auditor}),
       name: "LogReportSubmissionError_ExpiredAudit",
       args: (args) => {
         assert.equal(args.requestId.toNumber(), requestedId);
@@ -210,7 +216,7 @@ contract('QuantstampAudit_expires', function(accounts) {
     await Util.mineNBlocks(timeout);
 
     Util.assertEvent({
-      result: await quantstamp_audit.submitReport(requestedId1, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor}),
+      result: await quantstamp_audit.submitReport(requestedId1, AuditState.Completed, Util.emptyReport, {from: auditor}),
       name: "LogReportSubmissionError_ExpiredAudit",
       args: (args) => {
         assert.equal(args.requestId.toNumber(), requestedId1);
@@ -223,14 +229,12 @@ contract('QuantstampAudit_expires', function(accounts) {
     // let's cleanup the queues
     await quantstamp_audit.getNextAuditRequest({from:auditor});
     Util.assertEventAtIndex({
-      result: await quantstamp_audit.submitReport(requestedId2, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor}),
+      result: await quantstamp_audit.submitReport(requestedId2, AuditState.Completed, Util.emptyReport, {from: auditor}),
       name: "LogAuditFinished",
       args: (args) => {
         assert.equal(args.requestId.toNumber(), requestedId2);
         assert.equal(args.auditor, auditor);
         assert.equal(args.auditResult, AuditState.Completed);
-        assert.equal(args.reportUri, Util.reportUri);
-        assert.equal(args.reportHash, Util.sha256emptyFile);
       },
       index: 0
     });
@@ -272,7 +276,7 @@ contract('QuantstampAudit_expires', function(accounts) {
     assert.equal((await quantstamp_audit.assignedRequestCount.call(auditor)).toNumber(), 0);
 
     // clean up
-    await quantstamp_audit.submitReport(requestedId2, AuditState.Completed, Util.reportUri, Util.sha256emptyFile, {from: auditor2});
+    await quantstamp_audit.submitReport(requestedId2, AuditState.Completed, Util.emptyReport, {from: auditor2});
     await quantstamp_audit_data.removeNodeFromWhitelist(auditor2);
   });
 
