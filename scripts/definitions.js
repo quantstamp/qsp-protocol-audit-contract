@@ -43,7 +43,7 @@ module.exports = {
       return [argv.p[0], "0"];
     }
   },
-  'whitelist-audit-contract': {
+  'whitelist-audit-contract-in-data': {
     contractName: 'QuantstampAuditData',
     methodName: 'addAddressToWhitelist',
     gasLimit: 80000,
