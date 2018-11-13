@@ -86,7 +86,7 @@ contract('QuantstampAudit_multirequest', function(accounts) {
     it("should make sure there is enough QSP is approved to be transferred", async function() {
       const approvedRequestorBudget = requestCount * price - 1;
       await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(approvedRequestorBudget), {from : requestor});
-      Util.assertTxFail(quantstamp_audit.multiRequestAudit(Util.uri, Util.toQsp(price), requestCount, {from:requestor}));
+      await Util.assertTxFail(quantstamp_audit.multiRequestAudit(Util.uri, Util.toQsp(price), requestCount, {from:requestor}));
       // restore aproval
       await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(approvalAmount), {from : requestor});
     });
