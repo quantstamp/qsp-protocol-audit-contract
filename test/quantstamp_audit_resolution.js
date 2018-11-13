@@ -3,7 +3,7 @@ const QuantstampAudit = artifacts.require('QuantstampAudit');
 const QuantstampAuditData = artifacts.require('QuantstampAuditData');
 const QuantstampAuditMultiRequestData = artifacts.require('QuantstampAuditMultiRequestData');
 const QuantstampAuditReportData = artifacts.require('QuantstampAuditReportData');
-
+const QuantstampAuditTokenEscrow = artifacts.require('QuantstampAuditTokenEscrow');
 
 const Util = require("./util.js");
 const AuditState = Util.AuditState;
@@ -19,6 +19,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
   let quantstamp_audit_multirequest_data;
   let quantstamp_audit_report_data;
   let quantstamp_token;
+  let quantstamp_audit_token_escrow;
 
   beforeEach(async function () {
     quantstamp_audit = await QuantstampAudit.deployed();
@@ -26,6 +27,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
     quantstamp_audit_multirequest_data = await QuantstampAuditMultiRequestData.deployed();
     quantstamp_audit_report_data = await QuantstampAuditReportData.deployed();
     quantstamp_token = await QuantstampToken.deployed();
+    quantstamp_audit_token_escrow = await QuantstampAuditTokenEscrow.deployed();
 
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_multirequest_data.addAddressToWhitelist(quantstamp_audit.address);
@@ -43,6 +45,10 @@ contract('QuantstampAudit_resolution', function(accounts) {
     await quantstamp_audit_data.setMaxAssignedRequests(1000);
     // timeout requests
     await quantstamp_audit_data.setAuditTimeout(10000);
+    // add QuantstampAudit to the whitelist of the escrow
+    await quantstamp_audit_token_escrow.addAddressToWhitelist(quantstamp_audit.address);
+    // set the minimum stake to zero
+    await quantstamp_audit_token_escrow.setMinAuditStake(0, {from : owner});
   });
 
   it("should not pay the audit node for an error report", async function () {

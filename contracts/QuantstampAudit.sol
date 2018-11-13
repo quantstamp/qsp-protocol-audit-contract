@@ -8,6 +8,7 @@ import "./LinkedListLib.sol";
 import "./QuantstampAuditData.sol";
 import "./QuantstampAuditMultiRequestData.sol";
 import "./QuantstampAuditReportData.sol";
+import "./QuantstampAuditTokenEscrow.sol";
 
 
 contract QuantstampAudit is Ownable, Pausable {
@@ -40,6 +41,9 @@ contract QuantstampAudit is Ownable, Pausable {
   // contract that stores audit reports on-chain
   QuantstampAuditReportData public reportData;
 
+  // contract that stores token escrows of nodes on the network
+  QuantstampAuditTokenEscrow public tokenEscrow;
+
   event LogAuditFinished(
     uint256 requestId,
     address auditor,
@@ -65,7 +69,9 @@ contract QuantstampAudit is Ownable, Pausable {
   event LogReportSubmissionError_InvalidResult(uint256 requestId, address auditor, QuantstampAuditData.AuditState state);
   event LogReportSubmissionError_ExpiredAudit(uint256 requestId, address auditor, uint256 allowanceBlockNumber);
   event LogAuditAssignmentError_ExceededMaxAssignedRequests(address auditor);
+  event LogAuditAssignmentError_Understaked(address auditor, uint256 stake);
   event LogAuditAssignmentUpdate_Expired(uint256 requestId, uint256 allowanceBlockNumber);
+
   /* solhint-enable event-name-camelcase */
 
   event LogAuditQueueIsEmpty();
@@ -93,21 +99,25 @@ contract QuantstampAudit is Ownable, Pausable {
     Ready,      // an audit is available to be picked up
     Empty,      // there is no audit request in the queue
     Exceeded,   // number of incomplete audit requests is reached the cap
-    Underprice  // all queued audit requests are less than the expected price
+    Underprice, // all queued audit requests are less than the expected price
+    Understaked // the auditor's stake is not large enough to request its min price
   }
 
   /**
    * @dev The constructor creates an audit contract.
    * @param auditDataAddress The address of an AuditData that stores data used for performing audits.
    * @param reportDataAddress The address of a ReportData that stores audit reports.
+   * @param escrowAddress The address of a QuantstampTokenEscrow contract that holds staked deposits of nodes.
    */
-  constructor (address auditDataAddress, address multiRequestDataAddress, address reportDataAddress) public {
+  constructor (address auditDataAddress, address multiRequestDataAddress, address reportDataAddress, address escrowAddress) public {
     require(auditDataAddress != address(0));
     require(multiRequestDataAddress != address(0));
     require(reportDataAddress != address(0));
+    require(escrowAddress != address(0));
     auditData = QuantstampAuditData(auditDataAddress);
     multiRequestData = QuantstampAuditMultiRequestData(multiRequestDataAddress);
     reportData = QuantstampAuditReportData(reportDataAddress);
+    tokenEscrow = QuantstampAuditTokenEscrow(escrowAddress);
   }
 
   /**
@@ -116,6 +126,44 @@ contract QuantstampAudit is Ownable, Pausable {
   modifier onlyWhitelisted() {
     require(auditData.isWhitelisted(msg.sender));
     _;
+  }
+
+  /**
+   * @dev Allows nodes to stake a deposit. The auditor must approve QuantstampAudit before invoking.
+   * @param amount The amount of wei-QSP to deposit.
+   */
+  function stake(uint256 amount) public returns(bool) {
+    // first acquire the tokens approved by the auditor
+    auditData.token().transferFrom(msg.sender, address(this), amount);
+    // use those tokens to approve a transfer in the escrow
+    auditData.token().approve(address(tokenEscrow), amount);
+    // a "Deposited" event is emitted in TokenEscrow
+    tokenEscrow.deposit(msg.sender, amount);
+    return true;
+  }
+
+  /**
+   * @dev Allows nodes to retrieve a deposit.
+   */
+  function unstake() public returns(bool) {
+    // the escrow contract ensures that the deposit is not currently locked
+    tokenEscrow.withdraw(msg.sender);
+    return true;
+  }
+
+  /**
+   * @dev Returns the total stake deposited by an address.
+   * @param addr The address to check.
+   */
+  function totalStakedFor(address addr) public view returns(uint256) {
+    return tokenEscrow.depositsOf(addr);
+  }
+
+  /**
+   * @dev Returns the minimum stake required to be an auditor.
+   */
+  function getMinAuditStake() public view returns(uint256) {
+    return tokenEscrow.minAuditStake();
   }
 
   /**
@@ -300,6 +348,11 @@ contract QuantstampAudit is Ownable, Pausable {
       return AuditAvailabilityState.Exceeded;
     }
 
+    // check that the auditor's stake is large enough
+    if (totalStakedFor(msg.sender) < getMinAuditStake()) {
+      return AuditAvailabilityState.Understaked;
+    }
+
     requestId = anyAuditRequestMatchesPrice(auditData.getMinAuditPrice(msg.sender));
     if (requestId == 0) {
       return AuditAvailabilityState.Underprice;
@@ -337,8 +390,15 @@ contract QuantstampAudit is Ownable, Pausable {
       return;
     }
 
-    // there are no audits in the queue with a price high enough for the audit node
     uint256 minPrice = auditData.getMinAuditPrice(msg.sender);
+
+    // check that the auditor has staked enough QSP.
+    if (isRequestAvailable == AuditAvailabilityState.Understaked) {
+      emit LogAuditAssignmentError_Understaked(msg.sender, totalStakedFor(msg.sender));
+      return;
+    }
+
+    // there are no audits in the queue with a price high enough for the audit node
     uint256 requestId = dequeueAuditRequest(minPrice);
     if (requestId == 0) {
       emit LogAuditNodePriceHigherThanRequests(msg.sender, minPrice);
@@ -353,6 +413,10 @@ contract QuantstampAudit is Ownable, Pausable {
     assignedAudits.push(requestId, PREV);
 
     assignMultirequest(requestId);
+
+    // lock stake when assigned
+    // TODO (QSP-806): add the policing period to this number
+    tokenEscrow.lockFunds(msg.sender, block.number + auditData.auditTimeoutInBlocks());
 
     emit LogAuditAssigned(
       requestId,
