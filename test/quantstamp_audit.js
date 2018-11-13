@@ -8,7 +8,7 @@ const Util = require("./util.js");
 const AuditState = Util.AuditState;
 
 
-contract('QuantstampAudit', function(accounts) {
+contract.only('QuantstampAudit', function(accounts) {
   const owner = accounts[0];
   const admin = accounts[1];
   const requestor = accounts[2];
@@ -143,6 +143,65 @@ contract('QuantstampAudit', function(accounts) {
     assignedAudit = await quantstamp_audit.myMostRecentAssignedAudit.call({from: auditor});
     assert.equal(assignedAudit[0].toNumber(), requestId3); // requestId3 (not 0) is intentional:
       // if there is no new audit available, the method returns the most recently assigned one
+  });
+
+  it("myMostRecentAssignedAudit() returns the right values when the given request id is assigned to the auditor", async function() {
+    const requestId = requestCounter++;
+    Util.assertEvent({
+      result: await quantstamp_audit.requestAudit(Util.uri, price, {from:requestor}),
+      name: "LogAuditRequested",
+      args: (args) => {
+        assert.equal(args.requestId.toNumber(), requestId);
+      }
+    });
+    
+    Util.assertEvent({
+      result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
+      name: "LogAuditAssigned",
+      args: (args) => {
+        assert.equal(args.requestId.toNumber(), requestId);
+        assert.equal(args.auditor, auditor);
+      }
+    });
+
+    const assignedAudit = await quantstamp_audit.myMostRecentAssignedAudit.call({from: auditor});
+    assert.equal(assignedAudit[0].toNumber(), requestId);
+    assert.equal(assignedAudit[1], requestor);
+    assert.equal(assignedAudit[2], Util.uri);
+    assert.equal(assignedAudit[3], price);
+    assert(assignedAudit[4].toNumber() > 0); // block number
+  });
+  
+  it("myMostRecentAssignedAudit() persists the most recent audit assigned to the auditor even after the queue became empty", async function() {
+    const requestId = requestCounter++;
+    Util.assertEvent({
+      result: await quantstamp_audit.requestAudit(Util.uri, price, {from:requestor}),
+      name: "LogAuditRequested",
+      args: (args) => {
+        assert.equal(args.requestId.toNumber(), requestId);
+      }
+    });
+    
+    Util.assertEvent({
+      result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
+      name: "LogAuditAssigned",
+      args: (args) => {
+        assert.equal(args.requestId.toNumber(), requestId);
+        assert.equal(args.auditor, auditor);
+      }
+    });
+
+    let assignedAudit = await quantstamp_audit.myMostRecentAssignedAudit.call({from: auditor});
+    assert.equal(assignedAudit[0].toNumber(), requestId);
+    
+    Util.assertEvent({
+        result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
+      name: "LogAuditQueueIsEmpty",
+      args: (args) => {}
+    });
+
+    assignedAudit = await quantstamp_audit.myMostRecentAssignedAudit.call({from: auditor});
+    assert.equal(assignedAudit[0].toNumber(), requestId);
   });
 
   it("submits a report when audit is queued and auditor is correct", async function() {

@@ -31,16 +31,8 @@ contract QuantstampAudit is Ownable, Pausable {
   // list of request IDs of assigned audits (the list preserves temporal order of assignments)
   LinkedListLib.LinkedList internal assignedAudits;
 
-  // stores assigned audit fields available for node operators
-  struct AssignedAudit {
-    uint256 requestId;
-    address requestor;
-    string uri;
-    uint256 price;
-    uint256 requestBlockNumber;
-  }
-
-  mapping(address => AssignedAudit) public mostRecentAssignedAuditPerUser;
+  // stores request ids of the most recently assigned audits for each auditor
+  mapping(address => uint256) public mostRecentAssignedRequestIdsPerAuditor;
 
   // contract that stores audit data (separate from the auditing logic)
   QuantstampAuditData public auditData;
@@ -365,13 +357,7 @@ contract QuantstampAudit is Ownable, Pausable {
 
     assignMultirequest(requestId);
 
-    mostRecentAssignedAuditPerUser[msg.sender] = AssignedAudit(requestId,
-      auditData.getAuditRequestor(requestId),
-      auditData.getAuditContractUri(requestId),
-      auditData.getAuditPrice(requestId),
-      auditData.getAuditRequestBlockNumber(requestId)
-    );
-
+    mostRecentAssignedRequestIdsPerAuditor[msg.sender] = requestId;
     emit LogAuditAssigned(requestId,
       auditData.getAuditAuditor(requestId),
       auditData.getAuditRequestor(requestId),
@@ -433,12 +419,13 @@ contract QuantstampAudit is Ownable, Pausable {
     uint256, // price
     uint256  // request block number
   ) {
-    AssignedAudit memory audit = mostRecentAssignedAuditPerUser[msg.sender];
-    return (audit.requestId,
-      audit.requestor,
-      audit.uri,
-      audit.price,
-      audit.requestBlockNumber
+    uint256 requestId = mostRecentAssignedRequestIdsPerAuditor[msg.sender];
+    return (
+      requestId,
+      auditData.getAuditRequestor(requestId),
+      auditData.getAuditContractUri(requestId),
+      auditData.getAuditPrice(requestId),
+      auditData.getAuditRequestBlockNumber(requestId)
     );
   }
 
