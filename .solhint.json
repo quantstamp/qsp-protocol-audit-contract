@@ -2,6 +2,7 @@
   "extends": "default",
   "rules": {
     "max-line-length": false,
+    "function-max-lines": [60],
     "indent": ["warn", 2]
   }
 }
