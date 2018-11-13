@@ -8,7 +8,7 @@ const Util = require("./util.js");
 const AuditState = Util.AuditState;
 
 
-contract.only('QuantstampAudit', function(accounts) {
+contract('QuantstampAudit', function(accounts) {
   const owner = accounts[0];
   const admin = accounts[1];
   const requestor = accounts[2];
