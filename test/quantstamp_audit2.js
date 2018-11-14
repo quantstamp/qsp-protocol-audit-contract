@@ -3,6 +3,7 @@ const QuantstampAuditData = artifacts.require('QuantstampAuditData');
 const QuantstampAuditMultiRequestData = artifacts.require('QuantstampAuditMultiRequestData');
 const QuantstampAuditReportData = artifacts.require('QuantstampAuditReportData');
 const QuantstampAudit = artifacts.require('QuantstampAudit');
+const QuantstampAuditPolice = artifacts.require('QuantstampAuditPolice');
 const Util = require("./util.js");
 const AuditState = Util.AuditState;
 
@@ -20,6 +21,7 @@ contract('QuantstampAudit2', function(accounts) {
   let quantstamp_audit_data;
   let quantstamp_audit_multirequest_data;
   let quantstamp_audit_report_data;
+  let quantstamp_audit_police;
   let quantstamp_audit;
   let quantstamp_token;
 
@@ -29,10 +31,12 @@ contract('QuantstampAudit2', function(accounts) {
     quantstamp_audit_multirequest_data = await QuantstampAuditMultiRequestData.deployed();
     quantstamp_audit_report_data = await QuantstampAuditReportData.deployed();
     quantstamp_audit = await QuantstampAudit.deployed();
+    quantstamp_audit_police = await QuantstampAuditPolice.deployed();
 
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_multirequest_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_report_data.addAddressToWhitelist(quantstamp_audit.address);
+    await quantstamp_audit_police.addAddressToWhitelist(quantstamp_audit.address);
 
     // enable transfers before any payments are allowed
     await quantstamp_token.enableTransfer({from : owner});
@@ -66,62 +70,6 @@ contract('QuantstampAudit2', function(accounts) {
     assert.equal(await quantstamp_audit.isAuditFinished(requestId), false);
   });
 
-  it("should pay the auditor for their work", async function () {
-    const price = Util.toQsp(35);
-    requestCounter++;
-    const result = await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor});
-    const requestId = Util.extractRequestId(result);
-
-    Util.assertEventAtIndex({
-      result: result,
-      name: "LogAuditRequested",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId);
-      },
-      index: 0
-    });
-
-    const result2 = await quantstamp_audit.getNextAuditRequest({from: auditor});
-    const requestId2 = Util.extractRequestId(result2);
-    Util.assertEvent({
-      result: result2,
-      name: "LogAuditAssigned",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId2);
-        assert.equal(args.auditor, auditor);
-      }
-    });
-
-    const result3 = await quantstamp_audit.submitReport(requestId2, AuditState.Completed, Util.emptyReport, {from : auditor});
-
-    Util.assertEventAtIndex({
-      result: result3,
-      name: "LogAuditFinished",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId2);
-        assert.equal(args.auditor, auditor);
-        assert.equal(args.auditResult, AuditState.Completed);
-      },
-      index: 0
-    });
-
-    Util.assertEventAtIndex({
-      result: result3,
-      name: "LogPayAuditor",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId2);
-        assert.equal(args.auditor, auditor);
-        assert.equal(args.amount, price);
-      },
-      index: 1
-    });
-
-    const res = await quantstamp_audit.isAuditFinished(requestId2);
-    assert.equal(await quantstamp_audit.isAuditFinished(requestId2), true);
-    // all contract's tokens should be moved to the auditor's wallet
-    assert.equal(await Util.balanceOf(quantstamp_token, auditor), price);
-  });
-
   it("should log incremented request id when auditing", async function () {
     const firstRequestUri = "http://www.quantstamp.com/contract01.sol";
     const secondRequestUri = "http://www.quantstamp.com/contract02.sol";
@@ -136,25 +84,6 @@ contract('QuantstampAudit2', function(accounts) {
     assert.equal(secondAuditRequestResult.logs.length, 1);
     assert.equal(secondAuditRequestResult.logs[0].event, "LogAuditRequested");
     assert.equal(secondAuditRequestResult.logs[0].args.requestId.toNumber(), firstRequestId + 1);
-  });
-
-  it("should log start timestamp when paying auditors", async function () {
-    const requestUri = "http://www.quantstamp.com/contract04.sol";
-    const price = Util.toQsp(25);
-    const auditor = accounts[4];
-
-    // whitelisting another auditor
-    await quantstamp_audit_data.addNodeToWhitelist(auditor);
-
-    const auditRequestResult = await quantstamp_audit.requestAudit(requestUri, price, {from : requestor});
-    const result = await quantstamp_audit.getNextAuditRequest({from: auditor});
-    const requestId = Util.extractRequestId(result);
-
-    const result2 = await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.emptyReport, {from : auditor});
-    assert.equal(await quantstamp_audit.isAuditFinished(requestId), true);
-    assert.equal(result2.logs.length, 2);
-    assert.equal(result2.logs[0].event, "LogAuditFinished");
-    assert.equal(result2.logs[1].event, "LogPayAuditor");
   });
 
   it("should revert if the user tries to request an audit with an insufficient token allowance", async function () {
