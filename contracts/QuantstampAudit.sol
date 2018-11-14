@@ -132,7 +132,7 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Allows nodes to stake a deposit. The auditor must approve QuantstampAudit before invoking.
+   * @dev Allows nodes to stake a deposit. The audit node must approve QuantstampAudit before invoking.
    * @param amount The amount of wei-QSP to deposit.
    */
   function stake(uint256 amount) external returns(bool) {
@@ -146,7 +146,7 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Allows auditors to retrieve a deposit.
+   * @dev Allows audit nodes to retrieve a deposit.
    */
   function unstake() external returns(bool) {
     // the escrow contract ensures that the deposit is not currently locked
