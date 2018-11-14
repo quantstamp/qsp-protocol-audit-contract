@@ -102,7 +102,7 @@ contract QuantstampAudit is Ownable, Pausable {
     Ready,      // an audit is available to be picked up
     Empty,      // there is no audit request in the queue
     Exceeded,   // number of incomplete audit requests is reached the cap
-    Underprice, // all queued audit requests are less than the expected price
+    Underpriced, // all queued audit requests are less than the expected price
     Understaked // the auditor's stake is not large enough to request its min price
   }
 
@@ -365,7 +365,7 @@ contract QuantstampAudit is Ownable, Pausable {
 
     requestId = anyAuditRequestMatchesPrice(auditData.getMinAuditPrice(msg.sender));
     if (requestId == 0) {
-      return AuditAvailabilityState.Underprice;
+      return AuditAvailabilityState.Underpriced;
     }
     return AuditAvailabilityState.Ready;
   }

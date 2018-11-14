@@ -17,7 +17,7 @@ const AuditAvailabilityState = Object.freeze({
   Ready : 1,
   Empty : 2,
   Exceeded : 3,
-  Underprice : 4,
+  Underpriced : 4,
   Understaked : 5
 });
 
