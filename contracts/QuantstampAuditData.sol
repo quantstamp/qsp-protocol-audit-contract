@@ -49,8 +49,8 @@ contract QuantstampAuditData is Whitelist {
   // that transfer function (such as transferFrom, transfer) do the right thing
   StandardToken public token;
 
-  // Once an audit node gets an audit request, the audit price is locked for this many blocks.
-  // After that, the requestor can asks for a refund.
+  // Once an audit node gets an audit request, they must submit a report within this many blocks.
+  // After that, the report is verified by the police.
   uint256 public auditTimeoutInBlocks = 25;
 
   // maximum number of assigned audits per each auditor

@@ -8,6 +8,7 @@ import "./LinkedListLib.sol";
 import "./QuantstampAuditData.sol";
 import "./QuantstampAuditMultiRequestData.sol";
 import "./QuantstampAuditReportData.sol";
+import "./QuantstampAuditPolice.sol";
 
 
 contract QuantstampAudit is Ownable, Pausable {
@@ -42,6 +43,9 @@ contract QuantstampAudit is Ownable, Pausable {
 
   // contract that stores audit reports on-chain
   QuantstampAuditReportData public reportData;
+
+  // contract that handles policing
+  QuantstampAuditPolice public police;
 
   event LogAuditFinished(
     uint256 requestId,
@@ -104,13 +108,15 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param auditDataAddress The address of an AuditData that stores data used for performing audits.
    * @param reportDataAddress The address of a ReportData that stores audit reports.
    */
-  constructor (address auditDataAddress, address multiRequestDataAddress, address reportDataAddress) public {
+  constructor (address auditDataAddress, address multiRequestDataAddress, address reportDataAddress, address policeAddress) public {
     require(auditDataAddress != address(0));
     require(multiRequestDataAddress != address(0));
     require(reportDataAddress != address(0));
+    require(policeAddress != address(0));
     auditData = QuantstampAuditData(auditDataAddress);
     multiRequestData = QuantstampAuditMultiRequestData(multiRequestDataAddress);
     reportData = QuantstampAuditReportData(reportDataAddress);
+    police = QuantstampAuditPolice(policeAddress);
   }
 
   /**
@@ -257,10 +263,43 @@ contract QuantstampAudit is Ownable, Pausable {
     emit LogAuditFinished(requestId, msg.sender, auditResult); // solhint-disable-line not-rely-on-time
 
     if (auditResult == QuantstampAuditData.AuditState.Completed) {
-      uint256 auditPrice = auditData.getAuditPrice(requestId);
-      auditData.token().transfer(msg.sender, auditPrice);
-      emit LogPayAuditor(requestId, msg.sender, auditPrice);
+      // alert the police to verify the report
+      police.assignPoliceToReport(requestId);
     }
+  }
+
+  /**
+   * @dev Submits verification of a report by a police node.
+   * @param requestId The ID of the audit request.
+   * @param report The compressed bytecode representation of the report.
+   * @param isVerified Whether the police node's report matches the submitted report.
+   *                   If not, the auditor is slashed.
+   */
+  function submitPoliceReport(
+    uint256 requestId,
+    bytes report,
+    bool isVerified) public {
+    require(police.isPoliceNode(msg.sender));
+    police.submitPoliceReport(msg.sender, requestId, report, isVerified);
+  }
+
+  /**
+   * @dev If the policing period has ended without the report being marked invalid,
+   *      allow the auditor to claim the audit's reward.
+   * @param requestId The ID of the audit request.
+   */
+  function claimAuditReward (uint256 requestId) public returns (bool) {
+    // the sender must be the auditor
+    require(msg.sender == auditData.getAuditAuditor(requestId));
+    // the submitted report was marked completed
+    require(auditData.getAuditState(requestId) ==  QuantstampAuditData.AuditState.Completed);
+    // the police allow the reward to be claimed
+    require(police.canBeClaimed(requestId));
+
+    uint256 auditPrice = auditData.getAuditPrice(requestId);
+    auditData.token().transfer(msg.sender, auditPrice);
+    emit LogPayAuditor(requestId, msg.sender, auditPrice);
+    return true;
   }
 
   /**
@@ -308,6 +347,14 @@ contract QuantstampAudit is Ownable, Pausable {
       return AuditAvailabilityState.Underprice;
     }
     return AuditAvailabilityState.Ready;
+  }
+
+  /**
+   * @dev returns the next assigned report in a police node's assignment queue.
+   * @return true if the list is non-empty, and the request ID of the report if exists.
+   */
+  function getNextPoliceAssignment() public view returns (bool, uint256) {
+    return police.getNextPoliceAssignment(msg.sender);
   }
 
   /**
