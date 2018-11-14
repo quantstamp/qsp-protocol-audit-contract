@@ -12,6 +12,12 @@ const AuditState = Object.freeze({
   Expired: 6
 });
 
+const PoliceReportState = Object.freeze({
+  Unverified : 0,
+  Invalid : 1,
+  Valid : 2
+});
+
 function toEther (n) {
   return web3.toWei(n, "ether");
 }
@@ -111,6 +117,7 @@ module.exports = {
   assertEvent : assertEvent,
   assertEventAtIndex : assertEventAtIndex,
   AuditState : AuditState,
+  PoliceReportState : PoliceReportState,
   balanceOf : balanceOf,
   allowance : allowance,
   getAuditData: getAuditData,

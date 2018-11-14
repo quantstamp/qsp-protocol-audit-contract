@@ -199,6 +199,14 @@ contract QuantstampAuditPolice is Whitelist {
   }
 
   /**
+   * @dev Sets the police timeout.
+   * @param numBlocks The number of blocks for the timeout.
+   */
+  function setPoliceTimeoutInBlocks(uint256 numBlocks) public onlyOwner {
+    policeTimeoutInBlocks = numBlocks;
+  }
+
+  /**
    * @dev Returns true if a node is whitelisted
    * @param node Node to check.
    */
