@@ -133,7 +133,6 @@ contract('QuantstampAudit', function(accounts) {
     await Util.assertTxFail(quantstamp_audit.unstake({from : auditor}));
   });
 
-
   it("funds should be unlocked after the lock period ends", async function() {
     // TODO (QSP-806): this amount must include the policing period
     const lock_period_length = (await quantstamp_audit_data.auditTimeoutInBlocks()).toNumber() + 1;
@@ -141,7 +140,4 @@ contract('QuantstampAudit', function(accounts) {
     await quantstamp_audit.unstake({from : auditor});
     assert.equal(0, await quantstamp_audit.totalStakedFor(auditor));
   });
-
-
-
 });
