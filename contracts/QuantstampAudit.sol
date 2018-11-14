@@ -143,7 +143,7 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Allows nodes to retrieve a deposit.
+   * @dev Allows auditors to retrieve a deposit.
    */
   function unstake() public returns(bool) {
     // the escrow contract ensures that the deposit is not currently locked

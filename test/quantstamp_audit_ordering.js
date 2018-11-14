@@ -108,17 +108,6 @@ contract('QuantstampAudit_ordering', function(accounts) {
     await quantstamp_audit_token_escrow.addAddressToWhitelist(quantstamp_audit.address);
     // set the minimum stake to zero
     await quantstamp_audit_token_escrow.setMinAuditStake(0, {from : owner});
-    // TODO: move to policing
-    /*
-    // get the minimum stake needed to be an auditor
-    const min_stake = await quantstamp_audit.getMinAuditStake();
-    // transfer min_stake QSP tokens to the auditor
-    await quantstamp_token.transfer(auditor, min_stake, {from : owner});
-    // approve the audit contract to use up to min_stake for staking
-    await quantstamp_token.approve(quantstamp_audit.address, min_stake, {from : auditor});
-    // the auditor stakes enough tokens
-    const result = await quantstamp_audit.stake(min_stake, {from : auditor});
-    */
   });
 
   it("queues requests with different prices in the correct order", async function() {

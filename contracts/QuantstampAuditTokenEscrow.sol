@@ -30,7 +30,7 @@ contract QuantstampAuditTokenEscrow is ConditionalTokenEscrow {
    * @param _payee The address that wants to withdraw funds.
    */
   function withdrawalAllowed(address _payee) public view returns (bool) {
-    return !lockedFunds[_payee] || unlockBlockNumber[_payee] <= block.number;
+    return !lockedFunds[_payee] || unlockBlockNumber[_payee] < block.number;
   }
 
   /**
@@ -38,7 +38,6 @@ contract QuantstampAuditTokenEscrow is ConditionalTokenEscrow {
    * @param _payee The address that will be locked.
    */
   function lockFunds(address _payee, uint256 _unlockBlockNumber) public onlyWhitelisted returns (bool) {
-    require(_unlockBlockNumber > block.number);
     lockedFunds[_payee] = true;
     unlockBlockNumber[_payee] = _unlockBlockNumber;
     return true;
