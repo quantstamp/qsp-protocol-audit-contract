@@ -359,7 +359,7 @@ contract QuantstampAudit is Ownable, Pausable {
     }
 
     // check that the auditor's stake is large enough
-    if (totalStakedFor(msg.sender) < getMinAuditStake()) {
+    if (!hasEnoughStake()) {
       return AuditAvailabilityState.Understaked;
     }
 
