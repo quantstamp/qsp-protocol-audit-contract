@@ -51,13 +51,4 @@ contract QuantstampAuditTokenEscrow is ConditionalTokenEscrow {
     unlockBlockNumber[_payee] = _unlockBlockNumber;
     return true;
   }
-
-  /**
-   * @dev Allows the payee to withdraw funds.
-   * @param _payee The address that will be unlocked.
-   */
-  function unlockFunds(address _payee) public onlyWhitelisted returns (bool) {
-    lockedFunds[_payee] = false;
-    return true;
-  }
 }
