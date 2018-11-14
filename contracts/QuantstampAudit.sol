@@ -324,6 +324,13 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
+   * @dev Returns true if the sender staked enough.
+   */
+  function didStakeEnough() public view returns(bool) {
+    return tokenEscrow.didStakeEnough(msg.sender);
+  }
+
+  /**
    * @dev Returns the minimum stake required to be an auditor.
    */
   function getMinAuditStake() public view returns(uint256) {
@@ -420,7 +427,7 @@ contract QuantstampAudit is Ownable, Pausable {
 
     // lock stake when assigned
     // TODO (QSP-806): add the policing period to this number
-    tokenEscrow.lockFunds(msg.sender, block.number + auditData.auditTimeoutInBlocks());
+    tokenEscrow.lockFunds(msg.sender, block.number.add(auditData.auditTimeoutInBlocks()));
     
     mostRecentAssignedRequestIdsPerAuditor[msg.sender] = requestId;
     emit LogAuditAssigned(requestId,

@@ -27,6 +27,14 @@ contract QuantstampAuditTokenEscrow is ConditionalTokenEscrow {
   }
 
   /**
+   * @dev Returns true if the sender staked enough.
+   * @param addr The address to check.
+   */
+  function didStakeEnough(address addr) public view returns(bool) {
+    return depositsOf(addr) >= minAuditStake;
+  }
+
+  /**
    * @dev Overrides ConditionalTokenEscrow function. If true, funds may be withdrawn.
    * @param _payee The address that wants to withdraw funds.
    */
