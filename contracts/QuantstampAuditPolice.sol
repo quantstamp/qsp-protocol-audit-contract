@@ -4,7 +4,7 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Whitelist.sol";
 import "./LinkedListLib.sol";
 
-
+// TODO (QSP-833): salary and taxing
 contract QuantstampAuditPolice is Whitelist {
   using SafeMath for uint256;
   using LinkedListLib for LinkedListLib.LinkedList;
@@ -38,13 +38,11 @@ contract QuantstampAuditPolice is Whitelist {
   // TODO: we may want these parameters indexed
   event PoliceNodeAssignedToReport(address policeNode, uint256 requestId);
   event PoliceReportSubmitted(address policeNode, uint256 requestId, PoliceReportState reportState);
-  // TODO create more events
-  // TODO salary
 
   // pointer to the address that was last assigned to a report
   address lastAssignedPoliceNode = address(HEAD);
 
-  // maps each police nodes to the IDs of reports it should check
+  // maps each police node to the IDs of reports it should check
   mapping(address => LinkedListLib.LinkedList) internal assignedReports;
 
   // maps request IDs to police timeouts
@@ -53,7 +51,7 @@ contract QuantstampAuditPolice is Whitelist {
   // maps request IDs to reports submitted by police nodes
   mapping(uint256 => mapping(address => bytes)) public policeReports;
 
-  // maps request IDs to reports to whether they have been verified by the police
+  // maps request IDs to whether they have been verified by the police
   mapping(uint256 => PoliceReportState) public verifiedReports;
 
   // maps request IDs to whether they have been claimed by the submitter
@@ -148,13 +146,14 @@ contract QuantstampAuditPolice is Whitelist {
     }
     else {
       verifiedReports[requestId] = PoliceReportState.INVALID;
-      // TODO: slash the auditor
+      // TODO (QSP-832): slash the auditor, be careful of double slash logic
       require(false);
     }
   }
 
   /**
    * @dev Determines whether an auditor is allowed by the police to claim an audit.
+   *      This function also ensures double payment does not occur.
    * @param requestId The ID of the requested audit.
    */
   function canBeClaimed (uint256 requestId) public onlyWhitelisted returns (bool) {
@@ -164,7 +163,7 @@ contract QuantstampAuditPolice is Whitelist {
     require(policeTimeouts[requestId] < block.number);
     // the reward has not already been claimed
     require(!rewardHasBeenClaimed[requestId]);
-    // set the
+    // set the reward to claimed, to avoid double payment
     rewardHasBeenClaimed[requestId] = true;
     return true;
   }
