@@ -132,7 +132,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @dev Allows nodes to stake a deposit. The auditor must approve QuantstampAudit before invoking.
    * @param amount The amount of wei-QSP to deposit.
    */
-  function stake(uint256 amount) public returns(bool) {
+  function stake(uint256 amount) external returns(bool) {
     // first acquire the tokens approved by the auditor
     auditData.token().transferFrom(msg.sender, address(this), amount);
     // use those tokens to approve a transfer in the escrow
@@ -145,25 +145,10 @@ contract QuantstampAudit is Ownable, Pausable {
   /**
    * @dev Allows auditors to retrieve a deposit.
    */
-  function unstake() public returns(bool) {
+  function unstake() external returns(bool) {
     // the escrow contract ensures that the deposit is not currently locked
     tokenEscrow.withdraw(msg.sender);
     return true;
-  }
-
-  /**
-   * @dev Returns the total stake deposited by an address.
-   * @param addr The address to check.
-   */
-  function totalStakedFor(address addr) public view returns(uint256) {
-    return tokenEscrow.depositsOf(addr);
-  }
-
-  /**
-   * @dev Returns the minimum stake required to be an auditor.
-   */
-  function getMinAuditStake() public view returns(uint256) {
-    return tokenEscrow.minAuditStake();
   }
 
   /**
@@ -328,6 +313,21 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
+   * @dev Returns the total stake deposited by an address.
+   * @param addr The address to check.
+   */
+  function totalStakedFor(address addr) public view returns(uint256) {
+    return tokenEscrow.depositsOf(addr);
+  }
+
+  /**
+   * @dev Returns the minimum stake required to be an auditor.
+   */
+  function getMinAuditStake() public view returns(uint256) {
+    return tokenEscrow.minAuditStake();
+  }
+
+  /**
    * @dev Determines if there is an audit request available to be picked up by the caller
    */
   function anyRequestAvailable() public view returns(AuditAvailabilityState) {
@@ -363,6 +363,7 @@ contract QuantstampAudit is Ownable, Pausable {
   /**
    * @dev Finds a list of most expensive audits and assigns the oldest one to the auditor node.
    */
+  /* solhint-disable function-max-lines */
   function getNextAuditRequest() public onlyWhitelisted {
     // remove an expired audit request
     if (assignedAudits.listExists()) {
@@ -426,6 +427,7 @@ contract QuantstampAudit is Ownable, Pausable {
       auditData.getAuditPrice(requestId),
       auditData.getAuditRequestBlockNumber(requestId));
   }
+  /* solhint-enable function-max-lines */
 
   /**
    * @dev Allows the audit node to set its minimum price per audit in wei-QSP

@@ -2,6 +2,7 @@ pragma solidity 0.4.24;
 
 import "./token_escrow/ConditionalTokenEscrow.sol";
 
+
 contract QuantstampAuditTokenEscrow is ConditionalTokenEscrow {
 
   // The minimum amount of weiQSP that must be staked in order to be a node
@@ -15,7 +16,7 @@ contract QuantstampAuditTokenEscrow is ConditionalTokenEscrow {
   mapping(address => uint256) public unlockBlockNumber;
 
   // the constructor of TokenEscrow requires an ERC20, not an address
-  constructor(address tokenAddress) TokenEscrow(ERC20(tokenAddress)) public { }
+  constructor(address tokenAddress) public TokenEscrow(ERC20(tokenAddress)) {} // solhint-disable no-empty-blocks
 
   /**
    * @dev Sets the minimum stake to a new value.
