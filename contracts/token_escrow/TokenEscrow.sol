@@ -1,6 +1,7 @@
 /**
  * NOTE: All contracts in this directory were taken from a non-master branch of openzeppelin-solidity.
  * This contract was modified to be a whitelist.
+ * Commit: ed451a8688d1fa7c927b27cec299a9726667d9b1
  */
 
 pragma solidity ^0.4.24;
