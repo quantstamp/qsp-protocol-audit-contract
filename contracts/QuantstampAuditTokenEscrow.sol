@@ -5,7 +5,7 @@ import "./token_escrow/ConditionalTokenEscrow.sol";
 
 contract QuantstampAuditTokenEscrow is ConditionalTokenEscrow {
 
-  // The minimum amount of weiQSP that must be staked in order to be a node
+  // The minimum amount of wei-QSP that must be staked in order to be a node
   uint256 public minAuditStake = 10000 * (10 ** 18);
 
   // if true, the payee cannot currently withdraw their funds
