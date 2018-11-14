@@ -326,8 +326,8 @@ contract QuantstampAudit is Ownable, Pausable {
   /**
    * @dev Returns true if the sender staked enough.
    */
-  function didStakeEnough() public view returns(bool) {
-    return tokenEscrow.didStakeEnough(msg.sender);
+  function hasEnoughStake() public view returns(bool) {
+    return tokenEscrow.hasEnoughStake(msg.sender);
   }
 
   /**
