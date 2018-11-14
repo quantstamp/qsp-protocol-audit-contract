@@ -137,7 +137,7 @@ contract QuantstampAudit is Ownable, Pausable {
    */
   function stake(uint256 amount) external returns(bool) {
     // first acquire the tokens approved by the auditor
-    auditData.token().transferFrom(msg.sender, address(this), amount);
+    require(auditData.token().transferFrom(msg.sender, address(this), amount));
     // use those tokens to approve a transfer in the escrow
     auditData.token().approve(address(tokenEscrow), amount);
     // a "Deposited" event is emitted in TokenEscrow
@@ -229,7 +229,7 @@ contract QuantstampAudit is Ownable, Pausable {
   function requestAudit(string contractUri, uint256 price) public whenNotPaused returns(uint256) {
     require(price > 0);
     // transfer tokens to this contract
-    auditData.token().transferFrom(msg.sender, address(this), price);
+    require(auditData.token().transferFrom(msg.sender, address(this), price));
     // store the audit
     uint256 requestId = auditData.addAuditRequest(msg.sender, contractUri, price);
 
