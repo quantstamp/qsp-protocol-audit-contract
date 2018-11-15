@@ -354,7 +354,38 @@ contract('QuantstampAuditPolice', function(accounts) {
     assert.equal(result[1], 0);
   });
 
+  it("attempting to remove a non-police node should not decrement the police count", async function() {
+    const num_police_before = await quantstamp_audit_police.numPoliceNodes();
+    // requestor is not in the police
+    await quantstamp_audit_police.removePoliceNode(requestor);
+    const num_police_after = await quantstamp_audit_police.numPoliceNodes();
+    assert.equal(num_police_before.toNumber(), num_police_after.toNumber());
+  });
+
+  it("attempting to add an existing police node should not increment the police count", async function() {
+    const num_police_before = await quantstamp_audit_police.numPoliceNodes();
+    await quantstamp_audit_police.addPoliceNode(all_police[0]);
+    const num_police_after = await quantstamp_audit_police.numPoliceNodes();
+    assert.equal(num_police_before.toNumber(), num_police_after.toNumber());
+  });
 
 
+  it("should allow auditors to submit reports even if there are no whitelisted police", async function() {
+    for(var i = 0; i < all_police.length; i++) {
+      await quantstamp_audit_police.removePoliceNode(all_police[i]);
+    }
+    all_police = [];
+    assert.equal(await quantstamp_audit_police.numPoliceNodes(), 0);
+    const balance_before = await Util.balanceOf(quantstamp_token, auditor);
+
+    currentId = await submitNewReport();
+    const num_blocks = police_timeout + 1;
+    await Util.mineNBlocks(num_blocks);
+
+    await quantstamp_audit.claimAuditReward(currentId, {from: auditor});
+
+    const balance_after = await Util.balanceOf(quantstamp_token, auditor);
+    assert.equal(balance_before + price, balance_after);
+  });
 });
 

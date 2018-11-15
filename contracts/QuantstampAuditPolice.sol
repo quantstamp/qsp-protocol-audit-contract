@@ -261,21 +261,19 @@ contract QuantstampAuditPolice is Whitelist {
    */
   function removeExpiredAssignments (address policeNode, uint256 requestId) internal returns (bool) {
     bool hasRemovedCurrentId = false;
-    if (assignedReports[policeNode].listExists()) {
-      bool exists;
-      uint256 potentialExpiredRequestId;
-      (exists, potentialExpiredRequestId) = assignedReports[policeNode].getAdjacent(HEAD, NEXT);
-      while (exists && potentialExpiredRequestId != HEAD) {
-        if (policeTimeouts[potentialExpiredRequestId] < block.number) {
-          assignedReports[policeNode].remove(potentialExpiredRequestId);
-          if (potentialExpiredRequestId == requestId) {
-            hasRemovedCurrentId = true;
-          }
-          (exists, potentialExpiredRequestId) = assignedReports[policeNode].getAdjacent(HEAD, NEXT);
-        } else {
-          // the list is in chronological order
-          break;
+    bool exists;
+    uint256 potentialExpiredRequestId;
+    (exists, potentialExpiredRequestId) = assignedReports[policeNode].getAdjacent(HEAD, NEXT);
+    while (exists && potentialExpiredRequestId != HEAD) {
+      if (policeTimeouts[potentialExpiredRequestId] < block.number) {
+        assignedReports[policeNode].remove(potentialExpiredRequestId);
+        if (potentialExpiredRequestId == requestId) {
+          hasRemovedCurrentId = true;
         }
+        (exists, potentialExpiredRequestId) = assignedReports[policeNode].getAdjacent(HEAD, NEXT);
+      } else {
+        // the list is in chronological order
+        break;
       }
     }
     return hasRemovedCurrentId;
