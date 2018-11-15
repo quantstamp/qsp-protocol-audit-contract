@@ -103,7 +103,6 @@ contract('QuantstampAuditPolice', function(accounts) {
 
   it("should not allow the police to submit a report after the police timeout", async function() {
     const result = await quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, true, {from: police1});
-
     Util.assertNestedEvent({
       result: result,
       name: "PoliceSubmissionPeriodExceeded",

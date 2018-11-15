@@ -294,7 +294,7 @@ contract QuantstampAudit is Ownable, Pausable {
     // the sender must be the auditor
     require(msg.sender == auditData.getAuditAuditor(requestId));
     // the submitted report was marked completed
-    require(auditData.getAuditState(requestId) ==  QuantstampAuditData.AuditState.Completed);
+    require(auditData.getAuditState(requestId) == QuantstampAuditData.AuditState.Completed);
     // the police allow the reward to be claimed
     require(police.canBeClaimed(requestId));
 

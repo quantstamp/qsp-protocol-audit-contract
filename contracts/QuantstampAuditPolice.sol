@@ -4,6 +4,7 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Whitelist.sol";
 import "./LinkedListLib.sol";
 
+
 // TODO (QSP-833): salary and taxing
 contract QuantstampAuditPolice is Whitelist {
   using SafeMath for uint256;
@@ -89,34 +90,6 @@ contract QuantstampAuditPolice is Whitelist {
   }
 
   /**
-   * Cleans the list of assignments to a given police node.
-   * @param policeNode The address of the police node.
-   * @param requestId The ID of the audit request.
-   * @return true if the current request ID gets removed during cleanup.
-   */
-  function removeExpiredAssignments (address policeNode, uint256 requestId) internal returns (bool) {
-    bool hasRemovedCurrentId = false;
-    if (assignedReports[policeNode].listExists()) {
-      bool exists = true;
-      uint256 potentialExpiredRequestId;
-      while (exists) {
-        (exists, potentialExpiredRequestId) = assignedReports[policeNode].getAdjacent(HEAD, NEXT);
-        if (policeTimeouts[potentialExpiredRequestId] < block.number) {
-          assignedReports[policeNode].remove(potentialExpiredRequestId);
-          if (potentialExpiredRequestId == requestId) {
-            hasRemovedCurrentId = true;
-          }
-        }
-        else {
-          // the list is in chronological order
-          break;
-        }
-      }
-    }
-    return hasRemovedCurrentId;
-  }
-
-  /**
    * @dev Submits verification of a report by a police node.
    * @param policeNode The address of the police node.
    * @param requestId The ID of the audit request.
@@ -131,7 +104,7 @@ contract QuantstampAuditPolice is Whitelist {
     bytes report,
     bool isVerified) public onlyWhitelisted returns (bool) {
     // remove expired assignments
-    bool hasRemovedCurrentId = removeExpiredAssignments(policeNode);
+    bool hasRemovedCurrentId = removeExpiredAssignments(policeNode, requestId);
     // if the current request has timed out, return
     if (hasRemovedCurrentId) {
       emit PoliceSubmissionPeriodExceeded(requestId, policeTimeouts[requestId], block.number);
@@ -149,16 +122,14 @@ contract QuantstampAuditPolice is Whitelist {
     PoliceReportState state;
     if (isVerified) {
       state = PoliceReportState.VALID;
-    }
-    else{
+    } else {
       state = PoliceReportState.INVALID;
     }
     emit PoliceReportSubmitted(policeNode, requestId, state);
     // the report was already marked invalid by a different police node
     if (verifiedReports[requestId] == PoliceReportState.INVALID) {
       return;
-    }
-    else {
+    } else {
       verifiedReports[requestId] = state;
     }
     if (!isVerified) {
@@ -197,8 +168,7 @@ contract QuantstampAuditPolice is Whitelist {
     while (exists && requestId != HEAD) {
       if (policeTimeouts[requestId] < block.number) {
         (exists, requestId) = assignedReports[policeNode].getAdjacent(requestId, NEXT);
-      }
-      else {
+      } else {
         return (exists, requestId);
       }
     }
@@ -251,7 +221,7 @@ contract QuantstampAuditPolice is Whitelist {
     // if lastAssignedPoliceNode is addr, need to move the pointer
     bool exists;
     uint256 next;
-    if(lastAssignedPoliceNode == addr) {
+    if (lastAssignedPoliceNode == addr) {
       (exists, next) = policeList.getAdjacent(uint256(addr), NEXT);
       lastAssignedPoliceNode = address(next);
     }
@@ -281,5 +251,33 @@ contract QuantstampAuditPolice is Whitelist {
 
   function isAssigned(uint256 requestId, address policeAddr) public view returns (bool) {
     return assignedReports[policeAddr].nodeExists(requestId);
+  }
+
+  /**
+   * Cleans the list of assignments to a given police node.
+   * @param policeNode The address of the police node.
+   * @param requestId The ID of the audit request.
+   * @return true if the current request ID gets removed during cleanup.
+   */
+  function removeExpiredAssignments (address policeNode, uint256 requestId) internal returns (bool) {
+    bool hasRemovedCurrentId = false;
+    if (assignedReports[policeNode].listExists()) {
+      bool exists = true;
+      uint256 potentialExpiredRequestId;
+      (exists, potentialExpiredRequestId) = assignedReports[policeNode].getAdjacent(HEAD, NEXT);
+      while (exists && potentialExpiredRequestId != HEAD) {
+        if (policeTimeouts[potentialExpiredRequestId] < block.number) {
+          assignedReports[policeNode].remove(potentialExpiredRequestId);
+          if (potentialExpiredRequestId == requestId) {
+            hasRemovedCurrentId = true;
+          }
+          (exists, potentialExpiredRequestId) = assignedReports[policeNode].getAdjacent(HEAD, NEXT);
+        } else {
+          // the list is in chronological order
+          break;
+        }
+      }
+    }
+    return hasRemovedCurrentId;
   }
 }
