@@ -65,7 +65,7 @@ contract('QuantstampAudit_multirequest', function(accounts) {
     await quantstamp_audit_data.setMaxAssignedRequests(maxAssignedRequests);
   }
 
-  describe("when a new multirequest comes", async function () {
+  xdescribe("when a new multirequest comes", async function () {
     let multiRequestId = 0;
     const requestCount = 2;
 
@@ -133,7 +133,7 @@ contract('QuantstampAudit_multirequest', function(accounts) {
     });
   });
 
-  describe("when an auditor audited a request forked from a multirequest", async function() {
+  xdescribe("when an auditor audited a request forked from a multirequest", async function() {
     before(async function() {
       await initialize();
       assert(await quantstamp_audit_view.getQueueLength.call(), 0);
@@ -181,7 +181,7 @@ contract('QuantstampAudit_multirequest', function(accounts) {
     });
   });
 
-  describe("when the test-coverage is not full for QuantstampAuditMultiRequestData", async function() {
+  xdescribe("when the test-coverage is not full for QuantstampAuditMultiRequestData", async function() {
     before(async function() {
       await initialize();
       await quantstamp_audit_multirequest_data.addAddressToWhitelist(owner);
