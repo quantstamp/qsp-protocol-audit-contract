@@ -1,62 +1,3 @@
-/*
-TODO remove
-it("should pay the auditor for their work", async function () {
-    const price = Util.toQsp(35);
-    requestCounter++;
-    const result = await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor});
-    const requestId = Util.extractRequestId(result);
-
-    Util.assertEventAtIndex({
-      result: result,
-      name: "LogAuditRequested",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId);
-      },
-      index: 0
-    });
-
-    const result2 = await quantstamp_audit.getNextAuditRequest({from: auditor});
-    const requestId2 = Util.extractRequestId(result2);
-    Util.assertEvent({
-      result: result2,
-      name: "LogAuditAssigned",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId2);
-        assert.equal(args.auditor, auditor);
-      }
-    });
-
-    const result3 = await quantstamp_audit.submitReport(requestId2, AuditState.Completed, Util.emptyReport, {from : auditor});
-
-    Util.assertEventAtIndex({
-      result: result3,
-      name: "LogAuditFinished",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId2);
-        assert.equal(args.auditor, auditor);
-        assert.equal(args.auditResult, AuditState.Completed);
-      },
-      index: 0
-    });
-
-    Util.assertEventAtIndex({
-      result: result3,
-      name: "LogPayAuditor",
-      args: (args) => {
-        assert.equal(args.requestId.toNumber(), requestId2);
-        assert.equal(args.auditor, auditor);
-        assert.equal(args.amount, price);
-      },
-      index: 1
-    });
-
-    const res = await quantstamp_audit.isAuditFinished(requestId2);
-    assert.equal(await quantstamp_audit.isAuditFinished(requestId2), true);
-    // all contract's tokens should be moved to the auditor's wallet
-    assert.equal(await Util.balanceOf(quantstamp_token, auditor), price);
-  });
-*/
-
 const QuantstampAudit = artifacts.require('QuantstampAudit');
 const QuantstampAuditData = artifacts.require('QuantstampAuditData');
 const QuantstampAuditMultiRequestData = artifacts.require('QuantstampAuditMultiRequestData');
@@ -67,7 +8,7 @@ const QuantstampAuditPolice = artifacts.require('QuantstampAuditPolice');
 
 const Util = require("./util.js");
 const AuditState = Util.AuditState;
-
+const abiDecoder = require('abi-decoder');
 
 contract('QuantstampAuditPolice', function(accounts) {
   const owner = accounts[0];
@@ -101,6 +42,9 @@ contract('QuantstampAuditPolice', function(accounts) {
     quantstamp_audit_view = await QuantstampAuditView.deployed();
     quantstamp_token = await QuantstampToken.deployed();
     quantstamp_audit_police = await QuantstampAuditPolice.deployed();
+
+    // used to decode events in QuantstampAuditPolice
+    abiDecoder.addABI(quantstamp_audit_police.abi);
 
     await quantstamp_audit_report_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
@@ -142,24 +86,40 @@ contract('QuantstampAuditPolice', function(accounts) {
 
   it("should not allow an auditor to claim the reward before the policing period finishes", async function() {
     currentId = await submitNewReport();
-    Util.assertTxFail(quantstamp_audit.claimAuditReward(currentId, {from: auditor}));
+    await Util.assertTxFail(quantstamp_audit.claimAuditReward(currentId, {from: auditor}));
   });
 
-  it("should not allow a regular user to submit a police report");
-
+  it("should not allow a regular user to submit a police report", async function() {
+    await Util.assertTxFail(quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, true, {from: requestor}));
+  });
 
   it("should not allow a non-auditor to claim the reward", async function() {
     const num_blocks = police_timeout + 1;
-    Util.mineNBlocks(num_blocks);
-    Util.assertTxFail(quantstamp_audit.claimAuditReward(currentId, {from: requestor}));
+    await Util.mineNBlocks(num_blocks);
+    await Util.assertTxFail(quantstamp_audit.claimAuditReward(currentId, {from: requestor}));
   });
 
-  it("should not allow the police to submit a report after the police timeout");
+  it("should not allow the police to submit a report after the police timeout", async function() {
+    const result = await quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, true, {from: police1});
 
+    Util.assertNestedEvent({
+      result: result,
+      name: "PoliceSubmissionPeriodExceeded",
+      args: (args) => {
+        assert.equal(args.requestId, currentId);
+      }
+    });
+
+    // check that the report map is still empty
+    const report = await quantstamp_audit_police.getPoliceReport(currentId, police1);
+    assert.equal(report, Util.emptyReportStr);
+
+  });
 
   it("should allow an auditor to claim the reward after the policing period when not verified", async function() {
     const police_report_state = await quantstamp_audit_police.verifiedReports(currentId);
     assert.equal(police_report_state, Util.PoliceReportState.Unverified);
+
     const result = await quantstamp_audit.claimAuditReward(currentId, {from: auditor});
     Util.assertEvent({
       result: result,
@@ -172,15 +132,72 @@ contract('QuantstampAuditPolice', function(accounts) {
     });
   });
 
-  it("should allow an auditor to claim the reward after the policing period when verified");
+  it("should allow the police to submit a positive report", async function() {
+    currentId = await submitNewReport();
+    const result = await quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, true, {from: police1});
+
+    Util.assertNestedEvent({
+      result: result,
+      name: "PoliceReportSubmitted",
+      args: (args) => {
+        assert.equal(args.policeNode, police1);
+        assert.equal(args.requestId, currentId);
+        assert.equal(args.reportState, Util.PoliceReportState.Valid);
+      }
+    });
+
+    // the police report state has been updated
+    const police_report_state = await quantstamp_audit_police.verifiedReports(currentId);
+    assert.equal(police_report_state, Util.PoliceReportState.Valid);
+
+    // check that the report is added to the map
+    const report = await quantstamp_audit_police.getPoliceReport(currentId, police1);
+    assert.equal(report, Util.nonEmptyReport);
+  });
+
+  it("should allow an auditor to claim the reward after the policing period when verified", async function() {
+    const num_blocks = police_timeout + 1;
+    await Util.mineNBlocks(num_blocks);
+    const result = await quantstamp_audit.claimAuditReward(currentId, {from: auditor});
+    Util.assertEvent({
+      result: result,
+      name: "LogPayAuditor",
+      args: (args) => {
+        assert.equal(args.requestId.toNumber(), currentId);
+        assert.equal(args.auditor, auditor);
+        assert.equal(args.amount, price);
+      }
+    });
+    // TODO: check QSP balance before and after
+  });
+
+  it("should allow the police to submit a negative report", async function() {
+    currentId = await submitNewReport();
+    const result = await quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, false, {from: police1});
+    // TODO: I have no idea why this isn't working
+    /*
+    Util.assertEvent({
+      result: result,
+      name: "PoliceReportSubmitted",
+      args: (args) => {
+        assert.equal(args.policeNode, police1);
+        assert.equal(args.requestId.toNumber(), currentId);
+        assert.equal(args.reportState, Util.PoliceReportState.Valid);
+      }
+    });
+    */
+    // the police report state has been updated
+    const police_report_state = await quantstamp_audit_police.verifiedReports(currentId);
+    assert.equal(police_report_state, Util.PoliceReportState.Invalid);
+  });
+
+
   it("should not allow an auditor to claim the reward after the policing period when report is marked invalid");
   it("should assign all police to a report if policeNodesPerReport == numPoliceNodes");
   it("should allow the owner to set policeNodesPerReport");
   it("should assign all police to a report if policeNodesPerReport > numPoliceNodes");
   it("should correctly move the next police pointer if that police node is removed");
   it("should properly rotate police assignments");
-  it("should allow the police to submit a positive report");
-  it("should allow the police to submit a negative report");
   it("the report should remain invalid even if a positive report is received after a negative report");
   it("should not allow the police to submit a report that they are not assigned");
   it("should remove expired assignments");

@@ -17,6 +17,7 @@
    "license": "ISC",
    "dependencies": {
       "@daonomic/trezor-wallet-provider": "git+https://github.com/yollapsq/trezor-wallet-provider.git",
+      "abi-decoder": "1.2.0",
       "aws-sdk": "2.194.0",
       "coveralls": "3.0.0",
       "ganache-cli": "6.1.0",

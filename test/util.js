@@ -1,6 +1,10 @@
+const abiDecoder = require('abi-decoder'); // NodeJS
+
 const uri = "http://www.quantstamp.com/contract.sol";
 const sha256emptyFile = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 const emptyReport = 0x0;
+const nonEmptyReport = "0x123456";
+const emptyReportStr = "0x";
 
 const AuditState = Object.freeze({
   None : 0,
@@ -57,6 +61,41 @@ function assertEventAtIndex({result, name, args, index}) {
   args(result.logs[index].args);
 }
 
+function assertNestedEventHelper({log, name, args}) {
+  assert.equal(log.name, name);
+  // decode parameters
+  var parameters = {};
+  let key;
+  let value;
+  for(var i = 0; i < log.events.length; i++){
+    key = log.events[i]['name'];
+    value = log.events[i]['value'];
+    parameters[key] = value;
+  }
+  args(parameters);
+}
+
+// Extra steps are needed in order to decode an event that is not from the called contract.
+// If contract A is called, which invokes a function in contract B, and B emits an event,
+// the event is not decoded automatically by truffle.
+// Must have previously called abiDecoder.addABI(contract_abi)
+function assertNestedEvent({result, name, args}) {
+  const decodedLogs = abiDecoder.decodeLogs(result.receipt.logs);
+  assert.equal(decodedLogs.length, 1);
+  assertNestedEventHelper({
+    log: decodedLogs[0],
+    name: name,
+    args: args});
+}
+
+function assertNestedEventAtIndex({result, name, args, index}) {
+  const decodedLogs = abiDecoder.decodeLogs(result.receipt.logs);
+  assertNestedEventHelper({
+    log: decodedLogs[index],
+    name: name,
+    args: args});
+}
+
 async function balanceOf (token, user) {
   return (await token.balanceOf(user)).toNumber();
 }
@@ -105,6 +144,8 @@ module.exports = {
   uri : uri,
   sha256emptyFile : sha256emptyFile,
   emptyReport: emptyReport,
+  nonEmptyReport: nonEmptyReport,
+  emptyReportStr: emptyReportStr,
   toEther : toEther,
   toQsp : toEther,
   oneEther : toEther(1),
@@ -116,6 +157,8 @@ module.exports = {
   assertTxFail : assertTxFail,
   assertEvent : assertEvent,
   assertEventAtIndex : assertEventAtIndex,
+  assertNestedEvent : assertNestedEvent,
+  assertNestedEventAtIndex : assertNestedEventAtIndex,
   AuditState : AuditState,
   PoliceReportState : PoliceReportState,
   balanceOf : balanceOf,

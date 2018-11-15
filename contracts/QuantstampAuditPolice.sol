@@ -38,6 +38,7 @@ contract QuantstampAuditPolice is Whitelist {
   // TODO: we may want these parameters indexed
   event PoliceNodeAssignedToReport(address policeNode, uint256 requestId);
   event PoliceReportSubmitted(address policeNode, uint256 requestId, PoliceReportState reportState);
+  event PoliceSubmissionPeriodExceeded(uint256 requestId, uint256 timeoutBlock, uint256 currentBlock);
 
   // pointer to the address that was last assigned to a report
   address lastAssignedPoliceNode = address(HEAD);
@@ -93,11 +94,9 @@ contract QuantstampAuditPolice is Whitelist {
     if (assignedReports[policeNode].listExists()) {
       bool exists = true;
       uint256 potentialExpiredRequestId;
-      uint256 allowanceBlockNumber;
       while(exists) {
         (exists, potentialExpiredRequestId) = assignedReports[policeNode].getAdjacent(HEAD, NEXT);
-        allowanceBlockNumber = policeTimeouts[potentialExpiredRequestId] + policeTimeoutInBlocks;
-        if (allowanceBlockNumber < block.number) {
+        if (policeTimeouts[potentialExpiredRequestId] < block.number) {
           assignedReports[policeNode].remove(potentialExpiredRequestId);
         }
         else {
@@ -114,12 +113,17 @@ contract QuantstampAuditPolice is Whitelist {
    * @param report The compressed bytecode representation of the report.
    * @param isVerified Whether the police node's report matches the submitted report.
    *                   If not, the auditor is slashed.
+   * @return true if the report was successfully submitted
    */
   function submitPoliceReport(
     address policeNode,
     uint256 requestId,
     bytes report,
-    bool isVerified) public onlyWhitelisted {
+    bool isVerified) public onlyWhitelisted returns (bool) {
+    if (policeTimeouts[requestId] < block.number) {
+      emit PoliceSubmissionPeriodExceeded(requestId, policeTimeouts[requestId], block.number);
+      return false;
+    }
     // remove expired assignments
     removeExpiredAssignments(policeNode);
     // the police node is assigned to the report
@@ -147,8 +151,8 @@ contract QuantstampAuditPolice is Whitelist {
     else {
       verifiedReports[requestId] = PoliceReportState.INVALID;
       // TODO (QSP-832): slash the auditor, be careful of double slash logic
-      require(false);
     }
+    return true;
   }
 
   /**
@@ -258,5 +262,9 @@ contract QuantstampAuditPolice is Whitelist {
     uint256 next;
     (exists, next) = policeList.getAdjacent(uint256(addr), NEXT);
     return address(next);
+  }
+
+  function getPoliceReport(uint256 requestId, address policeAddr) public view returns (bytes) {
+    return policeReports[requestId][policeAddr];
   }
 }

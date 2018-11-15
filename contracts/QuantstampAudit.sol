@@ -274,13 +274,14 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param report The compressed bytecode representation of the report.
    * @param isVerified Whether the police node's report matches the submitted report.
    *                   If not, the auditor is slashed.
+   * @return true if the report was submitted successfully.
    */
   function submitPoliceReport(
     uint256 requestId,
     bytes report,
-    bool isVerified) public {
+    bool isVerified) public returns (bool) {
     require(police.isPoliceNode(msg.sender));
-    police.submitPoliceReport(msg.sender, requestId, report, isVerified);
+    return police.submitPoliceReport(msg.sender, requestId, report, isVerified);
   }
 
   /**
