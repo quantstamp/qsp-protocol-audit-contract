@@ -107,6 +107,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @dev The constructor creates an audit contract.
    * @param auditDataAddress The address of an AuditData that stores data used for performing audits.
    * @param reportDataAddress The address of a ReportData that stores audit reports.
+   * @param policeAddress The address of a QuantstampAuditPolice that performs report checking.
    */
   constructor (address auditDataAddress, address multiRequestDataAddress, address reportDataAddress, address policeAddress) public {
     require(auditDataAddress != address(0));

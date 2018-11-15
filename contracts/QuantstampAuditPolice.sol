@@ -40,7 +40,7 @@ contract QuantstampAuditPolice is Whitelist {
   event PoliceReportSubmitted(address policeNode, uint256 requestId, PoliceReportState reportState);
   event PoliceSubmissionPeriodExceeded(uint256 requestId, uint256 timeoutBlock, uint256 currentBlock);
 
-  // pointer to the address that was last assigned to a report
+  // pointer to the police node that was last assigned to a report
   address private lastAssignedPoliceNode = address(HEAD);
 
   // maps each police node to the IDs of reports it should check
@@ -55,7 +55,7 @@ contract QuantstampAuditPolice is Whitelist {
   // maps request IDs to whether they have been verified by the police
   mapping(uint256 => PoliceReportState) public verifiedReports;
 
-  // maps request IDs to whether they have been claimed by the submitter
+  // maps request IDs to whether their reward has been claimed by the submitter
   mapping(uint256 => bool) public rewardHasBeenClaimed;
 
   // tracks the total number of reports ever assigned to a police node
@@ -71,7 +71,7 @@ contract QuantstampAuditPolice is Whitelist {
   function assignPoliceToReport(uint256 requestId) public onlyWhitelisted {
     // set the timeout for police reports
     policeTimeouts[requestId] = block.number + policeTimeoutInBlocks;
-    // if there is not enough police nodes, this avoids assigning the same node twice
+    // if there are not enough police nodes, this avoids assigning the same node twice
     uint256 numToAssign = policeNodesPerReport;
     if (numPoliceNodes < numToAssign) {
       numToAssign = numPoliceNodes;
@@ -88,8 +88,14 @@ contract QuantstampAuditPolice is Whitelist {
     }
   }
 
-  // cleans the list of assignments to a given police node
-  function removeExpiredAssignments (address policeNode) internal {
+  /**
+   * Cleans the list of assignments to a given police node.
+   * @param policeNode The address of the police node.
+   * @param requestId The ID of the audit request.
+   * @return true if the current request ID gets removed during cleanup.
+   */
+  function removeExpiredAssignments (address policeNode, uint256 requestId) internal returns (bool) {
+    bool hasRemovedCurrentId = false;
     if (assignedReports[policeNode].listExists()) {
       bool exists = true;
       uint256 potentialExpiredRequestId;
@@ -97,12 +103,17 @@ contract QuantstampAuditPolice is Whitelist {
         (exists, potentialExpiredRequestId) = assignedReports[policeNode].getAdjacent(HEAD, NEXT);
         if (policeTimeouts[potentialExpiredRequestId] < block.number) {
           assignedReports[policeNode].remove(potentialExpiredRequestId);
+          if (potentialExpiredRequestId == requestId) {
+            hasRemovedCurrentId = true;
+          }
         }
         else {
+          // the list is in chronological order
           break;
         }
       }
     }
+    return hasRemovedCurrentId;
   }
 
   /**
@@ -112,19 +123,20 @@ contract QuantstampAuditPolice is Whitelist {
    * @param report The compressed bytecode representation of the report.
    * @param isVerified Whether the police node's report matches the submitted report.
    *                   If not, the auditor is slashed.
-   * @return true if the report was successfully submitted
+   * @return true if the report was successfully submitted.
    */
   function submitPoliceReport(
     address policeNode,
     uint256 requestId,
     bytes report,
     bool isVerified) public onlyWhitelisted returns (bool) {
-    if (policeTimeouts[requestId] < block.number) {
+    // remove expired assignments
+    bool hasRemovedCurrentId = removeExpiredAssignments(policeNode);
+    // if the current request has timed out, return
+    if (hasRemovedCurrentId) {
       emit PoliceSubmissionPeriodExceeded(requestId, policeTimeouts[requestId], block.number);
       return false;
     }
-    // remove expired assignments
-    removeExpiredAssignments(policeNode);
     // the police node is assigned to the report
     require(isAssigned(requestId, policeNode));
     // remove the report from the assignments to the node
@@ -146,10 +158,10 @@ contract QuantstampAuditPolice is Whitelist {
     if (verifiedReports[requestId] == PoliceReportState.INVALID) {
       return;
     }
-    if (isVerified) {
-      verifiedReports[requestId] = PoliceReportState.VALID;
-    }
     else {
+      verifiedReports[requestId] = state;
+    }
+    if (!isVerified) {
       verifiedReports[requestId] = PoliceReportState.INVALID;
       // TODO (QSP-832): slash the auditor, be careful of double slash logic
     }
@@ -213,7 +225,7 @@ contract QuantstampAuditPolice is Whitelist {
    * @dev Returns true if a node is whitelisted
    * @param node Node to check.
    */
-  function isPoliceNode(address node) public view returns(bool) {
+  function isPoliceNode(address node) public view returns (bool) {
     return policeList.nodeExists(uint256(node));
   }
 
@@ -222,7 +234,7 @@ contract QuantstampAuditPolice is Whitelist {
    * @param addr address
    * @return true if the address was added to the whitelist
    */
-  function addPoliceNode(address addr) public onlyOwner returns(bool success) {
+  function addPoliceNode(address addr) public onlyOwner returns (bool success) {
     if (policeList.insert(HEAD, uint256(addr), PREV)) {
       numPoliceNodes = numPoliceNodes.add(1);
       emit PoliceNodeAdded(addr);
@@ -235,7 +247,7 @@ contract QuantstampAuditPolice is Whitelist {
    * @param addr address
    * @return true if the address was removed from the whitelist
    */
-  function removePoliceNode(address addr) public onlyOwner returns(bool success) {
+  function removePoliceNode(address addr) public onlyOwner returns (bool success) {
     // if lastAssignedPoliceNode is addr, need to move the pointer
     bool exists;
     uint256 next;
@@ -256,7 +268,7 @@ contract QuantstampAuditPolice is Whitelist {
    * @param addr address
    * @return next address of the given param
    */
-  function getNextPoliceNode(address addr) public view returns(address) {
+  function getNextPoliceNode(address addr) public view returns (address) {
     bool exists;
     uint256 next;
     (exists, next) = policeList.getAdjacent(uint256(addr), NEXT);
