@@ -17,6 +17,7 @@ contract('QuantstampAuditPolice', function(accounts) {
   const police1 = accounts[4];
   const police2 = accounts[5];
   const police3 = accounts[6];
+  const police4 = accounts[7];
   let all_police = [police1, police2, police3];
   const price = 123;
   const requestorBudget = Util.toQsp(100000);
@@ -25,6 +26,7 @@ contract('QuantstampAuditPolice', function(accounts) {
   const audit_timeout = 10;
   const police_timeout = 15;
   let currentId;
+  let policeNodesPerReport;
 
   let quantstamp_audit;
   let quantstamp_audit_data;
@@ -158,6 +160,7 @@ contract('QuantstampAuditPolice', function(accounts) {
   it("should allow an auditor to claim the reward after the policing period when verified", async function() {
     const num_blocks = police_timeout + 1;
     await Util.mineNBlocks(num_blocks);
+    const balance_before = await Util.balanceOf(quantstamp_token, auditor);
     const result = await quantstamp_audit.claimAuditReward(currentId, {from: auditor});
     Util.assertEvent({
       result: result,
@@ -168,39 +171,187 @@ contract('QuantstampAuditPolice', function(accounts) {
         assert.equal(args.amount, price);
       }
     });
-    // TODO: check QSP balance before and after
+    const balance_after = await Util.balanceOf(quantstamp_token, auditor);
+    assert.equal(balance_before + price, balance_after);
   });
 
   it("should allow the police to submit a negative report", async function() {
     currentId = await submitNewReport();
+
+    // check that the report is not currently in the map
+    const existing_report = await quantstamp_audit_police.getPoliceReport(currentId, police1);
+    assert.equal(existing_report, Util.emptyReportStr);
+
     const result = await quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, false, {from: police1});
-    // TODO: I have no idea why this isn't working
-    /*
-    Util.assertEvent({
+
+    Util.assertNestedEvent({
       result: result,
       name: "PoliceReportSubmitted",
       args: (args) => {
         assert.equal(args.policeNode, police1);
-        assert.equal(args.requestId.toNumber(), currentId);
-        assert.equal(args.reportState, Util.PoliceReportState.Valid);
+        assert.equal(args.requestId, currentId);
+        assert.equal(args.reportState, Util.PoliceReportState.Invalid);
       }
     });
-    */
+
     // the police report state has been updated
+    const police_report_state = await quantstamp_audit_police.verifiedReports(currentId);
+    assert.equal(police_report_state, Util.PoliceReportState.Invalid);
+
+    // check that the report is added to the map
+    const report = await quantstamp_audit_police.getPoliceReport(currentId, police1);
+    assert.equal(report, Util.nonEmptyReport);
+  });
+
+  it("the report should remain invalid even if a positive report is received after a negative report", async function() {
+    const result = await quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, true, {from: police2});
+
+    // the police report should not be updated
     const police_report_state = await quantstamp_audit_police.verifiedReports(currentId);
     assert.equal(police_report_state, Util.PoliceReportState.Invalid);
   });
 
 
-  it("should not allow an auditor to claim the reward after the policing period when report is marked invalid");
-  it("should assign all police to a report if policeNodesPerReport == numPoliceNodes");
-  it("should allow the owner to set policeNodesPerReport");
-  it("should assign all police to a report if policeNodesPerReport > numPoliceNodes");
-  it("should correctly move the next police pointer if that police node is removed");
-  it("should properly rotate police assignments");
-  it("the report should remain invalid even if a positive report is received after a negative report");
-  it("should not allow the police to submit a report that they are not assigned");
-  it("should remove expired assignments");
+  it("should not allow an auditor to claim the reward after the policing period when report is marked invalid", async function() {
+    const num_blocks = police_timeout + 1;
+    await Util.mineNBlocks(num_blocks);
+    await Util.assertTxFail(quantstamp_audit.claimAuditReward(currentId, {from: auditor}));
+  });
+
+  it("should assign all police to a report if policeNodesPerReport == numPoliceNodes", async function() {
+    currentId = await submitNewReport();
+    let result;
+    for(var i = 0; i < all_police.length; i++) {
+      result = await quantstamp_audit_police.isAssigned(currentId, all_police[i]);
+      assert.isTrue(result);
+    }
+  });
+
+  it("should allow the owner to set policeNodesPerReport", async function() {
+    policeNodesPerReport = 5;
+    await Util.assertTxFail(quantstamp_audit_police.setPoliceNodesPerReport(policeNodesPerReport + 1, {from: requestor}));
+    await quantstamp_audit_police.setPoliceNodesPerReport(policeNodesPerReport, {from: owner});
+    const result = await quantstamp_audit_police.policeNodesPerReport();
+    assert.equal(result, policeNodesPerReport);
+  });
+
+  it("should assign all police to a report if policeNodesPerReport > numPoliceNodes", async function() {
+    currentId = await submitNewReport();
+    let result;
+    for(var i = 0; i < all_police.length; i++) {
+      result = await quantstamp_audit_police.isAssigned(currentId, all_police[i]);
+      assert.isTrue(result);
+    }
+  });
+
+  it("should only assign some police to a report if policeNodesPerReport < numPoliceNodes", async function() {
+    policeNodesPerReport = 2;
+    await quantstamp_audit_police.setPoliceNodesPerReport(policeNodesPerReport, {from: owner});
+    currentId = await submitNewReport();
+    let result;
+    // only the first 2 police will be assigned the report
+    let expected_results = [true, true, false];
+    for(var i = 0; i < all_police.length; i++) {
+      result = await quantstamp_audit_police.isAssigned(currentId, all_police[i]);
+      assert.equal(result, expected_results[i]);
+    }
+  });
+
+  it("should properly rotate police assignments", async function() {
+    currentId = await submitNewReport();
+    let result;
+    let expected_results = [true, false, true];
+    for(var i = 0; i < all_police.length; i++) {
+      result = await quantstamp_audit_police.isAssigned(currentId, all_police[i]);
+      assert.equal(result, expected_results[i]);
+    }
+    currentId = await submitNewReport();
+    expected_results = [false, true, true];
+    for(var i = 0; i < all_police.length; i++) {
+      result = await quantstamp_audit_police.isAssigned(currentId, all_police[i]);
+      assert.equal(result, expected_results[i]);
+    }
+  });
+
+  it("should correctly assign police reports if the last assigned police pointer is removed", async function() {
+    // lastAssignedPoliceNode points to police3
+    let result = await quantstamp_audit_police.removePoliceNode(police3, {from: owner});
+    Util.assertNestedEvent({
+      result: result,
+      name: "PoliceNodeRemoved",
+      args: (args) => {
+        assert.equal(args.addr, police3);
+      }
+    });
+
+    all_police = [police1, police2];
+    assert.equal(await quantstamp_audit_police.numPoliceNodes(), 2);
+
+    currentId = await submitNewReport();
+    let expected_results = [true, true];
+    for(var i = 0; i < all_police.length; i++) {
+      result = await quantstamp_audit_police.isAssigned(currentId, all_police[i]);
+      assert.equal(result, expected_results[i]);
+    }
+  });
+
+  it("should correctly assign police reports if new police nodes are added", async function() {
+    let result = await quantstamp_audit_police.addPoliceNode(police4, {from: owner});
+    Util.assertNestedEvent({
+      result: result,
+      name: "PoliceNodeAdded",
+      args: (args) => {
+        assert.equal(args.addr, police4);
+      }
+    });
+    all_police = [police1, police2, police4];
+
+    policeNodesPerReport = 1;
+    await quantstamp_audit_police.setPoliceNodesPerReport(policeNodesPerReport, {from: owner});
+
+    currentId = await submitNewReport();
+    let expected_results = [false, false, true];
+    for(var i = 0; i < all_police.length; i++) {
+      result = await quantstamp_audit_police.isAssigned(currentId, all_police[i]);
+      assert.equal(result, expected_results[i]);
+    }
+  });
+
+  it("should not allow the police to submit a report that they are not assigned", async function() {
+    await Util.assertTxFail(quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, true, {from: police1}));
+  });
+
+  it("getNextPoliceAssignment should remove expired assignments and return (false, 0) if no assignments are available", async function() {
+    const num_blocks = police_timeout + 1;
+    await Util.mineNBlocks(num_blocks);
+    const result = await quantstamp_audit.getNextPoliceAssignment({from: police1});
+    assert.isTrue(!result[0]);
+    assert.equal(result[1], 0);
+  });
+
+  it("should remove submitted assignments", async function() {
+    policeNodesPerReport = 3;
+    await quantstamp_audit_police.setPoliceNodesPerReport(policeNodesPerReport, {from: owner});
+
+    // submit 2 reports that get assigned to all police nodes
+    currentId = await submitNewReport();
+    let currentId2 = await submitNewReport();
+    let result = await quantstamp_audit.getNextPoliceAssignment({from: police1});
+    assert.isTrue(result[0]);
+    assert.equal(result[1], currentId);
+    await quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, true, {from: police1});
+
+    result = await quantstamp_audit.getNextPoliceAssignment({from: police1});
+    assert.isTrue(result[0]);
+    assert.equal(result[1], currentId2);
+    await quantstamp_audit.submitPoliceReport(currentId2, Util.nonEmptyReport, true, {from: police1});
+
+    result = await quantstamp_audit.getNextPoliceAssignment({from: police1});
+    assert.isTrue(!result[0]);
+    assert.equal(result[1], 0);
+  });
+
+
 
 });
 

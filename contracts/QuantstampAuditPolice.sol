@@ -25,10 +25,10 @@ contract QuantstampAuditPolice is Whitelist {
   LinkedListLib.LinkedList internal policeList;
 
   // the total number of police nodes
-  uint256 numPoliceNodes = 0;
+  uint256 public numPoliceNodes = 0;
 
   // the number of police nodes assigned to each report
-  uint256 policeNodesPerReport = 3;
+  uint256 public policeNodesPerReport = 3;
 
   // the number of blocks the police have to verify a report
   uint256 public policeTimeoutInBlocks = 75;
@@ -41,7 +41,7 @@ contract QuantstampAuditPolice is Whitelist {
   event PoliceSubmissionPeriodExceeded(uint256 requestId, uint256 timeoutBlock, uint256 currentBlock);
 
   // pointer to the address that was last assigned to a report
-  address lastAssignedPoliceNode = address(HEAD);
+  address private lastAssignedPoliceNode = address(HEAD);
 
   // maps each police node to the IDs of reports it should check
   mapping(address => LinkedListLib.LinkedList) internal assignedReports;
@@ -76,16 +76,15 @@ contract QuantstampAuditPolice is Whitelist {
     if (numPoliceNodes < numToAssign) {
       numToAssign = numPoliceNodes;
     }
-    address policeNode = getNextPoliceNode(lastAssignedPoliceNode);
     while (numToAssign > 0) {
-      if (policeNode != address(0)) {
+      lastAssignedPoliceNode = getNextPoliceNode(lastAssignedPoliceNode);
+      if (lastAssignedPoliceNode != address(0)) {
         // push the request ID to the tail of the assignment list for the police node
-        assignedReports[policeNode].push(requestId, PREV);
-        emit PoliceNodeAssignedToReport(policeNode, requestId);
-        totalReportsAssigned[policeNode] = totalReportsAssigned[policeNode] + 1;
+        assignedReports[lastAssignedPoliceNode].push(requestId, PREV);
+        emit PoliceNodeAssignedToReport(lastAssignedPoliceNode, requestId);
+        totalReportsAssigned[lastAssignedPoliceNode] = totalReportsAssigned[lastAssignedPoliceNode] + 1;
         numToAssign = numToAssign - 1;
       }
-      policeNode = getNextPoliceNode(policeNode);
     }
   }
 
@@ -94,7 +93,7 @@ contract QuantstampAuditPolice is Whitelist {
     if (assignedReports[policeNode].listExists()) {
       bool exists = true;
       uint256 potentialExpiredRequestId;
-      while(exists) {
+      while (exists) {
         (exists, potentialExpiredRequestId) = assignedReports[policeNode].getAdjacent(HEAD, NEXT);
         if (policeTimeouts[potentialExpiredRequestId] < block.number) {
           assignedReports[policeNode].remove(potentialExpiredRequestId);
@@ -127,7 +126,9 @@ contract QuantstampAuditPolice is Whitelist {
     // remove expired assignments
     removeExpiredAssignments(policeNode);
     // the police node is assigned to the report
-    require(assignedReports[policeNode].nodeExists(requestId));
+    require(isAssigned(requestId, policeNode));
+    // remove the report from the assignments to the node
+    assignedReports[policeNode].remove(requestId);
     // increment the number of reports checked by the police node
     totalReportsChecked[policeNode] = totalReportsChecked[policeNode] + 1;
     // store the report
@@ -179,12 +180,10 @@ contract QuantstampAuditPolice is Whitelist {
   function getNextPoliceAssignment(address policeNode) public view returns (bool, uint256) {
     bool exists;
     uint256 requestId;
-    uint256 allowanceBlockNumber;
     (exists, requestId) = assignedReports[policeNode].getAdjacent(HEAD, NEXT);
-    // if the head of the list is an expired assignments, try to find a current one
-    while (exists) {
-      allowanceBlockNumber = policeTimeouts[requestId] + policeTimeoutInBlocks;
-      if (allowanceBlockNumber < block.number) {
+    // if the head of the list is an expired assignment, try to find a current one
+    while (exists && requestId != HEAD) {
+      if (policeTimeouts[requestId] < block.number) {
         (exists, requestId) = assignedReports[policeNode].getAdjacent(requestId, NEXT);
       }
       else {
@@ -266,5 +265,9 @@ contract QuantstampAuditPolice is Whitelist {
 
   function getPoliceReport(uint256 requestId, address policeAddr) public view returns (bytes) {
     return policeReports[requestId][policeAddr];
+  }
+
+  function isAssigned(uint256 requestId, address policeAddr) public view returns (bool) {
+    return assignedReports[policeAddr].nodeExists(requestId);
   }
 }
