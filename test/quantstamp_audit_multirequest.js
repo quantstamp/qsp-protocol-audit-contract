@@ -65,6 +65,17 @@ contract('QuantstampAudit_multirequest', function(accounts) {
     await quantstamp_audit_data.setMaxAssignedRequests(maxAssignedRequests);
   }
 
+  describe("offering multirequest feature", async function() {
+
+    before(async function() {
+      await initialize();
+    });
+
+    it("should be disabled", async function () {
+      await Util.assertTxFail(quantstamp_audit.multiRequestAudit('', Util.toQsp(1), 2, {from:requestor}));
+    })
+  });
+
   xdescribe("when a new multirequest comes", async function () {
     let multiRequestId = 0;
     const requestCount = 2;
@@ -79,8 +90,8 @@ contract('QuantstampAudit_multirequest', function(accounts) {
     it("should make sure there is enough QSP is approved to be transferred", async function() {
       const approvedRequestorBudget = requestCount * price - 1;
       await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(approvedRequestorBudget), {from : requestor});
-      Util.assertTxFail(quantstamp_audit.multiRequestAudit(Util.uri, Util.toQsp(price), requestCount, {from:requestor}));
-      // restore aproval
+      await Util.assertTxFail(quantstamp_audit.multiRequestAudit(Util.uri, Util.toQsp(price), requestCount, {from:requestor}));
+      // restore approval
       await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(approvalAmount), {from : requestor});
     });
 
