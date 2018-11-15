@@ -134,6 +134,10 @@ contract('QuantstampAuditPolice', function(accounts) {
     });
   });
 
+  it("should not allow an auditor to claim a reward twice", async function() {
+    await Util.assertTxFail(quantstamp_audit.claimAuditReward(currentId, {from: auditor}));
+  });
+
   it("should allow the police to submit a positive report", async function() {
     currentId = await submitNewReport();
     const result = await quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, true, {from: police1});
