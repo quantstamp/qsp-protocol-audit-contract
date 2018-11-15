@@ -387,5 +387,13 @@ contract('QuantstampAuditPolice', function(accounts) {
     const balance_after = await Util.balanceOf(quantstamp_token, auditor);
     assert.equal(balance_before + price, balance_after);
   });
+
+  it("should not allow auditors to claim rewards for reports not marked completed", async function() {
+    await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
+    const result = await quantstamp_audit.getNextAuditRequest({from: auditor});
+    const requestId = Util.extractRequestId(result);
+    await quantstamp_audit.submitReport(requestId, AuditState.Error, Util.emptyReport, {from : auditor});
+    Util.assertTxFail(quantstamp_audit.claimAuditReward(currentId, {from: auditor}));
+  });
 });
 
