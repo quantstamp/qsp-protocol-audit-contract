@@ -73,7 +73,14 @@ contract('QuantstampAudit_multirequest', function(accounts) {
 
     it("should be disabled", async function () {
       await Util.assertTxFail(quantstamp_audit.multiRequestAudit('', Util.toQsp(1), 2, {from:requestor}));
-    })
+    });
+
+    it("also view should return 0", async function () {
+      // increasing coverage
+      await quantstamp_audit_view.multiRequestIdToRequestIds(1);
+    });
+
+
   });
 
   xdescribe("when a new multirequest comes", async function () {
