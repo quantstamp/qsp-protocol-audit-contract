@@ -65,7 +65,25 @@ contract('QuantstampAudit_multirequest', function(accounts) {
     await quantstamp_audit_data.setMaxAssignedRequests(maxAssignedRequests);
   }
 
-  describe("when a new multirequest comes", async function () {
+  describe("offering multirequest feature", async function() {
+
+    before(async function() {
+      await initialize();
+    });
+
+    it("should be disabled", async function () {
+      await Util.assertTxFail(quantstamp_audit.multiRequestAudit('', Util.toQsp(1), 2, {from:requestor}));
+    });
+
+    it("also view should return 0", async function () {
+      // increasing coverage
+      await quantstamp_audit_view.multiRequestIdToRequestIds(1);
+    });
+
+
+  });
+
+  xdescribe("when a new multirequest comes", async function () {
     let multiRequestId = 0;
     const requestCount = 2;
 
@@ -79,8 +97,8 @@ contract('QuantstampAudit_multirequest', function(accounts) {
     it("should make sure there is enough QSP is approved to be transferred", async function() {
       const approvedRequestorBudget = requestCount * price - 1;
       await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(approvedRequestorBudget), {from : requestor});
-      Util.assertTxFail(quantstamp_audit.multiRequestAudit(Util.uri, Util.toQsp(price), requestCount, {from:requestor}));
-      // restore aproval
+      await Util.assertTxFail(quantstamp_audit.multiRequestAudit(Util.uri, Util.toQsp(price), requestCount, {from:requestor}));
+      // restore approval
       await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(approvalAmount), {from : requestor});
     });
 
@@ -133,7 +151,7 @@ contract('QuantstampAudit_multirequest', function(accounts) {
     });
   });
 
-  describe("when an auditor audited a request forked from a multirequest", async function() {
+  xdescribe("when an auditor audited a request forked from a multirequest", async function() {
     before(async function() {
       await initialize();
       assert(await quantstamp_audit_view.getQueueLength.call(), 0);
@@ -181,7 +199,7 @@ contract('QuantstampAudit_multirequest', function(accounts) {
     });
   });
 
-  describe("when the test-coverage is not full for QuantstampAuditMultiRequestData", async function() {
+  xdescribe("when the test-coverage is not full for QuantstampAuditMultiRequestData", async function() {
     before(async function() {
       await initialize();
       await quantstamp_audit_multirequest_data.addAddressToWhitelist(owner);
