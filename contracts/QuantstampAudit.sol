@@ -346,8 +346,7 @@ contract QuantstampAudit is Ownable, Pausable {
     emit LogPayAuditor(requestId, msg.sender, auditPrice);
     return true;
   }
-
-
+  
   /**
    * @dev Determines who has to be paid for a given requestId recorded with an error status
    * @param requestId Unique identifier of the audit request.
