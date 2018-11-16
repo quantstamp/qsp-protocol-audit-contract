@@ -28,6 +28,7 @@ contract('QuantstampAuditPolice', function(accounts) {
   const police_timeout = 15;
   let currentId;
   let policeNodesPerReport;
+  let min_stake;
 
   let quantstamp_audit;
   let quantstamp_audit_data;
@@ -72,6 +73,21 @@ contract('QuantstampAuditPolice', function(accounts) {
     await quantstamp_audit_data.addNodeToWhitelist(auditor);
     // relaxing the requirement for other tests
     await quantstamp_audit_data.setMaxAssignedRequests(maxAssignedRequests);
+    // get the minimum stake needed to be an auditor
+    min_stake = await quantstamp_audit.getMinAuditStake();
+    // stake the auditor
+    await stakeAuditor();
+  }
+
+  async function stakeAuditor() {
+    // transfer min_stake QSP tokens to the auditor
+    await quantstamp_token.transfer(auditor, min_stake, {from : owner});
+    // approve the audit contract to use up to min_stake for staking
+    await quantstamp_token.approve(quantstamp_audit.address, min_stake, {from : auditor});
+    // the auditor stakes enough tokens
+    await quantstamp_audit.stake(min_stake, {from : auditor});
+    const result = await quantstamp_audit.anyRequestAvailable({from: auditor});
+    assert.isTrue(await quantstamp_audit.hasEnoughStake({from: auditor}));
   }
 
   // an audit is requested and a report is submitted

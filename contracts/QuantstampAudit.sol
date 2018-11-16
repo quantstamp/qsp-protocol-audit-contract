@@ -478,7 +478,7 @@ contract QuantstampAudit is Ownable, Pausable {
     // lock stake when assigned
     // TODO (QSP-806): add the policing period to this number
     tokenEscrow.lockFunds(msg.sender, block.number.add(auditData.auditTimeoutInBlocks()));
-    
+
     mostRecentAssignedRequestIdsPerAuditor[msg.sender] = requestId;
     emit LogAuditAssigned(requestId,
       auditData.getAuditAuditor(requestId),

@@ -4,12 +4,8 @@ const QuantstampAuditView = artifacts.require('QuantstampAuditView');
 const QuantstampAuditData = artifacts.require('QuantstampAuditData');
 const QuantstampAuditMultiRequestData = artifacts.require('QuantstampAuditMultiRequestData');
 const QuantstampAuditReportData = artifacts.require('QuantstampAuditReportData');
-<<<<<<< HEAD
 const QuantstampAuditPolice = artifacts.require('QuantstampAuditPolice');
-
-=======
 const QuantstampAuditTokenEscrow = artifacts.require('QuantstampAuditTokenEscrow');
->>>>>>> develop
 
 const Util = require("./util.js");
 const AuditState = Util.AuditState;
