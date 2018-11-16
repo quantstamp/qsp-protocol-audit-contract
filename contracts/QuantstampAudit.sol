@@ -203,7 +203,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * eventually pay price * count qsp.
    * @param count Number of audits by different Auditors
    */
-  function multiRequestAudit(string contractUri, uint256 price, uint256 count) external whenNotPaused returns(uint256[]) {
+  function multiRequestAudit(string contractUri, uint256 price, uint256 count) public whenNotPaused returns(uint256[]) {
     require(count > 1, "multiRequest must be more than one");
     require(price.mul(count) <= auditData.token().allowance(msg.sender, address(this)),
       "token transfer must be approved more than price*count");
@@ -218,6 +218,7 @@ contract QuantstampAudit is Ownable, Pausable {
     emit LogMultiRequestRequested(newMultiRequestId,
       multiRequestData.getMultiRequestFirstRequestId(newMultiRequestId),
       multiRequestData.getMultiRequestLastRequestId(newMultiRequestId));
+    require(false, "Invalid Feature");
     return result;
   }
 
