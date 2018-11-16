@@ -140,7 +140,10 @@ contract('QuantstampAudit', function(accounts) {
 
   it("funds should be unlocked after the lock period ends", async function() {
     // TODO (QSP-806): this amount must include the policing period
-    const lock_period_length = (await quantstamp_audit_data.auditTimeoutInBlocks()).toNumber() + 1;
+    const lock_period_length =
+      (await quantstamp_audit_data.auditTimeoutInBlocks()).toNumber() +
+      (await quantstamp_audit_police.policeTimeoutInBlocks()).toNumber() +
+      1;
     await Util.mineNBlocks(lock_period_length);
     await quantstamp_audit.unstake({from : auditor});
     assert.equal(0, await quantstamp_audit.totalStakedFor(auditor));
