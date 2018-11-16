@@ -346,7 +346,7 @@ contract QuantstampAudit is Ownable, Pausable {
     emit LogPayAuditor(requestId, msg.sender, auditPrice);
     return true;
   }
-  
+
   /**
    * @dev Determines who has to be paid for a given requestId recorded with an error status
    * @param requestId Unique identifier of the audit request.
@@ -485,8 +485,7 @@ contract QuantstampAudit is Ownable, Pausable {
     assignMultirequest(requestId);
 
     // lock stake when assigned
-    // TODO (QSP-806): add the policing period to this number
-    tokenEscrow.lockFunds(msg.sender, block.number.add(auditData.auditTimeoutInBlocks()));
+    tokenEscrow.lockFunds(msg.sender, block.number.add(auditData.auditTimeoutInBlocks()).add(police.policeTimeoutInBlocks()));
 
     mostRecentAssignedRequestIdsPerAuditor[msg.sender] = requestId;
     emit LogAuditAssigned(requestId,
