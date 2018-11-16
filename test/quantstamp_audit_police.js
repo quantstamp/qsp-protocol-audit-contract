@@ -5,6 +5,7 @@ const QuantstampAuditReportData = artifacts.require('QuantstampAuditReportData')
 const QuantstampAuditView = artifacts.require('QuantstampAuditView');
 const QuantstampToken = artifacts.require('QuantstampToken');
 const QuantstampAuditPolice = artifacts.require('QuantstampAuditPolice');
+const QuantstampAuditTokenEscrow = artifacts.require('QuantstampAuditTokenEscrow');
 
 const Util = require("./util.js");
 const AuditState = Util.AuditState;
@@ -35,6 +36,7 @@ contract('QuantstampAuditPolice', function(accounts) {
   let quantstamp_audit_view;
   let quantstamp_token;
   let quantstamp_audit_police;
+  let quantstamp_audit_token_escrow;
 
   async function initialize() {
     quantstamp_audit = await QuantstampAudit.deployed();
@@ -44,6 +46,7 @@ contract('QuantstampAuditPolice', function(accounts) {
     quantstamp_audit_view = await QuantstampAuditView.deployed();
     quantstamp_token = await QuantstampToken.deployed();
     quantstamp_audit_police = await QuantstampAuditPolice.deployed();
+    quantstamp_audit_token_escrow = await QuantstampAuditTokenEscrow.deployed();
 
     // used to decode events in QuantstampAuditPolice
     abiDecoder.addABI(quantstamp_audit_police.abi);
@@ -59,6 +62,8 @@ contract('QuantstampAuditPolice', function(accounts) {
     await quantstamp_token.transfer(requestor, requestorBudget, {from : owner});
     // lower the audit timeout
     await quantstamp_audit_data.setAuditTimeout(audit_timeout);
+    // add QuantstampAudit to the whitelist of the escrow
+    await quantstamp_audit_token_escrow.addAddressToWhitelist(quantstamp_audit.address);
     // lower the police timeout
     await quantstamp_audit_police.setPoliceTimeoutInBlocks(police_timeout);
     // allow the audit contract use up to 65QSP for audits

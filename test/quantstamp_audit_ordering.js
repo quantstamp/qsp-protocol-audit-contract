@@ -4,6 +4,7 @@ const QuantstampAuditView = artifacts.require('QuantstampAuditView');
 const QuantstampAuditData = artifacts.require('QuantstampAuditData');
 const QuantstampAuditMultiRequestData = artifacts.require('QuantstampAuditMultiRequestData');
 const QuantstampAuditReportData = artifacts.require('QuantstampAuditReportData');
+const QuantstampAuditTokenEscrow = artifacts.require('QuantstampAuditTokenEscrow');
 
 const Util = require("./util.js");
 const AuditState = Util.AuditState;
@@ -15,6 +16,7 @@ contract('QuantstampAudit_ordering', function(accounts) {
   const auditor = accounts[3];
   const price = 123;
   const requestorBudget = Util.toQsp(100000);
+  const auditorBudget = Util.toQsp(100000);
 
   let requestCounter = 1;
   let quantstamp_audit;
@@ -22,6 +24,7 @@ contract('QuantstampAudit_ordering', function(accounts) {
   let quantstamp_audit_data;
   let quantstamp_audit_multirequest_data;
   let quantstamp_audit_report_data;
+  let quantstamp_audit_token_escrow;
   let quantstamp_token;
 
   // submits a request for each price in order, returning the array of ids of the requests
@@ -83,6 +86,7 @@ contract('QuantstampAudit_ordering', function(accounts) {
     quantstamp_audit_report_data = await QuantstampAuditReportData.deployed();
     quantstamp_audit_view = await QuantstampAuditView.deployed();
     quantstamp_token = await QuantstampToken.deployed();
+    quantstamp_audit_token_escrow = await QuantstampAuditTokenEscrow.deployed();
 
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_multirequest_data.addAddressToWhitelist(quantstamp_audit.address);
@@ -100,6 +104,10 @@ contract('QuantstampAudit_ordering', function(accounts) {
     await quantstamp_audit_data.setMaxAssignedRequests(1000);
     // timeout requests
     await quantstamp_audit_data.setAuditTimeout(10000);
+    // add QuantstampAudit to the whitelist of the escrow
+    await quantstamp_audit_token_escrow.addAddressToWhitelist(quantstamp_audit.address);
+    // set the minimum stake to zero
+    await quantstamp_audit_token_escrow.setMinAuditStake(0, {from : owner});
   });
 
   it("queues requests with different prices in the correct order", async function() {

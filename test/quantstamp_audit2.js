@@ -4,6 +4,8 @@ const QuantstampAuditMultiRequestData = artifacts.require('QuantstampAuditMultiR
 const QuantstampAuditReportData = artifacts.require('QuantstampAuditReportData');
 const QuantstampAudit = artifacts.require('QuantstampAudit');
 const QuantstampAuditPolice = artifacts.require('QuantstampAuditPolice');
+const QuantstampAuditTokenEscrow = artifacts.require('QuantstampAuditTokenEscrow');
+
 const Util = require("./util.js");
 const AuditState = Util.AuditState;
 
@@ -24,6 +26,7 @@ contract('QuantstampAudit2', function(accounts) {
   let quantstamp_audit_police;
   let quantstamp_audit;
   let quantstamp_token;
+  let quantstamp_audit_token_escrow;
 
   beforeEach(async function () {
     quantstamp_token = await QuantstampToken.deployed();
@@ -32,6 +35,7 @@ contract('QuantstampAudit2', function(accounts) {
     quantstamp_audit_report_data = await QuantstampAuditReportData.deployed();
     quantstamp_audit = await QuantstampAudit.deployed();
     quantstamp_audit_police = await QuantstampAuditPolice.deployed();
+    quantstamp_audit_token_escrow = await QuantstampAuditTokenEscrow.deployed();
 
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_multirequest_data.addAddressToWhitelist(quantstamp_audit.address);
@@ -48,6 +52,10 @@ contract('QuantstampAudit2', function(accounts) {
     await quantstamp_audit_data.setAuditTimeout(10000);
     // whitelisting auditor
     await quantstamp_audit_data.addNodeToWhitelist(auditor);
+    // add QuantstampAudit to the whitelist of the escrow
+    await quantstamp_audit_token_escrow.addAddressToWhitelist(quantstamp_audit.address);
+    // set the minimum stake to zero
+    await quantstamp_audit_token_escrow.setMinAuditStake(0, {from : owner});
   });
 
   it("should audit the contract if the requestor pays", async function () {

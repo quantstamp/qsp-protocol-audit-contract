@@ -3,6 +3,7 @@ const QuantstampAuditData = artifacts.require('QuantstampAuditData');
 const QuantstampAuditMultiRequestData = artifacts.require('QuantstampAuditMultiRequestData');
 const QuantstampAuditReportData = artifacts.require('QuantstampAuditReportData');
 const QuantstampAuditPolice = artifacts.require('QuantstampAuditPolice');
+const QuantstampAuditTokenEscrow = artifacts.require('QuantstampAuditTokenEscrow');
 
 const LinkedListLib = artifacts.require('LinkedListLib');
 const networkConfig = require('../truffle.js');
@@ -23,7 +24,8 @@ module.exports = function(deployer, network, accounts) {
           dataContractAddress: await utils.contractAddress(network, 'QuantstampAuditData', QuantstampAuditData),
           multiRequestDataContractAddress: await utils.contractAddress(network, 'QuantstampAuditMultiRequestData',QuantstampAuditMultiRequestData),
           reportDataContractAddress: await utils.contractAddress(network, 'QuantstampAuditReportData', QuantstampAuditReportData),
-          policeAddress: await utils.contractAddress(network, 'QuantstampAuditPolice', QuantstampAuditPolice)
+          policeAddress: await utils.contractAddress(network, 'QuantstampAuditPolice', QuantstampAuditPolice),
+          tokenEscrowContractAddress: await utils.contractAddress(network, 'QuantstampAuditTokenEscrow', QuantstampAuditTokenEscrow)
         }
       })
     .then(dataContractsAddresses => deployer.deploy(
@@ -31,6 +33,7 @@ module.exports = function(deployer, network, accounts) {
       dataContractsAddresses.dataContractAddress,
       dataContractsAddresses.multiRequestDataContractAddress,
       dataContractsAddresses.reportDataContractAddress,
+      dataContractsAddresses.tokenEscrowContractAddress,
       dataContractsAddresses.policeAddress))
     .then(() => new Promise(resolve => setTimeout(() => resolve(), networkConfig.networks[network].delayBetweenDeploys)))
     .then(async() => await utils.updateAbiAndMetadata(network, 'QuantstampAudit', QuantstampAudit.address));

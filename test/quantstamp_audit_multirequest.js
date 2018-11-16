@@ -5,6 +5,7 @@ const QuantstampAuditReportData = artifacts.require('QuantstampAuditReportData')
 const QuantstampAuditView = artifacts.require('QuantstampAuditView');
 const QuantstampToken = artifacts.require('QuantstampToken');
 const QuantstampAuditPolice = artifacts.require('QuantstampAuditPolice');
+const QuantstampAuditTokenEscrow = artifacts.require('QuantstampAuditTokenEscrow');
 
 const Util = require("./util.js");
 const AuditState = Util.AuditState;
@@ -26,6 +27,7 @@ contract('QuantstampAudit_multirequest', function(accounts) {
   let quantstamp_audit_view;
   let quantstamp_token;
   let quantstamp_audit_police;
+  let quantstamp_audit_token_escrow;
 
   async function emptyQueue() {
     assert.isBelow((await quantstamp_audit_view.getQueueLength.call()), 5, "Queue size should not be more than 5 due to" +
@@ -49,6 +51,7 @@ contract('QuantstampAudit_multirequest', function(accounts) {
     quantstamp_audit_view = await QuantstampAuditView.deployed();
     quantstamp_token = await QuantstampToken.deployed();
     quantstamp_audit_police = await QuantstampAuditPolice.deployed();
+    quantstamp_audit_token_escrow = await QuantstampAuditTokenEscrow.deployed();
 
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_multirequest_data.addAddressToWhitelist(quantstamp_audit.address);
@@ -67,9 +70,31 @@ contract('QuantstampAudit_multirequest', function(accounts) {
     await quantstamp_audit_data.setAuditTimeout(10000);
     // relaxing the requirement for other tests
     await quantstamp_audit_data.setMaxAssignedRequests(maxAssignedRequests);
+    // add QuantstampAudit to the whitelist of the escrow
+    await quantstamp_audit_token_escrow.addAddressToWhitelist(quantstamp_audit.address);
+    // set the minimum stake to zero
+    await quantstamp_audit_token_escrow.setMinAuditStake(0, {from : owner});
   }
 
-  describe("when a new multirequest comes", async function () {
+  describe("offering multirequest feature", async function() {
+
+    before(async function() {
+      await initialize();
+    });
+
+    it("should be disabled", async function () {
+      await Util.assertTxFail(quantstamp_audit.multiRequestAudit('', Util.toQsp(1), 2, {from:requestor}));
+    });
+
+    it("also view should return 0", async function () {
+      // increasing coverage
+      await quantstamp_audit_view.multiRequestIdToRequestIds(1);
+    });
+
+
+  });
+
+  xdescribe("when a new multirequest comes", async function () {
     let multiRequestId = 0;
     const requestCount = 2;
 
@@ -83,8 +108,9 @@ contract('QuantstampAudit_multirequest', function(accounts) {
     it("should make sure there is enough QSP is approved to be transferred", async function() {
       const approvedRequestorBudget = requestCount * price - 1;
       await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(approvedRequestorBudget), {from : requestor});
-      Util.assertTxFail(quantstamp_audit.multiRequestAudit(Util.uri, Util.toQsp(price), requestCount, {from:requestor}));
-      // restore aproval
+      await Util.assertTxFail(quantstamp_audit.multiRequestAudit(Util.uri, Util.toQsp(price), requestCount, {from:requestor}));
+
+      // restore approval
       await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(approvalAmount), {from : requestor});
     });
 
@@ -137,7 +163,7 @@ contract('QuantstampAudit_multirequest', function(accounts) {
     });
   });
 
-  describe("when an auditor audited a request forked from a multirequest", async function() {
+  xdescribe("when an auditor audited a request forked from a multirequest", async function() {
     before(async function() {
       await initialize();
       assert(await quantstamp_audit_view.getQueueLength.call(), 0);
@@ -185,7 +211,7 @@ contract('QuantstampAudit_multirequest', function(accounts) {
     });
   });
 
-  describe("when the test-coverage is not full for QuantstampAuditMultiRequestData", async function() {
+  xdescribe("when the test-coverage is not full for QuantstampAuditMultiRequestData", async function() {
     before(async function() {
       await initialize();
       await quantstamp_audit_multirequest_data.addAddressToWhitelist(owner);

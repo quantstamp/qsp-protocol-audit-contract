@@ -4,8 +4,12 @@ const QuantstampAuditView = artifacts.require('QuantstampAuditView');
 const QuantstampAuditData = artifacts.require('QuantstampAuditData');
 const QuantstampAuditMultiRequestData = artifacts.require('QuantstampAuditMultiRequestData');
 const QuantstampAuditReportData = artifacts.require('QuantstampAuditReportData');
+<<<<<<< HEAD
 const QuantstampAuditPolice = artifacts.require('QuantstampAuditPolice');
 
+=======
+const QuantstampAuditTokenEscrow = artifacts.require('QuantstampAuditTokenEscrow');
+>>>>>>> develop
 
 const Util = require("./util.js");
 const AuditState = Util.AuditState;
@@ -26,6 +30,7 @@ contract('QuantstampAudit_refunds', function(accounts) {
   let quantstamp_audit_view;
   let quantstamp_token;
   let quantstamp_audit_police;
+  let quantstamp_audit_token_escrow;
 
   beforeEach(async function () {
     quantstamp_audit = await QuantstampAudit.deployed();
@@ -35,6 +40,7 @@ contract('QuantstampAudit_refunds', function(accounts) {
     quantstamp_audit_view = await QuantstampAuditView.deployed();
     quantstamp_token = await QuantstampToken.deployed();
     quantstamp_audit_police = await QuantstampAuditPolice.deployed();
+    quantstamp_audit_token_escrow = await QuantstampAuditTokenEscrow.deployed();
 
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_multirequest_data.addAddressToWhitelist(quantstamp_audit.address);
@@ -53,6 +59,10 @@ contract('QuantstampAudit_refunds', function(accounts) {
     await quantstamp_audit_data.setMaxAssignedRequests(1000);
     // timeout requests
     await quantstamp_audit_data.setAuditTimeout(10000);
+    // add QuantstampAudit to the whitelist of the escrow
+    await quantstamp_audit_token_escrow.addAddressToWhitelist(quantstamp_audit.address);
+    // set the minimum stake to zero
+    await quantstamp_audit_token_escrow.setMinAuditStake(0, {from : owner});
   });
 
   it("should disallow refunds for bogus request IDs", async function () {
