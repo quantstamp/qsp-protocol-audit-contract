@@ -300,6 +300,8 @@ contract QuantstampAudit is Ownable, Pausable {
     if (auditResult == QuantstampAuditData.AuditState.Completed) {
       // alert the police to verify the report
       police.assignPoliceToReport(requestId);
+      // add the requestId to the pending payments that should be paid to the auditor after policing
+      police.addPendingPayment(msg.sender, requestId);
     }
   }
 
@@ -316,36 +318,61 @@ contract QuantstampAudit is Ownable, Pausable {
     bytes report,
     bool isVerified) public returns (bool) {
     require(police.isPoliceNode(msg.sender));
-    return police.submitPoliceReport(msg.sender, requestId, report, isVerified);
+    // get the address of the audit node
+    address auditNode = auditData.getAuditAuditor(requestId);
+    return police.submitPoliceReport(msg.sender, auditNode, requestId, report, isVerified);
   }
 
   /**
-   * @dev Determines whether the address can claim an audit reward.
-   * @param requestId The ID of the audit request.
+   * @dev Determines whether the address (of an audit node) can claim any audit rewards.
    */
-  function canClaimAuditReward (uint256 requestId) public view returns (bool) {
-    // the sender must be the auditor
-    require(msg.sender == auditData.getAuditAuditor(requestId));
-    // the submitted report was marked completed
-    require(auditData.getAuditState(requestId) == QuantstampAuditData.AuditState.Completed);
-    // the police allow the reward to be claimed
-    require(police.canClaimAuditReward(requestId));
-    return true;
+  function hasAvailableRewards () public view returns (bool) {
+    return police.hasAvailableRewards(msg.sender);
   }
 
   /**
    * @dev If the policing period has ended without the report being marked invalid,
    *      allow the auditor to claim the audit's reward.
    * @param requestId The ID of the audit request.
+   * TODO: We need this function if claimRewards always fails due to gas limits.
+   *       I think this can only happen if the audit node receives many (i.e., hundreds) of audits,
+   *       and never calls claimRewards() until much later.
    */
-  function claimAuditReward (uint256 requestId) public returns (bool) {
-    require(canClaimAuditReward(requestId));
-    police.setRewardClaimed(requestId);
+  function claimReward (uint256 requestId) public returns (bool) {
+    require(police.canClaimAuditReward(msg.sender, requestId));
+    police.setRewardClaimed(msg.sender, requestId);
     uint256 auditPrice = auditData.getAuditPrice(requestId);
     auditData.token().transfer(msg.sender, auditPrice);
     emit LogPayAuditor(requestId, msg.sender, auditPrice);
     return true;
   }
+
+  /**
+   * @dev Claim all pending rewards for the audit node.
+   * @return the total amount of rewards paid
+   */
+  function claimRewards () public returns (uint256) {
+    // Yet another list iteration. Could ignore this check, but makes testing painful.
+    require(hasAvailableRewards());
+    uint256 totalPrice;
+    bool exists;
+    uint256 requestId = HEAD;
+    uint256 auditPrice;
+    // This loop occurs here (not in QuantstampAuditPolice) due to requiring the audit price,
+    // as otherwise we require more dependencies/mappings in QuantstampAuditPolice.
+    while (true) {
+      (exists, requestId) = police.claimNextReward(msg.sender, HEAD);
+      if (!exists) {
+        break;
+      }
+      auditPrice = auditData.getAuditPrice(requestId);
+      totalPrice = totalPrice.add(auditPrice);
+      emit LogPayAuditor(requestId, msg.sender, auditPrice);
+    }
+    auditData.token().transfer(msg.sender, totalPrice);
+    return totalPrice;
+  }
+
 
   /**
    * @dev Determines who has to be paid for a given requestId recorded with an error status

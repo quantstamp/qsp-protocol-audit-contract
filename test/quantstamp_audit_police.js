@@ -109,7 +109,7 @@ contract('QuantstampAuditPolice', function(accounts) {
 
   it("should not allow an auditor to claim the reward before the policing period finishes", async function() {
     currentId = await submitNewReport();
-    await Util.assertTxFail(quantstamp_audit.claimAuditReward(currentId, {from: auditor}));
+    await Util.assertTxFail(quantstamp_audit.claimRewards({from: auditor}));
   });
 
   it("should not allow a regular user to submit a police report", async function() {
@@ -119,7 +119,7 @@ contract('QuantstampAuditPolice', function(accounts) {
   it("should not allow a non-auditor to claim the reward", async function() {
     const num_blocks = police_timeout + 1;
     await Util.mineNBlocks(num_blocks);
-    await Util.assertTxFail(quantstamp_audit.claimAuditReward(currentId, {from: requestor}));
+    await Util.assertTxFail(quantstamp_audit.claimRewards({from: requestor}));
   });
 
   it("should not allow the police to submit a report after the police timeout", async function() {
@@ -142,7 +142,7 @@ contract('QuantstampAuditPolice', function(accounts) {
     const police_report_state = await quantstamp_audit_police.verifiedReports(currentId);
     assert.equal(police_report_state, Util.PoliceReportState.Unverified);
 
-    const result = await quantstamp_audit.claimAuditReward(currentId, {from: auditor});
+    const result = await quantstamp_audit.claimRewards({from: auditor});
     Util.assertEvent({
       result: result,
       name: "LogPayAuditor",
@@ -156,13 +156,13 @@ contract('QuantstampAuditPolice', function(accounts) {
   });
 
   it("should not allow an auditor to claim a reward twice", async function() {
-    await Util.assertTxFail(quantstamp_audit.claimAuditReward(currentId, {from: auditor}));
+    await Util.assertTxFail(quantstamp_audit.claimRewards({from: auditor}));
   });
 
   it("should allow the police to submit a positive report", async function() {
     currentId = await submitNewReport();
-    const result = await quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, true, {from: police1});
 
+    const result = await quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, true, {from: police1});
     Util.assertNestedEvent({
       result: result,
       name: "PoliceReportSubmitted",
@@ -186,7 +186,7 @@ contract('QuantstampAuditPolice', function(accounts) {
     const num_blocks = police_timeout + 1;
     await Util.mineNBlocks(num_blocks);
     const balance_before = await Util.balanceOf(quantstamp_token, auditor);
-    const result = await quantstamp_audit.claimAuditReward(currentId, {from: auditor});
+    const result = await quantstamp_audit.claimRewards({from: auditor});
     Util.assertEvent({
       result: result,
       name: "LogPayAuditor",
@@ -240,7 +240,7 @@ contract('QuantstampAuditPolice', function(accounts) {
   it("should not allow an auditor to claim the reward after the policing period when report is marked invalid", async function() {
     const num_blocks = police_timeout + 1;
     await Util.mineNBlocks(num_blocks);
-    await Util.assertTxFail(quantstamp_audit.claimAuditReward(currentId, {from: auditor}));
+    await Util.assertTxFail(quantstamp_audit.claimRewards({from: auditor}));
   });
 
   it("should assign all police to a report if policeNodesPerReport == numPoliceNodes", async function() {
@@ -393,6 +393,12 @@ contract('QuantstampAuditPolice', function(accounts) {
 
 
   it("should allow auditors to submit reports even if there are no whitelisted police", async function() {
+    const num_blocks = police_timeout + 1;
+
+    // clear pending payments
+    await Util.mineNBlocks(num_blocks);
+    await quantstamp_audit.claimRewards({from: auditor});
+
     for(var i = 0; i < all_police.length; i++) {
       await quantstamp_audit_police.removePoliceNode(all_police[i]);
     }
@@ -401,10 +407,9 @@ contract('QuantstampAuditPolice', function(accounts) {
     const balance_before = await Util.balanceOf(quantstamp_token, auditor);
 
     currentId = await submitNewReport();
-    const num_blocks = police_timeout + 1;
     await Util.mineNBlocks(num_blocks);
 
-    await quantstamp_audit.claimAuditReward(currentId, {from: auditor});
+    await quantstamp_audit.claimRewards({from: auditor});
 
     const balance_after = await Util.balanceOf(quantstamp_token, auditor);
     assert.equal(balance_before + price, balance_after);
@@ -415,7 +420,10 @@ contract('QuantstampAuditPolice', function(accounts) {
     const result = await quantstamp_audit.getNextAuditRequest({from: auditor});
     const requestId = Util.extractRequestId(result);
     await quantstamp_audit.submitReport(requestId, AuditState.Error, Util.emptyReport, {from : auditor});
-    Util.assertTxFail(quantstamp_audit.claimAuditReward(currentId, {from: auditor}));
+    await Util.assertTxFail(quantstamp_audit.claimRewards({from: auditor}));
   });
+
+  it("should allow auditors to claim multiple rewards at the same time");
+  it("should allow auditors to claim rewards when the owner changes timeouts");
 });
 

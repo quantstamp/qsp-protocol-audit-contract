@@ -48,6 +48,9 @@ contract QuantstampAuditPolice is Whitelist {
   // maps each police node to the IDs of reports it should check
   mapping(address => LinkedListLib.LinkedList) internal assignedReports;
 
+  // maps each audit node to the IDs of reports that are pending police approval for payment
+  mapping(address => LinkedListLib.LinkedList) internal pendingPayments;
+
   // maps request IDs to police timeouts
   mapping(uint256 => uint256) public policeTimeouts;
 
@@ -91,8 +94,19 @@ contract QuantstampAuditPolice is Whitelist {
   }
 
   /**
+   * @dev Assigns police nodes to a submitted report
+   * @param auditor The audit node that submitted the report.
+   * @param requestId The ID of the audit request.
+   */
+  function addPendingPayment(address auditor, uint256 requestId) public onlyWhitelisted {
+    pendingPayments[auditor].push(requestId, PREV);
+  }
+
+
+  /**
    * @dev Submits verification of a report by a police node.
    * @param policeNode The address of the police node.
+   * @param auditNode The address of the audit node.
    * @param requestId The ID of the audit request.
    * @param report The compressed bytecode representation of the report.
    * @param isVerified Whether the police node's report matches the submitted report.
@@ -101,6 +115,7 @@ contract QuantstampAuditPolice is Whitelist {
    */
   function submitPoliceReport(
     address policeNode,
+    address auditNode,
     uint256 requestId,
     bytes report,
     bool isVerified) public onlyWhitelisted returns (bool) {
@@ -113,6 +128,7 @@ contract QuantstampAuditPolice is Whitelist {
     }
     // the police node is assigned to the report
     require(isAssigned(requestId, policeNode));
+
     // remove the report from the assignments to the node
     assignedReports[policeNode].remove(requestId);
     // increment the number of reports checked by the police node
@@ -129,45 +145,93 @@ contract QuantstampAuditPolice is Whitelist {
     emit PoliceReportSubmitted(policeNode, requestId, state);
     // the report was already marked invalid by a different police node
     if (verifiedReports[requestId] == PoliceReportState.INVALID) {
-      return;
+      return true;
     } else {
       verifiedReports[requestId] = state;
     }
     if (!isVerified) {
       verifiedReports[requestId] = PoliceReportState.INVALID;
+      pendingPayments[auditNode].remove(requestId);
       // TODO (QSP-832): slash the auditor, be careful of double slash logic
     }
     return true;
   }
 
   /**
-   * @dev Determines whether an auditor is allowed by the police to claim an audit.
+   * @dev Determines whether an audit node is allowed by the police to claim an audit.
+   * @param auditNode The address of the audit node.
    * @param requestId The ID of the requested audit.
    */
-  function canClaimAuditReward (uint256 requestId) public view returns (bool) {
-    // the police did not invalidate the report
-    require(verifiedReports[requestId] != PoliceReportState.INVALID);
-    // the policing period has ended for the report
-    require(policeTimeouts[requestId] < block.number);
-    // the reward has not already been claimed
-    require(!rewardHasBeenClaimed[requestId]);
-    return true;
+  function canClaimAuditReward (address auditNode, uint256 requestId) public view returns (bool) {
+    // NOTE: can't use requires here, as claimNextReward needs to iterate the full list
+    return
+      // the report is in the pending payments list for the auditor
+      pendingPayments[auditNode].nodeExists(requestId) &&
+      // the policing period has ended for the report
+      policeTimeouts[requestId] < block.number &&
+      // the police did not invalidate the report
+      verifiedReports[requestId] != PoliceReportState.INVALID &&
+      // the policing period has ended for the report
+      policeTimeouts[requestId] < block.number &&
+      // the reward has not already been claimed
+      !rewardHasBeenClaimed[requestId];
+  }
+
+  /**
+   * @dev Determines whether an audit node has any pending rewards available.
+   * @param auditNode The address of the audit node.
+   */
+  function hasAvailableRewards (address auditNode) public view returns (bool) {
+    bool exists;
+    uint256 requestId = HEAD;
+    (exists, requestId) = pendingPayments[auditNode].getAdjacent(HEAD, NEXT);
+    // NOTE: Do NOT short circuit this list based on timeouts.
+    // The ordering may be broken if the owner changes the timeouts.
+    while (exists && requestId != HEAD) {
+      if (canClaimAuditReward(auditNode, requestId)) {
+        return true;
+      }
+      (exists, requestId) = pendingPayments[auditNode].getAdjacent(requestId, NEXT);
+    }
+    return false;
   }
 
   /**
    * @dev Sets the reward as claimed after checking that it can be claimed.
    *      This function also ensures double payment does not occur.
+   * @param auditNode The address of the audit node.
    * @param requestId The ID of the requested audit.
    */
-  function setRewardClaimed (uint256 requestId) public onlyWhitelisted returns (bool) {
-    require(canClaimAuditReward(requestId));
+  function setRewardClaimed (address auditNode, uint256 requestId) public onlyWhitelisted returns (bool) {
     // set the reward to claimed, to avoid double payment
     rewardHasBeenClaimed[requestId] = true;
+    pendingPayments[auditNode].remove(requestId);
     // if it is possible to claim yet the state is UNVERIFIED, mark EXPIRED
     if (verifiedReports[requestId] == PoliceReportState.UNVERIFIED) {
       verifiedReports[requestId] = PoliceReportState.EXPIRED;
     }
     return true;
+  }
+
+  /**
+   * @dev Selects the next ID to be rewarded.
+   * @param auditNode The address of the audit node.
+   * @param requestId The previous claimed requestId (initially set to HEAD).
+   * @return True if another reward exists, and the request ID.
+   */
+  function claimNextReward (address auditNode, uint256 requestId) public onlyWhitelisted returns (bool, uint256) {
+    bool exists;
+    (exists, requestId) = pendingPayments[auditNode].getAdjacent(HEAD, NEXT);
+    // NOTE: Do NOT short circuit this list based on timeouts.
+    // The ordering may be broken if the owner changes the timeouts.
+    while (exists && requestId != HEAD) {
+      if (canClaimAuditReward(auditNode, requestId)) {
+        setRewardClaimed(auditNode, requestId);
+        return (true, requestId);
+      }
+      (exists, requestId) = pendingPayments[auditNode].getAdjacent(requestId, NEXT);
+    }
+    return (false, 0);
   }
 
   /**
@@ -278,17 +342,16 @@ contract QuantstampAuditPolice is Whitelist {
     bool exists;
     uint256 potentialExpiredRequestId;
     (exists, potentialExpiredRequestId) = assignedReports[policeNode].getAdjacent(HEAD, NEXT);
+    // NOTE: Do NOT short circuit this list based on timeouts.
+    // The ordering may be broken if the owner changes the timeouts.
     while (exists && potentialExpiredRequestId != HEAD) {
       if (policeTimeouts[potentialExpiredRequestId] < block.number) {
         assignedReports[policeNode].remove(potentialExpiredRequestId);
         if (potentialExpiredRequestId == requestId) {
           hasRemovedCurrentId = true;
         }
-        (exists, potentialExpiredRequestId) = assignedReports[policeNode].getAdjacent(HEAD, NEXT);
-      } else {
-        // the list is in chronological order
-        break;
       }
+      (exists, potentialExpiredRequestId) = assignedReports[policeNode].getAdjacent(potentialExpiredRequestId, NEXT);
     }
     return hasRemovedCurrentId;
   }
