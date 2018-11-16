@@ -4,6 +4,7 @@ const QuantstampAuditMultiRequestData = artifacts.require('QuantstampAuditMultiR
 const QuantstampAuditReportData = artifacts.require('QuantstampAuditReportData');
 const QuantstampAuditView = artifacts.require('QuantstampAuditView');
 const QuantstampToken = artifacts.require('QuantstampToken');
+const QuantstampAuditTokenEscrow = artifacts.require('QuantstampAuditTokenEscrow');
 const Util = require("./util.js");
 const AuditState = Util.AuditState;
 
@@ -24,6 +25,7 @@ contract('QuantstampAudit', function(accounts) {
   let quantstamp_audit_report_data;
   let quantstamp_audit_view;
   let quantstamp_token;
+  let quantstamp_audit_token_escrow;
 
   beforeEach(async function () {
     quantstamp_audit = await QuantstampAudit.deployed();
@@ -32,6 +34,7 @@ contract('QuantstampAudit', function(accounts) {
     quantstamp_audit_report_data = await QuantstampAuditReportData.deployed();
     quantstamp_audit_view = await QuantstampAuditView.deployed();
     quantstamp_token = await QuantstampToken.deployed();
+    quantstamp_audit_token_escrow = await QuantstampAuditTokenEscrow.deployed();
 
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_multirequest_data.addAddressToWhitelist(quantstamp_audit.address);
@@ -49,6 +52,10 @@ contract('QuantstampAudit', function(accounts) {
     await quantstamp_audit_data.setAuditTimeout(10000);
     // relaxing the requirement for other tests
     await quantstamp_audit_data.setMaxAssignedRequests(maxAssignedRequests);
+    // add QuantstampAudit to the whitelist of the escrow
+    await quantstamp_audit_token_escrow.addAddressToWhitelist(quantstamp_audit.address);
+    // set the minimum stake to zero
+    await quantstamp_audit_token_escrow.setMinAuditStake(0, {from : owner});
   });
 
   it("queues new audits and assigns them in the right order", async function() {
@@ -359,7 +366,7 @@ contract('QuantstampAudit', function(accounts) {
     // for the sake of dependency, let's ensure the auditor is not in the whitelist
     await quantstamp_audit.pause();
 
-    Util.assertTxFail(quantstamp_audit.requestAudit(Util.uri, price, {from: requestor}));
+    await Util.assertTxFail(quantstamp_audit.requestAudit(Util.uri, price, {from: requestor}));
     await quantstamp_audit.unpause();
   });
 
@@ -375,7 +382,7 @@ contract('QuantstampAudit', function(accounts) {
 
     await quantstamp_audit.getNextAuditRequest({from: auditor2});
 
-    Util.assertEvent({
+    await Util.assertEvent({
         result: await quantstamp_audit.getNextAuditRequest({from: auditor2}),
         name: "LogAuditAssignmentError_ExceededMaxAssignedRequests",
         args: (args) => {
