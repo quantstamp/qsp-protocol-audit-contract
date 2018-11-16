@@ -25,7 +25,7 @@ contract('QuantstampAuditPolice', function(accounts) {
   const maxAssignedRequests = 100;
   const approvalAmount = 1000;
   const audit_timeout = 10;
-  const police_timeout = 15;
+  let police_timeout = 15;
   let currentId;
   let policeNodesPerReport;
   let min_stake;
@@ -423,7 +423,35 @@ contract('QuantstampAuditPolice', function(accounts) {
     await Util.assertTxFail(quantstamp_audit.claimRewards({from: auditor}));
   });
 
-  it("should allow auditors to claim multiple rewards at the same time");
-  it("should allow auditors to claim rewards when the owner changes timeouts");
+  it("should allow auditors to claim multiple rewards at the same time", async function() {
+    const balance_before = await Util.balanceOf(quantstamp_token, auditor);
+
+    const expected_reward = 555;
+
+    await submitNewReport();
+
+    // lower the police timeout
+    police_timeout = 5;
+    await quantstamp_audit_police.setPoliceTimeoutInBlocks(police_timeout);
+
+    // submit a new report with a different price
+    await quantstamp_audit.requestAudit(Util.uri, expected_reward, {from: requestor});
+    const result = await quantstamp_audit.getNextAuditRequest({from: auditor});
+    const requestId = Util.extractRequestId(result);
+    await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.emptyReport, {from : auditor});
+
+    const num_blocks = police_timeout + 1;
+    await Util.mineNBlocks(num_blocks);
+
+    await quantstamp_audit.claimRewards({from: auditor});
+
+    const balance_after = await Util.balanceOf(quantstamp_token, auditor);
+    // the reward should include the 2nd price (555), but not the first (123)
+    assert.equal(balance_before + expected_reward, balance_after);
+  });
+
+  it("should allow auditors to claim rewards when the owner changes timeouts", async function() {
+
+  });
 });
 
