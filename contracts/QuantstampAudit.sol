@@ -373,7 +373,6 @@ contract QuantstampAudit is Ownable, Pausable {
     return totalPrice;
   }
 
-
   /**
    * @dev Determines who has to be paid for a given requestId recorded with an error status
    * @param requestId Unique identifier of the audit request.

@@ -102,7 +102,6 @@ contract QuantstampAuditPolice is Whitelist {
     pendingPayments[auditor].push(requestId, PREV);
   }
 
-
   /**
    * @dev Submits verification of a report by a police node.
    * @param policeNode The address of the police node.
