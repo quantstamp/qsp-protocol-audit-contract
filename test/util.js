@@ -19,7 +19,8 @@ const AuditState = Object.freeze({
 const PoliceReportState = Object.freeze({
   Unverified : 0,
   Invalid : 1,
-  Valid : 2
+  Valid : 2,
+  Expired : 3
 });
 
 const AuditAvailabilityState = Object.freeze({

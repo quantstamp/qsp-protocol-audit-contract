@@ -152,6 +152,7 @@ contract('QuantstampAuditPolice', function(accounts) {
         assert.equal(args.amount, price);
       }
     });
+    assert.equal(await quantstamp_audit_police.verifiedReports(currentId), Util.PoliceReportState.Expired);
   });
 
   it("should not allow an auditor to claim a reward twice", async function() {

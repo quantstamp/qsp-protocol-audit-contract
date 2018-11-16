@@ -320,23 +320,33 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev If the policing period has ended without the report being marked invalid,
-   *      allow the auditor to claim the audit's reward.
+   * @dev Determines whether the address can claim an audit reward.
    * @param requestId The ID of the audit request.
    */
-  function claimAuditReward (uint256 requestId) public returns (bool) {
+  function canClaimAuditReward (uint256 requestId) public view returns (bool) {
     // the sender must be the auditor
     require(msg.sender == auditData.getAuditAuditor(requestId));
     // the submitted report was marked completed
     require(auditData.getAuditState(requestId) == QuantstampAuditData.AuditState.Completed);
     // the police allow the reward to be claimed
-    require(police.canBeClaimed(requestId));
+    require(police.canClaimAuditReward(requestId));
+    return true;
+  }
 
+  /**
+   * @dev If the policing period has ended without the report being marked invalid,
+   *      allow the auditor to claim the audit's reward.
+   * @param requestId The ID of the audit request.
+   */
+  function claimAuditReward (uint256 requestId) public returns (bool) {
+    require(canClaimAuditReward(requestId));
+    police.setRewardClaimed(requestId);
     uint256 auditPrice = auditData.getAuditPrice(requestId);
     auditData.token().transfer(msg.sender, auditPrice);
     emit LogPayAuditor(requestId, msg.sender, auditPrice);
     return true;
   }
+
 
   /**
    * @dev Determines who has to be paid for a given requestId recorded with an error status

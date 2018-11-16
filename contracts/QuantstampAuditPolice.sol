@@ -19,7 +19,8 @@ contract QuantstampAuditPolice is Whitelist {
   enum PoliceReportState {
     UNVERIFIED,
     INVALID,
-    VALID
+    VALID,
+    EXPIRED
   }
 
   // whitelisted police nodes
@@ -141,18 +142,31 @@ contract QuantstampAuditPolice is Whitelist {
 
   /**
    * @dev Determines whether an auditor is allowed by the police to claim an audit.
-   *      This function also ensures double payment does not occur.
    * @param requestId The ID of the requested audit.
    */
-  function canBeClaimed (uint256 requestId) public onlyWhitelisted returns (bool) {
+  function canClaimAuditReward (uint256 requestId) public view returns (bool) {
     // the police did not invalidate the report
     require(verifiedReports[requestId] != PoliceReportState.INVALID);
     // the policing period has ended for the report
     require(policeTimeouts[requestId] < block.number);
     // the reward has not already been claimed
     require(!rewardHasBeenClaimed[requestId]);
+    return true;
+  }
+
+  /**
+   * @dev Sets the reward as claimed after checking that it can be claimed.
+   *      This function also ensures double payment does not occur.
+   * @param requestId The ID of the requested audit.
+   */
+  function setRewardClaimed (uint256 requestId) public onlyWhitelisted returns (bool) {
+    require(canClaimAuditReward(requestId));
     // set the reward to claimed, to avoid double payment
     rewardHasBeenClaimed[requestId] = true;
+    // if it is possible to claim yet the state is UNVERIFIED, mark EXPIRED
+    if (verifiedReports[requestId] == PoliceReportState.UNVERIFIED) {
+      verifiedReports[requestId] = PoliceReportState.EXPIRED;
+    }
     return true;
   }
 
