@@ -3,13 +3,13 @@
 ![Build status](https://codebuild.us-east-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiZmNQeU81OEExcy8zZS9vdkpWU3NNQUJDNnVYYTRTbHQvaGE4TExaZXhVcnFFWXY3VjdJRGxyU3IrTk9UNTQzMWJJNk5rdThNZEE4SVUxS3h0QkNPZG0wPSIsIml2UGFyYW1ldGVyU3BlYyI6IkhmZUo3c005aHZRdUdjTloiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=develop)
 [![Coverage Status](https://coveralls.io/repos/github/quantstamp/qsp-protocol-audit-contract/badge.svg?branch=develop&t=kDg4aW)](https://coveralls.io/github/quantstamp/qsp-protocol-audit-contract)
 
-This repository contains contracts for interfacing with the QSP audit protocol audit.
+This repository contains contracts for interfacing with the QSP audit protocol.
 
-- `QuantstampAudit.sol` is the main contract used for interfacing with the protocol. It allows, among other things, the users to request audits and query the state, the node operators to stake funds and bid on audits, and handle refunds. It also governs the assignment of audits.
+- `QuantstampAudit.sol` is the main contract used for interfacing with the protocol. It allows, among other things, the users to request audits and query their state, the node operators to stake funds and bid on audits, and handle refunds. It also governs the assignment of audits.
 - `QuantstampAuditData.sol` stores information about the audits.
 - `QuantstampAuditMultiRequestData.sol` stores information about audits that should be processed by several audit nodes.
 - `QuantstampAuditReportData.sol` stores compressed reports on-chain.
-- `QuantstampAuditTokenEscrow.sol` holds staked tokens in an escrow.
+- `QuantstampAuditTokenEscrow.sol` holds tokens staked by audit nodes in an escrow.
 - `QuantstampAuditView.sol` provides view functionality for the state of the protocol.
 
 ## Access deployed contracts
@@ -80,7 +80,7 @@ This includes running Truffle tests and collecting coverage report for [Coverall
 
 ## Commands
 
-**Note**: before running a command, setup the credentials as described in the section above.
+**Note**: before running a command, setup the credentials as described in the internal wiki.
 
 1. `npm run command -- -n=dev -a=whitelist --p 0x123456789` whitelists a node defined by a given address
 1. `npm run command -- -n=dev -a=whitelist-owner-in-data-contract` whitelists the owner of the QuantstampAuditData contract (required for updating nodes' min audit price)
