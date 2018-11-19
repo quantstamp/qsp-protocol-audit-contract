@@ -424,6 +424,23 @@ contract('QuantstampAuditPolice', function(accounts) {
   });
 
   it("should allow auditors to claim multiple rewards at the same time", async function() {
+    const num_reports = 5;
+    for(var i = 0; i < num_reports; i++) {
+      await submitNewReport()
+    }
+    const balance_before = await Util.balanceOf(quantstamp_token, auditor);
+
+    const num_blocks = police_timeout + 1;
+    await Util.mineNBlocks(num_blocks);
+
+    await quantstamp_audit.claimRewards({from: auditor});
+
+    const balance_after = await Util.balanceOf(quantstamp_token, auditor);
+    assert.equal(balance_before + price * num_reports, balance_after);
+
+  });
+
+  it("should allow auditors to claim rewards when the owner changes timeouts", async function() {
     const balance_before = await Util.balanceOf(quantstamp_token, auditor);
 
     const expected_reward = 555;
@@ -448,10 +465,16 @@ contract('QuantstampAuditPolice', function(accounts) {
     const balance_after = await Util.balanceOf(quantstamp_token, auditor);
     // the reward should include the 2nd price (555), but not the first (123)
     assert.equal(balance_before + expected_reward, balance_after);
-  });
 
-  it("should allow auditors to claim rewards when the owner changes timeouts", async function() {
+    // raise the police timeout
+    police_timeout = 15;
+    await quantstamp_audit_police.setPoliceTimeoutInBlocks(police_timeout);
+    await Util.mineNBlocks(police_timeout + 1);
 
+    await quantstamp_audit.claimRewards({from: auditor});
+
+    const balance_after2 = await Util.balanceOf(quantstamp_token, auditor);
+    assert.equal(balance_before + expected_reward + price, balance_after2);
   });
 });
 
