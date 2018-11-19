@@ -303,7 +303,7 @@ contract QuantstampAuditPolice is Whitelist {
       lastAssignedPoliceNode = address(next);
     }
 
-    if (policeList.remove(uint256(addr)) != 0) {
+    if (policeList.remove(uint256(addr)) != NULL) {
       numPoliceNodes = numPoliceNodes.sub(1);
       emit PoliceNodeRemoved(addr);
       success = true;
