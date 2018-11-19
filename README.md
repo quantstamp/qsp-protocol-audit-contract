@@ -3,7 +3,14 @@
 ![Build status](https://codebuild.us-east-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiZmNQeU81OEExcy8zZS9vdkpWU3NNQUJDNnVYYTRTbHQvaGE4TExaZXhVcnFFWXY3VjdJRGxyU3IrTk9UNTQzMWJJNk5rdThNZEE4SVUxS3h0QkNPZG0wPSIsIml2UGFyYW1ldGVyU3BlYyI6IkhmZUo3c005aHZRdUdjTloiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=develop)
 [![Coverage Status](https://coveralls.io/repos/github/quantstamp/qsp-protocol-audit-contract/badge.svg?branch=develop&t=kDg4aW)](https://coveralls.io/github/quantstamp/qsp-protocol-audit-contract)
 
-QSP Protocol audit contract.
+This repository contains contracts for interfacing with the QSP audit protocol audit.
+
+- `QuantstampAudit.sol` is the main contract used for interfacing with the protocol. It allows, among other things, the users to request audits and query the state, the node operators to stake funds and bid on audits, and handle refunds. It also governs the assignment of audits.
+- `QuantstampAuditData.sol` stores information about the audits.
+- `QuantstampAuditMultiRequestData.sol` stores information about audits that should be processed by several audit nodes.
+- `QuantstampAuditReportData.sol` stores compressed reports on-chain.
+- `QuantstampAuditTokenEscrow.sol` holds staked tokens in an escrow.
+- `QuantstampAuditView.sol` provides view functionality for the state of the protocol.
 
 ## Access deployed contracts
 
@@ -56,7 +63,7 @@ For querying, go to: https://etherscan.io/address/{address}#readContract , where
 1. For convenience, install Truffle globally: `npm install -g truffle@0.0.0`, replacing `0.0.0` by the Truffle version from `package.json`
 1. Install Ganache (Formerly, `testrpc`), either:
     1. [UI version](http://truffleframework.com/ganache/) of version `1.1.0` or
-    1. Console version: `npm install -g ganache-cli@6.1.0` and then (from another terminal tab): `testrpc -p 7545`
+    1. Console version: `npm install -g ganache-cli@6.1.0` and then (from another terminal tab): `ganache-cli -p 7545`
 1. `truffle compile`
 1. `npm test`. To also generate a code coverage report, run `npm run test-cov` instead.
 1. To ensure correct commit hooks:
@@ -69,47 +76,7 @@ For querying, go to: https://etherscan.io/address/{address}#readContract , where
 The file `buildspec-ci.yml` contains the commands to run on each push.
 This includes running Truffle tests and collecting coverage report for [Coveralls](https://coveralls.io/github/quantstamp/qsp-protocol-audit-contract).
 
-## Deploy to Ropsten or Main Net (through MetaMask)
 
-First-time only: manually create the S3 buckets `qsp-protocol-contract-abi-dev` and `qsp-protocol-contract-abi-prod` that will store the ABI and metadata for the deployed contracts. These are necessary so that the audit node and tests can work with the contract without having to update the address.
-
-1. If you haven't, install MetaMask (https://metamask.io).
-1. Start MetaMask in the browser (Chrome, Chromium, or Brave) and log in with our credentials.
-1. Point MetaMask to the right network (Ropsten or Main Net).
-1. Make sure MetaMask is running throughout the deployment process.
-1. Place the secret mnemonic phrase and the infura API token into `credentials.js`.
-1. If you deploy to Dev or Prod networks of the QSP Protocol, make sure you have AWS credentials that allow write access to the bucket `qsp-protocol-contract/<network>/<contractName>-v-<vesion>-abi.json`. If deployment is successful, the new contract address and the owner address will be written to the corresponding S3 file automatically.
-1. Go to `truffle.js` and under `deploy`, set values to `true` for the contracts you would like to deploy.
-1. Deploy the contract(s) to the desired network:
-    * `truffle migrate --network dev` - QSP protocol dev network.
-    * `truffle migrate --network prod` - QSP protocol prod network.
-    * `truffle migrate --network ropsten` - Ropsten for independent testing (does not overwrite address from dev or prod network).
-1. Whitelist the Audit contract in the Data contract:
-    * `npm run command -- -n=dev -a=whitelist-audit-contract-in-data` - for the dev network.
-    * `npm run command -- -n=prod -a=whitelist-audit-contract-in-data` - for the prod network.
-1. Whitelist the Audit contract in the MultiRequest Data contract:
-    * `npm run command -- -n=dev -a=whitelist-audit-contract-in-multirequest-data` - for the dev network.
-    * `npm run command -- -n=prod -a=whitelist-audit-contract-in-multirequest-data` - for the prod network.
-1. Whitelist the Audit contract in the Report Data contract:
-    * `npm run command -- -n=dev -a=whitelist-audit-contract-in-report-data` - for the dev network.
-    * `npm run command -- -n=prod -a=whitelist-audit-contract-in-report-data` - for the prod network.
-        
-    Note: a successful return of the whitelisting script does not necessarily mean the transaction is fully completed. Please check
-    the status manually on a block explorer and wait for the desired number of confirmations.
-1. To perform actions on a deployed smart contract, use the following commands:
-    * `npm run command -- -n=dev --p <parameters>` - QSP protocol dev network.
-    * `npm run command -- -n=prod --p <parameters>` - QSP protocol prod network.
-    
-    For the full list, check out the next section and `./scripts/definitions.json`. The list is extensible.
-
-In case you want to setup a different environment for testing purposes, follow:
-
-1. Go to `truffle.js` and add a new network, similar to `dev`, such as `test_net`.
-1. Deploy the contract(s) by passing the new network name, _e.g.,_ `truffle migrate --network test_net`.
-1. Once contract(s) deployed, the addresses are accessible from S3. For example, `qsp-protocol-contract/test_net/QuantstampAudit-v-<vesion>-abi.json`
-is a path associated to the version 1 of the `QuantstampAudit` contract deployed on `test_net`.
-1. You can run all commands on this network by setting the value `-s` to `npm run command`. For example, for running
-`whitelist-audit-contract` on `test_net`, run: `npm run command -s=test_net -- -a=whitelist-audit-contract`.
 
 ## Commands
 
