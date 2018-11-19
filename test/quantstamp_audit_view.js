@@ -75,7 +75,7 @@ contract('QuantstampAuditView', function(accounts) {
     const another_quantstamp_audit_multirequest_data = (await QuantstampAuditMultiRequestData.new()).contract.address;
     const another_quantstamp_audit_report_data = (await QuantstampAuditReportData.new()).contract.address;
     const another_quantstamp_audit_token_escrow = (await QuantstampAuditTokenEscrow.new(quantstamp_token.contract.address)).contract.address;
-    const another_quantstamp_audit_police = (await QuantstampAuditPolice.new()).contract.address;
+    const another_quantstamp_audit_police = (await QuantstampAuditPolice.new(another_quantstamp_audit_data, another_quantstamp_audit_token_escrow)).contract.address;
     const another_quantstamp_audit = (await QuantstampAudit.new(another_quantstamp_audit_data,
                                                                 another_quantstamp_audit_multirequest_data,
                                                                 another_quantstamp_audit_report_data,

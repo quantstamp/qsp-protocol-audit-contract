@@ -28,7 +28,7 @@ contract TokenEscrow is Ownable, Whitelist {
   event Deposited(address indexed payee, uint256 tokenAmount);
   event Withdrawn(address indexed payee, uint256 tokenAmount);
 
-  mapping(address => uint256) private deposits;
+  mapping(address => uint256) public deposits;
 
   ERC20 public token;
 
