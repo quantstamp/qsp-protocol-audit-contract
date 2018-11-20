@@ -3,6 +3,7 @@ const QuantstampAudit = artifacts.require('QuantstampAudit');
 const QuantstampAuditData = artifacts.require('QuantstampAuditData');
 const QuantstampAuditMultiRequestData = artifacts.require('QuantstampAuditMultiRequestData');
 const QuantstampAuditReportData = artifacts.require('QuantstampAuditReportData');
+const QuantstampAuditPolice = artifacts.require('QuantstampAuditPolice');
 const QuantstampAuditTokenEscrow = artifacts.require('QuantstampAuditTokenEscrow');
 
 const Util = require("./util.js");
@@ -19,6 +20,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
   let quantstamp_audit_multirequest_data;
   let quantstamp_audit_report_data;
   let quantstamp_token;
+  let quantstamp_audit_police;
   let quantstamp_audit_token_escrow;
 
   beforeEach(async function () {
@@ -27,11 +29,13 @@ contract('QuantstampAudit_resolution', function(accounts) {
     quantstamp_audit_multirequest_data = await QuantstampAuditMultiRequestData.deployed();
     quantstamp_audit_report_data = await QuantstampAuditReportData.deployed();
     quantstamp_token = await QuantstampToken.deployed();
+    quantstamp_audit_police = await QuantstampAuditPolice.deployed();
     quantstamp_audit_token_escrow = await QuantstampAuditTokenEscrow.deployed();
 
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_multirequest_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_report_data.addAddressToWhitelist(quantstamp_audit.address);
+    await quantstamp_audit_police.addAddressToWhitelist(quantstamp_audit.address);
 
     // enable transfers before any payments are allowed
     await quantstamp_token.enableTransfer({from : owner});
@@ -126,7 +130,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
     const balanceOfRequesterBeforeAudit = await Util.balanceOf(quantstamp_token, requestor);
     await quantstamp_audit.getNextAuditRequest({from:auditor});
     await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.emptyReport, {from: auditor});
-    assert.equal(await Util.balanceOf(quantstamp_token, auditor), balanceOfAuditorBeforeAudit.add(price));
+    assert.equal(await Util.balanceOf(quantstamp_token, auditor), balanceOfAuditorBeforeAudit);
 
     Util.assertEvent({
       result: await quantstamp_audit.resolveErrorReport(requestId, true),
@@ -135,8 +139,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
         assert.equal(args.requestId, requestId);
       }
     });
-
-    assert.equal(await Util.balanceOf(quantstamp_token, auditor), balanceOfAuditorBeforeAudit.add(price));
+    assert.equal(await Util.balanceOf(quantstamp_token, auditor), balanceOfAuditorBeforeAudit);
     assert.equal(await Util.balanceOf(quantstamp_token, requestor), balanceOfRequesterBeforeAudit);
   });
 

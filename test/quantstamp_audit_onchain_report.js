@@ -4,6 +4,7 @@ const QuantstampAuditMultiRequestData = artifacts.require('QuantstampAuditMultiR
 const QuantstampAuditReportData = artifacts.require('QuantstampAuditReportData');
 const QuantstampAuditView = artifacts.require('QuantstampAuditView');
 const QuantstampToken = artifacts.require('QuantstampToken');
+const QuantstampAuditPolice = artifacts.require('QuantstampAuditPolice');
 const QuantstampAuditTokenEscrow = artifacts.require('QuantstampAuditTokenEscrow');
 
 const Util = require("./util.js");
@@ -25,6 +26,7 @@ contract('QuantstampAudit_report', function(accounts) {
   let quantstamp_audit_report_data;
   let quantstamp_audit_view;
   let quantstamp_token;
+  let quantstamp_audit_police;
   let quantstamp_audit_token_escrow;
 
   async function initialize() {
@@ -34,10 +36,12 @@ contract('QuantstampAudit_report', function(accounts) {
     quantstamp_audit_report_data = await QuantstampAuditReportData.deployed();
     quantstamp_audit_view = await QuantstampAuditView.deployed();
     quantstamp_token = await QuantstampToken.deployed();
+    quantstamp_audit_police = await QuantstampAuditPolice.deployed();
     quantstamp_audit_token_escrow = await QuantstampAuditTokenEscrow.deployed();
 
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_multirequest_data.addAddressToWhitelist(quantstamp_audit.address);
+    await quantstamp_audit_police.addAddressToWhitelist(quantstamp_audit.address);
 
     // enable transfers before any payments are allowed
     await quantstamp_token.enableTransfer({from : owner});

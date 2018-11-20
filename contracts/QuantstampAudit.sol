@@ -8,6 +8,7 @@ import "./LinkedListLib.sol";
 import "./QuantstampAuditData.sol";
 import "./QuantstampAuditMultiRequestData.sol";
 import "./QuantstampAuditReportData.sol";
+import "./QuantstampAuditPolice.sol";
 import "./QuantstampAuditTokenEscrow.sol";
 
 
@@ -43,6 +44,9 @@ contract QuantstampAudit is Ownable, Pausable {
 
   // contract that stores audit reports on-chain
   QuantstampAuditReportData public reportData;
+
+  // contract that handles policing
+  QuantstampAuditPolice public police;
 
   // contract that stores token escrows of nodes on the network
   QuantstampAuditTokenEscrow public tokenEscrow;
@@ -111,16 +115,19 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param auditDataAddress The address of an AuditData that stores data used for performing audits.
    * @param reportDataAddress The address of a ReportData that stores audit reports.
    * @param escrowAddress The address of a QuantstampTokenEscrow contract that holds staked deposits of nodes.
+   * @param policeAddress The address of a QuantstampAuditPolice that performs report checking.
    */
-  constructor (address auditDataAddress, address multiRequestDataAddress, address reportDataAddress, address escrowAddress) public {
+  constructor (address auditDataAddress, address multiRequestDataAddress, address reportDataAddress, address escrowAddress, address policeAddress) public {
     require(auditDataAddress != address(0));
     require(multiRequestDataAddress != address(0));
     require(reportDataAddress != address(0));
     require(escrowAddress != address(0));
+    require(policeAddress != address(0));
     auditData = QuantstampAuditData(auditDataAddress);
     multiRequestData = QuantstampAuditMultiRequestData(multiRequestDataAddress);
     reportData = QuantstampAuditReportData(reportDataAddress);
     tokenEscrow = QuantstampAuditTokenEscrow(escrowAddress);
+    police = QuantstampAuditPolice(policeAddress);
   }
 
   /**
@@ -291,10 +298,79 @@ contract QuantstampAudit is Ownable, Pausable {
     emit LogAuditFinished(requestId, msg.sender, auditResult); // solhint-disable-line not-rely-on-time
 
     if (auditResult == QuantstampAuditData.AuditState.Completed) {
-      uint256 auditPrice = auditData.getAuditPrice(requestId);
-      auditData.token().transfer(msg.sender, auditPrice);
+      // alert the police to verify the report
+      police.assignPoliceToReport(requestId);
+      // add the requestId to the pending payments that should be paid to the auditor after policing
+      police.addPendingPayment(msg.sender, requestId);
+    }
+  }
+
+  /**
+   * @dev Submits verification of a report by a police node.
+   * @param requestId The ID of the audit request.
+   * @param report The compressed bytecode representation of the report.
+   * @param isVerified Whether the police node's report matches the submitted report.
+   *                   If not, the auditor is slashed.
+   * @return true if the report was submitted successfully.
+   */
+  function submitPoliceReport(
+    uint256 requestId,
+    bytes report,
+    bool isVerified) public returns (bool) {
+    require(police.isPoliceNode(msg.sender));
+    // get the address of the audit node
+    address auditNode = auditData.getAuditAuditor(requestId);
+    return police.submitPoliceReport(msg.sender, auditNode, requestId, report, isVerified);
+  }
+
+  /**
+   * @dev Determines whether the address (of an audit node) can claim any audit rewards.
+   */
+  function hasAvailableRewards () public view returns (bool) {
+    return police.hasAvailableRewards(msg.sender);
+  }
+
+  /**
+   * @dev If the policing period has ended without the report being marked invalid,
+   *      allow the auditor to claim the audit's reward.
+   * @param requestId The ID of the audit request.
+   * TODO: We need this function if claimRewards always fails due to gas limits.
+   *       I think this can only happen if the audit node receives many (i.e., hundreds) of audits,
+   *       and never calls claimRewards() until much later.
+   */
+  function claimReward (uint256 requestId) public returns (bool) {
+    require(police.canClaimAuditReward(msg.sender, requestId));
+    police.setRewardClaimed(msg.sender, requestId);
+    uint256 auditPrice = auditData.getAuditPrice(requestId);
+    auditData.token().transfer(msg.sender, auditPrice);
+    emit LogPayAuditor(requestId, msg.sender, auditPrice);
+    return true;
+  }
+
+  /**
+   * @dev Claim all pending rewards for the audit node.
+   * @return the total amount of rewards paid
+   */
+  function claimRewards () public returns (uint256) {
+    // Yet another list iteration. Could ignore this check, but makes testing painful.
+    require(hasAvailableRewards());
+    uint256 totalPrice;
+    bool exists;
+    uint256 requestId = HEAD;
+    uint256 auditPrice;
+    // This loop occurs here (not in QuantstampAuditPolice) due to requiring the audit price,
+    // as otherwise we require more dependencies/mappings in QuantstampAuditPolice.
+    while (true) {
+      (exists, requestId) = police.claimNextReward(msg.sender, HEAD);
+      if (!exists) {
+        break;
+      }
+      auditPrice = auditData.getAuditPrice(requestId);
+      totalPrice = totalPrice.add(auditPrice);
       emit LogPayAuditor(requestId, msg.sender, auditPrice);
     }
+    auditData.token().transfer(msg.sender, totalPrice);
+    return totalPrice;
   }
 
   /**
@@ -372,6 +448,14 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
+   * @dev returns the next assigned report in a police node's assignment queue.
+   * @return true if the list is non-empty, and the request ID of the report if exists.
+   */
+  function getNextPoliceAssignment() public view returns (bool, uint256) {
+    return police.getNextPoliceAssignment(msg.sender);
+  }
+
+  /**
    * @dev Finds a list of most expensive audits and assigns the oldest one to the auditor node.
    */
   /* solhint-disable function-max-lines */
@@ -427,9 +511,8 @@ contract QuantstampAudit is Ownable, Pausable {
     assignMultirequest(requestId);
 
     // lock stake when assigned
-    // TODO (QSP-806): add the policing period to this number
-    tokenEscrow.lockFunds(msg.sender, block.number.add(auditData.auditTimeoutInBlocks()));
-    
+    tokenEscrow.lockFunds(msg.sender, block.number.add(auditData.auditTimeoutInBlocks()).add(police.policeTimeoutInBlocks()));
+
     mostRecentAssignedRequestIdsPerAuditor[msg.sender] = requestId;
     emit LogAuditAssigned(requestId,
       auditData.getAuditAuditor(requestId),

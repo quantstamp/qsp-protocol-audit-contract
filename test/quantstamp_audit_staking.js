@@ -5,6 +5,8 @@ const QuantstampAuditReportData = artifacts.require('QuantstampAuditReportData')
 const QuantstampAuditView = artifacts.require('QuantstampAuditView');
 const QuantstampToken = artifacts.require('QuantstampToken');
 const QuantstampAuditTokenEscrow = artifacts.require('QuantstampAuditTokenEscrow');
+const QuantstampAuditPolice = artifacts.require('QuantstampAuditPolice');
+
 const Util = require("./util.js");
 const AuditState = Util.AuditState;
 
@@ -27,6 +29,7 @@ contract('QuantstampAudit', function(accounts) {
   let quantstamp_token;
   let quantstamp_audit_token_escrow;
   let min_stake;
+  let quantstamp_audit_police;
 
   beforeEach(async function () {
     quantstamp_audit = await QuantstampAudit.deployed();
@@ -36,10 +39,12 @@ contract('QuantstampAudit', function(accounts) {
     quantstamp_audit_view = await QuantstampAuditView.deployed();
     quantstamp_token = await QuantstampToken.deployed();
     quantstamp_audit_token_escrow = await QuantstampAuditTokenEscrow.deployed();
+    quantstamp_audit_police = await QuantstampAuditPolice.deployed();
 
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_multirequest_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_report_data.addAddressToWhitelist(quantstamp_audit.address);
+    await quantstamp_audit_police.addAddressToWhitelist(quantstamp_audit.address);
 
     // enable transfers before any payments are allowed
     await quantstamp_token.enableTransfer({from : owner});
@@ -135,7 +140,10 @@ contract('QuantstampAudit', function(accounts) {
 
   it("funds should be unlocked after the lock period ends", async function() {
     // TODO (QSP-806): this amount must include the policing period
-    const lock_period_length = (await quantstamp_audit_data.auditTimeoutInBlocks()).toNumber() + 1;
+    const lock_period_length =
+      (await quantstamp_audit_data.auditTimeoutInBlocks()).toNumber() +
+      (await quantstamp_audit_police.policeTimeoutInBlocks()).toNumber() +
+      1;
     await Util.mineNBlocks(lock_period_length);
     await quantstamp_audit.unstake({from : auditor});
     assert.equal(0, await quantstamp_audit.totalStakedFor(auditor));
