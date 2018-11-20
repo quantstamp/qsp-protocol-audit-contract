@@ -178,7 +178,7 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
       verifiedReports[requestId] = PoliceReportState.INVALID;
       pendingPayments[auditNode].remove(requestId);
       // an audit node can only be slashed once for each report,
-      // even if multiple police mark the report as not valid
+      // even if multiple police mark the report as invalid
       uint256 slashAmount = tokenEscrow.slash(auditNode, slashPercentage);
       emit PoliceSlash(requestId, policeNode, auditNode, slashAmount);
     }

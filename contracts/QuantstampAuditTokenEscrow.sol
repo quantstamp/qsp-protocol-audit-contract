@@ -57,7 +57,7 @@ contract QuantstampAuditTokenEscrow is ConditionalTokenEscrow {
     /**
    * @dev Slash a percentage of the stake of an address.
    *      The percentage is taken from the minAuditStake, not the total stake of the address.
-   *      This should be called from the police.
+   *      The caller of this function receives the slashed QSP.
    *      If the current stake does not cover the slash amount, the full stake is taken.
    *
    * @param addr The address that will be slashed.

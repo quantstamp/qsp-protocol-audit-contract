@@ -118,6 +118,12 @@ contract('QuantstampAuditPolice', function(accounts) {
     }
   });
 
+  it("should not be possible to deploy the police with bad constructor arguments", async function() {
+    const non_zero_addr = accounts[9];
+    await Util.assertTxFail(QuantstampAuditPolice.new(0, non_zero_addr));
+    await Util.assertTxFail(QuantstampAuditPolice.new(non_zero_addr, 0));
+  });
+
   it("should not allow an auditor to claim the reward before the policing period finishes", async function() {
     currentId = await submitNewReport();
     await Util.assertTxFail(quantstamp_audit.claimRewards({from: auditor}));
@@ -568,6 +574,29 @@ contract('QuantstampAuditPolice', function(accounts) {
 
     const balance_after2 = await Util.balanceOf(quantstamp_token, auditor);
     assert.equal(balance_before + expected_reward + price, balance_after2);
+  });
+
+  it("should allow the owner to change the slash percentage", async function() {
+    // a non-owner cannot make the change
+    await Util.assertTxFail(quantstamp_audit_police.setSlashPercentage(25, {from: requestor}));
+    await Util.assertTxFail(quantstamp_audit_police.setSlashPercentage(101));
+    await quantstamp_audit_police.setSlashPercentage(100);
+    slash_percentage = await quantstamp_audit_police.slashPercentage();
+    slash_amount = await quantstamp_audit_token_escrow.getSlashAmount(slash_percentage);
+    assert.equal(slash_percentage, 100);
+    assert.equal(slash_amount.toNumber(), min_stake.toNumber());
+
+    const police_balance_before = await Util.balanceOf(quantstamp_token, quantstamp_audit_police.address);
+    currentId = await submitNewReport();
+    const result = await quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, false, {from: police1});
+
+    const auditor_balance_after = await quantstamp_audit_token_escrow.depositsOf(auditor);
+    const police_balance_after = await Util.balanceOf(quantstamp_token, quantstamp_audit_police.address);
+
+    assert.equal(auditor_balance_after, 0);
+    const expected_police_balance = new BigNumber(police_balance_before).plus(slash_amount).toNumber();
+    assert.equal(police_balance_after, expected_police_balance);
+
   });
 });
 
