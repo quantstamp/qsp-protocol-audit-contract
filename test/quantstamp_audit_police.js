@@ -505,7 +505,6 @@ contract('QuantstampAuditPolice', function(accounts) {
       requestIds.push(await submitNewReport());
     }
     const auditor_balance_before = await quantstamp_audit_token_escrow.depositsOf(auditor);
-    console.log(auditor_balance_before + " " + extra_stake + " " + min_stake);
     assert.equal(auditor_balance_before, min_stake.plus(extra_stake).toNumber());
 
     const police_balance_before = await Util.balanceOf(quantstamp_token, quantstamp_audit_police.address);
@@ -513,10 +512,8 @@ contract('QuantstampAuditPolice', function(accounts) {
     let expected_total_slashed = 0;
     let current_police_balance;
     let current_auditor_balance;
-    console.log("Before" + " " + requestIds);
 
     for(i = 0; i < num_reports; i++) {
-      console.log(requestIds[i]);
       const result = await quantstamp_audit.submitPoliceReport(requestIds[i], Util.nonEmptyReport, false, {from: police1});
       if (i != num_reports - 1) {
         expected_total_slashed = slash_amount.plus(expected_total_slashed).toNumber();

@@ -6,9 +6,11 @@ import "./LinkedListLib.sol";
 import "./QuantstampAuditData.sol";
 import "./QuantstampAuditTokenEscrow.sol";
 
+
 // TODO (QSP-833): salary and taxing
 // TODO transfer existing salary if removing police
-contract QuantstampAuditPolice is Whitelist {
+contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-count
+
   using SafeMath for uint256;
   using LinkedListLib for LinkedListLib.LinkedList;
 
