@@ -63,11 +63,26 @@ contract QuantstampAuditPolice is Whitelist {
   // maps request IDs to whether their reward has been claimed by the submitter
   mapping(uint256 => bool) public rewardHasBeenClaimed;
 
+  // Variables related to payment of police nodes
+
+  // the block in which each police node was last paid TODO
+  mapping(address => uint256) public policeNodeLastPaidBlock;
+
+  // TODO update audit.sol
+  // TODO update for taxing
+  // TODO update payments upon fee update
+
   // tracks the total number of reports ever assigned to a police node
   mapping(address => uint256) public totalReportsAssigned;
 
   // tracks the total number of reports ever checked by a police node
   mapping(address => uint256) public totalReportsChecked;
+
+  // percentage in the range of [0-100] of each audit price that is deducted and used to pay police fees
+  uint256 public reportProcessingFeePercentage = 5;
+
+  // for every block mined, a police node earns this much wei-QSP in fees
+  uint256 public policeFeesPerBlock = 0;
 
   /**
    * @dev Assigns police nodes to a submitted report
@@ -269,6 +284,23 @@ contract QuantstampAuditPolice is Whitelist {
   }
 
   /**
+   * @dev Sets the report processing fee percentage.
+   * @param percentage The percentage in the range of [0-100].
+   */
+  function setReportProcessingFeePercentage(uint256 percentage) public onlyOwner {
+    reportProcessingFeePercentage = percentage;
+  }
+
+  /**
+   * @dev Sets police fees per block.
+   * @param fee The fee in wei-QSP.
+   */
+  function setPoliceFeesPerBlock(uint256 fee) public onlyOwner {
+    // TODO update payment of all police, update lastPaid
+    policeFeesPerBlock = fee;
+  }
+
+  /**
    * @dev Returns true if a node is whitelisted
    * @param node Node to check.
    */
@@ -284,9 +316,38 @@ contract QuantstampAuditPolice is Whitelist {
   function addPoliceNode(address addr) public onlyOwner returns (bool success) {
     if (policeList.insert(HEAD, uint256(addr), PREV)) {
       numPoliceNodes = numPoliceNodes.add(1);
+      policeNodeLastPaidBlock[addr] = block.number;
+
       emit PoliceNodeAdded(addr);
       success = true;
     }
+  }
+
+  /**
+   * @dev Gets the amount of fees owed to the police node
+   * @param addr The address of the police node
+   */
+  function getUnpaidFees(address addr) public view returns (uint256) {
+    return (block.number - policeNodeLastPaidBlock[addr]) * policeFeesPerBlock;
+  }
+
+  /**
+   * @dev Helper function to transfer police fees.
+   *      Marked as internal but called from both onlyWhitelisted and onlyOwner functions.
+   * @param addr The address to transfer the fees.
+   */
+  function transferPoliceFees(address addr) internal returns (bool) {
+    uint256 unpaidFees = getUnpaidFees(addr);
+    require(auditData.token().transfer(addr, unpaidFees));
+    emit PoliceFeesClaimed(addr, unpaidFees);
+    return true;
+  }
+
+  function claimPoliceFees(address addr) public onlyWhitelisted returns (bool) {
+    require(transferPoliceFees(addr));
+    // update the payment map
+    policeNodeLastPaidBlock = block.number;
+    return true;
   }
 
   /**
@@ -305,6 +366,15 @@ contract QuantstampAuditPolice is Whitelist {
 
     if (policeList.remove(uint256(addr)) != NULL) {
       numPoliceNodes = numPoliceNodes.sub(1);
+
+      // pay out any outstanding fees to the police node
+      transferPoliceFees(addr);
+
+      // zero out all associated state variables; otherwise could be problematic if re-adding nodes
+      delete policeNodeLastPaidBlock[addr];
+      delete totalReportsAssigned[addr];
+      delete totalReportsChecked[addr];
+
       emit PoliceNodeRemoved(addr);
       success = true;
     }
