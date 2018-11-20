@@ -5,7 +5,6 @@ import "openzeppelin-solidity/contracts/ownership/Whitelist.sol";
 import "./LinkedListLib.sol";
 
 
-// TODO (QSP-833): salary and taxing
 contract QuantstampAuditPolice is Whitelist {
   using SafeMath for uint256;
   using LinkedListLib for LinkedListLib.LinkedList;
@@ -63,8 +62,6 @@ contract QuantstampAuditPolice is Whitelist {
   // maps request IDs to whether their reward has been claimed by the submitter
   mapping(uint256 => bool) public rewardHasBeenClaimed;
 
-  // Variables related to payment of police nodes
-
   // the block in which each police node was last paid TODO
   mapping(address => uint256) public policeNodeLastPaidBlock;
 
@@ -79,6 +76,7 @@ contract QuantstampAuditPolice is Whitelist {
   mapping(address => uint256) public totalReportsChecked;
 
   // percentage in the range of [0-100] of each audit price that is deducted and used to pay police fees
+  // this is only deducted once per report, regardless of the number of police nodes assigned to it
   uint256 public reportProcessingFeePercentage = 5;
 
   // for every block mined, a police node earns this much wei-QSP in fees
@@ -339,14 +337,19 @@ contract QuantstampAuditPolice is Whitelist {
   function transferPoliceFees(address addr) internal returns (bool) {
     uint256 unpaidFees = getUnpaidFees(addr);
     require(auditData.token().transfer(addr, unpaidFees));
+    // TODO work threshold
+    // update the payment map
+    policeNodeLastPaidBlock = block.number;
     emit PoliceFeesClaimed(addr, unpaidFees);
     return true;
   }
 
+  /**
+   * @dev Allows police nodes to claim fees for their work
+   * @param addr The address to transfer the fees.
+   */
   function claimPoliceFees(address addr) public onlyWhitelisted returns (bool) {
     require(transferPoliceFees(addr));
-    // update the payment map
-    policeNodeLastPaidBlock = block.number;
     return true;
   }
 
