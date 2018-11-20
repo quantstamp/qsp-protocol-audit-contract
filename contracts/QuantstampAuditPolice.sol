@@ -136,20 +136,21 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
    * @param report The compressed bytecode representation of the report.
    * @param isVerified Whether the police node's report matches the submitted report.
    *                   If not, the auditor is slashed.
-   * @return true if the report was successfully submitted.
+   * @return a pair of bools: (true if the report was successfully submitted, true if a slash occurred).
    */
   function submitPoliceReport(
     address policeNode,
     address auditNode,
     uint256 requestId,
     bytes report,
-    bool isVerified) public onlyWhitelisted returns (bool) {
+    bool isVerified) public onlyWhitelisted returns (bool, bool) {
+    bool slashOccurred;
     // remove expired assignments
     bool hasRemovedCurrentId = removeExpiredAssignments(policeNode, requestId);
     // if the current request has timed out, return
     if (hasRemovedCurrentId) {
       emit PoliceSubmissionPeriodExceeded(requestId, policeTimeouts[requestId], block.number);
-      return false;
+      return (false, slashOccurred);
     }
     // the police node is assigned to the report
     require(isAssigned(requestId, policeNode));
@@ -170,7 +171,7 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
     emit PoliceReportSubmitted(policeNode, requestId, state);
     // the report was already marked invalid by a different police node
     if (verifiedReports[requestId] == PoliceReportState.INVALID) {
-      return true;
+      return (true, slashOccurred);
     } else {
       verifiedReports[requestId] = state;
     }
@@ -180,9 +181,10 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
       // an audit node can only be slashed once for each report,
       // even if multiple police mark the report as invalid
       uint256 slashAmount = tokenEscrow.slash(auditNode, slashPercentage);
+      slashOccurred = true;
       emit PoliceSlash(requestId, policeNode, auditNode, slashAmount);
     }
-    return true;
+    return (true, slashOccurred);
   }
 
   /**

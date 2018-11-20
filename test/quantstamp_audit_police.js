@@ -214,7 +214,7 @@ contract('QuantstampAuditPolice', function(accounts) {
       }
     });
     const balance_after = await Util.balanceOf(quantstamp_token, auditor);
-    assert.equal(balance_before + price, balance_after);
+    assert.equal(new BigNumber(balance_before).plus(price), balance_after);
   });
 
   it("should allow the police to submit a negative report", async function() {
@@ -269,7 +269,8 @@ contract('QuantstampAuditPolice', function(accounts) {
     assert.equal(auditor_deposits_before - slash_amount, auditor_deposits_after);
 
     // the police contract has gained the slashed tokens
-    assert.equal(police_balance_before + slash_amount, police_balance_after);
+    const expected_police_balance = new BigNumber(police_balance_before).plus(slash_amount).plus(price);
+    assert.equal(expected_police_balance, police_balance_after);
 
     // the police report state has been updated
     const police_report_state = await quantstamp_audit_police.verifiedReports(currentId);
