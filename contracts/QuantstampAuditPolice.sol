@@ -75,6 +75,9 @@ contract QuantstampAuditPolice is Whitelist {
   // tracks the total number of reports since last payment checked by a police node
   mapping(address => uint256) public reportsCheckedSincePayment;
 
+  // the collected fees for each report
+  mapping(uint256 => uint256) public collectedFees;
+
   // the threshold of checks/assigned in the range [0-100]
   // that a police node must meet in order to receive their fees
   uint256 public policeCheckPercentageForPayment = 50;
@@ -144,6 +147,8 @@ contract QuantstampAuditPolice is Whitelist {
    */
   function collectFee(uint256 requestId, uint256 fee) public onlyWhitelisted returns (uint256) {
     require(auditData.token().transferFrom(msg.sender, address(this), fee));
+    // the collected fee needs to be stored in a map since the owner could change the fee percentage
+    collectedFees[requestId] = fee;
     emit PoliceFeesCollected(requestId, fee);
   }
 

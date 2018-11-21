@@ -357,8 +357,10 @@ contract QuantstampAudit is Ownable, Pausable {
     require(police.canClaimAuditReward(msg.sender, requestId));
     police.setRewardClaimed(msg.sender, requestId);
     uint256 auditPrice = auditData.getAuditPrice(requestId);
-    auditData.token().transfer(msg.sender, auditPrice);
-    emit LogPayAuditor(requestId, msg.sender, auditPrice);
+    uint256 auditPoliceFee = police.collectedFees(requestId);
+    uint256 auditorPayment = auditPrice.sub(auditPoliceFee);
+    auditData.token().transfer(msg.sender, auditorPayment);
+    emit LogPayAuditor(requestId, msg.sender, auditorPayment);
     return true;
   }
 
@@ -373,6 +375,8 @@ contract QuantstampAudit is Ownable, Pausable {
     bool exists;
     uint256 requestId = HEAD;
     uint256 auditPrice;
+    uint256 auditPoliceFee;
+    uint256 auditorPayment;
     // This loop occurs here (not in QuantstampAuditPolice) due to requiring the audit price,
     // as otherwise we require more dependencies/mappings in QuantstampAuditPolice.
     while (true) {
@@ -381,8 +385,11 @@ contract QuantstampAudit is Ownable, Pausable {
         break;
       }
       auditPrice = auditData.getAuditPrice(requestId);
-      totalPrice = totalPrice.add(auditPrice);
-      emit LogPayAuditor(requestId, msg.sender, auditPrice);
+      auditPoliceFee = police.collectedFees(requestId);
+      auditorPayment = auditPrice.sub(auditPoliceFee);
+      totalPrice = totalPrice.add(auditorPayment);
+
+      emit LogPayAuditor(requestId, msg.sender, auditorPayment);
     }
     auditData.token().transfer(msg.sender, totalPrice);
     return totalPrice;
