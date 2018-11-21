@@ -3,6 +3,8 @@ pragma solidity 0.4.24;
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Whitelist.sol";
 import "./LinkedListLib.sol";
+import "./QuantstampAuditData.sol";
+import "./QuantstampAuditTokenEscrow.sol";
 
 
 contract QuantstampAuditPolice is Whitelist {
@@ -83,6 +85,24 @@ contract QuantstampAuditPolice is Whitelist {
 
   // for every block mined, a police node earns this much wei-QSP in fees
   uint256 public policeFeesPerBlock = 0;
+
+  // contract that stores audit data (separate from the auditing logic)
+  QuantstampAuditData public auditData;
+
+   // contract that stores token escrows of nodes on the network
+  QuantstampAuditTokenEscrow public tokenEscrow;
+
+  /**
+   * @dev The constructor creates a police contract.
+   * @param auditDataAddress The address of an AuditData that stores data used for performing audits.
+   * @param escrowAddress The address of a QuantstampTokenEscrow contract that holds staked deposits of nodes.
+   */
+  constructor (address auditDataAddress, address escrowAddress) public {
+    require(auditDataAddress != address(0));
+    require(escrowAddress != address(0));
+    auditData = QuantstampAuditData(auditDataAddress);
+    tokenEscrow = QuantstampAuditTokenEscrow(escrowAddress);
+  }
 
   /**
    * @dev Assigns police nodes to a submitted report
@@ -314,8 +334,8 @@ contract QuantstampAuditPolice is Whitelist {
    * @param fee The fee in wei-QSP.
    */
   function setPoliceFeesPerBlock(uint256 fee) public onlyOwner {
-    uint256 policeNode = getNextPoliceNode(HEAD);
-    while (policeNode != NULL) {
+    address policeNode = getNextPoliceNode(address(HEAD));
+    while (uint256(policeNode) != NULL) {
       // pay out any outstanding fees to the police node
       transferPoliceFees(policeNode);
       policeNode = getNextPoliceNode(policeNode);
@@ -346,6 +366,10 @@ contract QuantstampAuditPolice is Whitelist {
     }
   }
 
+  function getPoliceFee(uint256 auditPrice) public view returns (uint256) {
+    return auditPrice.mul(reportProcessingFeePercentage).div(100);
+  }
+
   /**
    * @dev Gets the amount of fees owed to the police node
    * @param addr The address of the police node
@@ -360,7 +384,7 @@ contract QuantstampAuditPolice is Whitelist {
    * @param addr The address of the police node
    */
   function policeNodeMeetsCheckThreshold(address addr) public view returns (bool) {
-    if (reportsAssignedSincePayment > 0) {
+    if (reportsAssignedSincePayment[addr] > 0) {
       uint256 percentChecked = reportsCheckedSincePayment[addr].mul(100).div(reportsAssignedSincePayment[addr]);
       return percentChecked >= policeCheckPercentageForPayment;
     }
@@ -379,7 +403,7 @@ contract QuantstampAuditPolice is Whitelist {
     // this prevents the police node from being punished for poor performance in earlier periods
     reportsAssignedSincePayment[addr] = 0;
     reportsCheckedSincePayment[addr] = 0;
-    policeNodeLastPaidBlock = block.number;
+    policeNodeLastPaidBlock[addr] = block.number;
 
     if (unpaidFees > 0 && policeNodeMeetsCheckThreshold(addr)) {
       require(auditData.token().transfer(addr, unpaidFees));
