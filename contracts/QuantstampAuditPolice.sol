@@ -144,7 +144,6 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
     uint256 requestId,
     bytes report,
     bool isVerified) public onlyWhitelisted returns (bool, bool) {
-    bool slashOccurred;
     // remove expired assignments
     bool hasRemovedCurrentId = removeExpiredAssignments(policeNode, requestId);
     // if the current request has timed out, return
@@ -175,6 +174,7 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
     } else {
       verifiedReports[requestId] = state;
     }
+    bool slashOccurred;
     if (!isVerified) {
       verifiedReports[requestId] = PoliceReportState.INVALID;
       pendingPayments[auditNode].remove(requestId);
