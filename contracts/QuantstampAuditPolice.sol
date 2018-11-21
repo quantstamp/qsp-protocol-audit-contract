@@ -150,7 +150,7 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
     // if the current request has timed out, return
     if (hasRemovedCurrentId) {
       emit PoliceSubmissionPeriodExceeded(requestId, policeTimeouts[requestId], block.number);
-      return (false, slashOccurred);
+      return (false, false);
     }
     // the police node is assigned to the report
     require(isAssigned(requestId, policeNode));
@@ -171,7 +171,7 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
     emit PoliceReportSubmitted(policeNode, requestId, state);
     // the report was already marked invalid by a different police node
     if (verifiedReports[requestId] == PoliceReportState.INVALID) {
-      return (true, slashOccurred);
+      return (true, false);
     } else {
       verifiedReports[requestId] = state;
     }

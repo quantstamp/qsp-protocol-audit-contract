@@ -305,7 +305,6 @@ contract QuantstampAudit is Ownable, Pausable {
     }
   }
 
-  event Test(address police, uint256 price);
   /**
    * @dev Submits verification of a report by a police node.
    * @param requestId The ID of the audit request.
@@ -327,7 +326,6 @@ contract QuantstampAudit is Ownable, Pausable {
     (hasBeenSubmitted, slashOccurred) = police.submitPoliceReport(msg.sender, auditNode, requestId, report, isVerified);
     if (slashOccurred) {
       // transfer the audit request price to the police
-      emit Test(address(police), auditData.getAuditPrice(requestId));// TODO
       require(auditData.token().transfer(address(police), auditData.getAuditPrice(requestId)));
     }
     return hasBeenSubmitted;
