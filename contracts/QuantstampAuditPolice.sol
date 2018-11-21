@@ -40,6 +40,8 @@ contract QuantstampAuditPolice is Whitelist {
   event PoliceNodeAssignedToReport(address policeNode, uint256 requestId);
   event PoliceReportSubmitted(address policeNode, uint256 requestId, PoliceReportState reportState);
   event PoliceSubmissionPeriodExceeded(uint256 requestId, uint256 timeoutBlock, uint256 currentBlock);
+  event PoliceFeeCollected(uint256 requestId, uint256 fee);
+
 
   // pointer to the police node that was last assigned to a report
   address private lastAssignedPoliceNode = address(HEAD);
@@ -119,10 +121,11 @@ contract QuantstampAuditPolice is Whitelist {
   /**
    * @dev Collects the police fee for checking a report.
    * @param requestId The ID of the audit request.
-   * @param price The audit request price.
+   * @param fee The audit .
    */
-  function requestFee(uint256 requestId, uint256 price) public onlyWhitelisted returns (uint256) {
-    pendingPayments[auditor].push(requestId, PREV); // TODO broken
+  function collectFee(uint256 requestId, uint256 fee) public onlyWhitelisted returns (uint256) {
+    require(auditData.token().transferFrom(msg.sender, address(this), fee));
+    emit PoliceFeeCollected(requestId, fee);
   }
 
   /**
