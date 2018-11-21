@@ -476,5 +476,12 @@ contract('QuantstampAuditPolice', function(accounts) {
     const balance_after2 = await Util.balanceOf(quantstamp_token, auditor);
     assert.equal(balance_before + expected_reward + price, balance_after2);
   });
+
+  it("should deduct the police fee from the request price and store it in the police contract");
+  it("should pay all police their outstanding fees when the owner changes the fee");
+  it("should not pay the police node if they do not check enough reports, but should update maps");
+  it("should allow a police node to claim their fees");
+  it("should allow a police node to claim fees even if no audit requests happened");
+
 });
 

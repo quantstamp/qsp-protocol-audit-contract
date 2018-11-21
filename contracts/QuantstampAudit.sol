@@ -330,6 +330,15 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
+   * @dev Allows a police node to claim their outstanding fees.
+   *      This may fail if there is not enough funds in the police contract,
+   *      or if the police node has not checked enough assigned reports.
+   */
+  function claimPoliceFees() public returns (bool) {
+    return police.claimPoliceFees(msg.sender);
+  }
+
+  /**
    * @dev Determines whether the address (of an audit node) can claim any audit rewards.
    */
   function hasAvailableRewards () public view returns (bool) {

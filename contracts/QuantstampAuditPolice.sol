@@ -40,8 +40,8 @@ contract QuantstampAuditPolice is Whitelist {
   event PoliceNodeAssignedToReport(address policeNode, uint256 requestId);
   event PoliceReportSubmitted(address policeNode, uint256 requestId, PoliceReportState reportState);
   event PoliceSubmissionPeriodExceeded(uint256 requestId, uint256 timeoutBlock, uint256 currentBlock);
-  event PoliceFeeCollected(uint256 requestId, uint256 fee);
-
+  event PoliceFeesCollected(uint256 requestId, uint256 fee);
+  event PoliceFeesClaimed(address policeNode, uint256 fee);
 
   // pointer to the police node that was last assigned to a report
   address private lastAssignedPoliceNode = address(HEAD);
@@ -64,19 +64,18 @@ contract QuantstampAuditPolice is Whitelist {
   // maps request IDs to whether their reward has been claimed by the submitter
   mapping(uint256 => bool) public rewardHasBeenClaimed;
 
-  // the block in which each police node was last paid TODO
+  // the block in which each police node was last paid
   mapping(address => uint256) public policeNodeLastPaidBlock;
-
-  // TODO update audit.sol
-  // TODO update for taxing
-  // TODO update payments upon fee update
-  // TODO zero out totalReportsAssigned and Checked
 
   // tracks the total number of reports since last payment assigned to a police node
   mapping(address => uint256) public reportsAssignedSincePayment;
 
   // tracks the total number of reports since last payment checked by a police node
   mapping(address => uint256) public reportsCheckedSincePayment;
+
+  // the threshold of checks/assigned in the range [0-100]
+  // that a police node must meet in order to receive their fees
+  uint256 public policeCheckPercentageForPayment = 50;
 
   // percentage in the range of [0-100] of each audit price that is deducted and used to pay police fees
   // this is only deducted once per report, regardless of the number of police nodes assigned to it
@@ -121,11 +120,11 @@ contract QuantstampAuditPolice is Whitelist {
   /**
    * @dev Collects the police fee for checking a report.
    * @param requestId The ID of the audit request.
-   * @param fee The audit .
+   * @param fee The audit policing fee.
    */
   function collectFee(uint256 requestId, uint256 fee) public onlyWhitelisted returns (uint256) {
     require(auditData.token().transferFrom(msg.sender, address(this), fee));
-    emit PoliceFeeCollected(requestId, fee);
+    emit PoliceFeesCollected(requestId, fee);
   }
 
   /**
@@ -303,11 +302,24 @@ contract QuantstampAuditPolice is Whitelist {
   }
 
   /**
+   * @dev Sets the police check percentage for payment.
+   * @param percentage The percentage in the range of [0-100].
+   */
+  function setPoliceCheckPercentageForPayment(uint256 percentage) public onlyOwner {
+    policeCheckPercentageForPayment = percentage;
+  }
+
+  /**
    * @dev Sets police fees per block.
    * @param fee The fee in wei-QSP.
    */
   function setPoliceFeesPerBlock(uint256 fee) public onlyOwner {
-    // TODO update payment of all police, update lastPaid
+    uint256 policeNode = getNextPoliceNode(HEAD);
+    while (policeNode != NULL) {
+      // pay out any outstanding fees to the police node
+      transferPoliceFees(policeNode);
+      policeNode = getNextPoliceNode(policeNode);
+    }
     policeFeesPerBlock = fee;
   }
 
@@ -343,27 +355,46 @@ contract QuantstampAuditPolice is Whitelist {
   }
 
   /**
+   * @dev Determines whether the police node meets the report check requirements.
+   *      If no reports were assigned, defaults to true.
+   * @param addr The address of the police node
+   */
+  function policeNodeMeetsCheckThreshold(address addr) public view returns (bool) {
+    if (reportsAssignedSincePayment > 0) {
+      uint256 percentChecked = reportsCheckedSincePayment[addr].mul(100).div(reportsAssignedSincePayment[addr]);
+      return percentChecked >= policeCheckPercentageForPayment;
+    }
+    return true;
+  }
+
+  /**
    * @dev Helper function to transfer police fees.
    *      Marked as internal but called from both onlyWhitelisted and onlyOwner functions.
    * @param addr The address to transfer the fees.
    */
   function transferPoliceFees(address addr) internal returns (bool) {
     uint256 unpaidFees = getUnpaidFees(addr);
-    require(auditData.token().transfer(addr, unpaidFees));
-    // TODO work threshold
-    // update the payment map
+
+    // zero out the assigned and checked reports tally for the new payment period
+    // this prevents the police node from being punished for poor performance in earlier periods
+    reportsAssignedSincePayment[addr] = 0;
+    reportsCheckedSincePayment[addr] = 0;
     policeNodeLastPaidBlock = block.number;
-    emit PoliceFeesClaimed(addr, unpaidFees);
-    return true;
+
+    if (unpaidFees > 0 && policeNodeMeetsCheckThreshold(addr)) {
+      require(auditData.token().transfer(addr, unpaidFees));
+      emit PoliceFeesClaimed(addr, unpaidFees);
+      return true;
+    }
+    return false;
   }
 
   /**
-   * @dev Allows police nodes to claim fees for their work
-   * @param addr The address to transfer the fees.
+   * @dev Claim outstanding police fees for a given report.
+   * @param policeNode The address of the police node that wishes to collect fees.
    */
-  function claimPoliceFees(address addr) public onlyWhitelisted returns (bool) {
-    require(transferPoliceFees(addr));
-    return true;
+  function claimPoliceFees(address policeNode) public onlyWhitelisted returns (bool) {
+    return transferPoliceFees(policeNode);
   }
 
   /**
