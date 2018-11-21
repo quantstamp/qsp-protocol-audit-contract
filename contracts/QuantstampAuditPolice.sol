@@ -68,12 +68,13 @@ contract QuantstampAuditPolice is Whitelist {
   // TODO update audit.sol
   // TODO update for taxing
   // TODO update payments upon fee update
+  // TODO zero out totalReportsAssigned and Checked
 
-  // tracks the total number of reports ever assigned to a police node
-  mapping(address => uint256) public totalReportsAssigned;
+  // tracks the total number of reports since last payment assigned to a police node
+  mapping(address => uint256) public reportsAssignedSincePayment;
 
-  // tracks the total number of reports ever checked by a police node
-  mapping(address => uint256) public totalReportsChecked;
+  // tracks the total number of reports since last payment checked by a police node
+  mapping(address => uint256) public reportsCheckedSincePayment;
 
   // percentage in the range of [0-100] of each audit price that is deducted and used to pay police fees
   // this is only deducted once per report, regardless of the number of police nodes assigned to it
@@ -100,7 +101,7 @@ contract QuantstampAuditPolice is Whitelist {
         // push the request ID to the tail of the assignment list for the police node
         assignedReports[lastAssignedPoliceNode].push(requestId, PREV);
         emit PoliceNodeAssignedToReport(lastAssignedPoliceNode, requestId);
-        totalReportsAssigned[lastAssignedPoliceNode] = totalReportsAssigned[lastAssignedPoliceNode] + 1;
+        reportsAssignedSincePayment[lastAssignedPoliceNode] = reportsAssignedSincePayment[lastAssignedPoliceNode] + 1;
         numToAssign = numToAssign - 1;
       }
     }
@@ -113,6 +114,15 @@ contract QuantstampAuditPolice is Whitelist {
    */
   function addPendingPayment(address auditor, uint256 requestId) public onlyWhitelisted {
     pendingPayments[auditor].push(requestId, PREV);
+  }
+
+  /**
+   * @dev Collects the police fee for checking a report.
+   * @param requestId The ID of the audit request.
+   * @param price The audit request price.
+   */
+  function requestFee(uint256 requestId, uint256 price) public onlyWhitelisted returns (uint256) {
+    pendingPayments[auditor].push(requestId, PREV); // TODO broken
   }
 
   /**
@@ -144,7 +154,7 @@ contract QuantstampAuditPolice is Whitelist {
     // remove the report from the assignments to the node
     assignedReports[policeNode].remove(requestId);
     // increment the number of reports checked by the police node
-    totalReportsChecked[policeNode] = totalReportsChecked[policeNode] + 1;
+    reportsCheckedSincePayment[policeNode] = reportsCheckedSincePayment[policeNode] + 1;
     // store the report
     policeReports[requestId][policeNode] = report;
     // emit an event
@@ -375,8 +385,8 @@ contract QuantstampAuditPolice is Whitelist {
 
       // zero out all associated state variables; otherwise could be problematic if re-adding nodes
       delete policeNodeLastPaidBlock[addr];
-      delete totalReportsAssigned[addr];
-      delete totalReportsChecked[addr];
+      delete reportsAssignedSincePayment[addr];
+      delete reportsCheckedSincePayment[addr];
 
       emit PoliceNodeRemoved(addr);
       success = true;

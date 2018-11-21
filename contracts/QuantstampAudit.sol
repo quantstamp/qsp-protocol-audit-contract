@@ -302,6 +302,8 @@ contract QuantstampAudit is Ownable, Pausable {
       police.assignPoliceToReport(requestId);
       // add the requestId to the pending payments that should be paid to the auditor after policing
       police.addPendingPayment(msg.sender, requestId);
+      // pay fee to the police
+      police.collectFee(requestId, auditData.getAuditPrice(requestId));
     }
   }
 
