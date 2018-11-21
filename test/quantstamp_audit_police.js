@@ -481,8 +481,8 @@ contract('QuantstampAuditPolice', function(accounts) {
     assert.equal(balance_before + expected_payment + expected_auditor_payment, balance_after2);
   });
 
-  it("should deduct the police fee from the request price and store it in the police contract");
   it("should pay all police their outstanding fees when the owner changes the fee");
+  it("should pay a police node if warranted before being removed");
   it("should not pay the police node if they do not check enough reports, but should update maps");
   it("should allow a police node to claim their fees");
   it("should allow a police node to claim fees even if no audit requests happened");
