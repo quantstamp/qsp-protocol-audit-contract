@@ -481,11 +481,76 @@ contract('QuantstampAuditPolice', function(accounts) {
     assert.equal(balance_before + expected_payment + expected_auditor_payment, balance_after2);
   });
 
-  it("should pay all police their outstanding fees when the owner changes the fee");
-  it("should pay a police node if warranted before being removed");
-  it("should not pay the police node if they do not check enough reports, but should update maps");
-  it("should allow a police node to claim their fees");
-  it("should allow a police node to claim fees even if no audit requests happened");
+  it("should allow a police node to claim fees even if no audit requests happened", async function() {
+    // clear out any existing outstanding payments by deleting each police node
+    let i;
+    for(i = 0; i < all_police.length; i++) {
+      await quantstamp_audit_police.removePoliceNode(all_police[i]);
+    }
+    // re-add three police nodes
+    all_police = [police1, police2, police3];
+    for(i = 0; i < all_police.length; i++) {
+      await quantstamp_audit_police.addPoliceNode(all_police[i]);
+    }
+    // set the police fee to a 1 wei-QSP per block
+    await quantstamp_audit_police.setPoliceFeesPerBlock(1);
+
+    // mine 20 blocks
+    const num_mined_blocks = 20;
+    await Util.mineNBlocks(num_mined_blocks);
+
+    let police_balance_before = await Util.balanceOf(quantstamp_token, quantstamp_audit_police.address);
+    let police_node_balance_before = await Util.balanceOf(quantstamp_token, police1);
+    await quantstamp_audit.claimPoliceFees({from: police1});
+
+    let police_balance_after = await Util.balanceOf(quantstamp_token, quantstamp_audit_police.address);
+    let police_node_balance_after = await Util.balanceOf(quantstamp_token, police1);
+
+    assert.isTrue(police_balance_before >= police_balance_after + num_mined_blocks);
+    assert.isTrue(police_node_balance_before <= police_node_balance_after + num_mined_blocks);
+  });
+
+  it("should pay all police their outstanding fees when the owner changes the fee", async function() {
+    // distribute the remaining outstanding balances when updating the policing fee
+    // same as previous test
+    const num_mined_blocks = 20;
+    let police_balance_before = await Util.balanceOf(quantstamp_token, quantstamp_audit_police.address);
+    await quantstamp_audit_police.setPoliceFeesPerBlock(2);
+    let police_balance_after = await Util.balanceOf(quantstamp_token, quantstamp_audit_police.address);
+    // the 2 remaining nodes (from the previous test case) should be paid
+    assert.isTrue(police_balance_before >= police_balance_after + 2 * num_mined_blocks);
+  });
+
+  it("should pay a police node if warranted before being removed", async function() {
+    let police_balance_before = await Util.balanceOf(quantstamp_token, quantstamp_audit_police.address);
+    let police_node_balance_before;
+    let police_node_balance_after;
+    for(i = 0; i < all_police.length; i++) {
+      police_node_balance_before = await Util.balanceOf(quantstamp_token, all_police[i]);
+      await quantstamp_audit_police.removePoliceNode(all_police[i]);
+      police_node_balance_after = await Util.balanceOf(quantstamp_token, all_police[i]);
+      assert.isTrue(police_node_balance_before < police_node_balance_after);
+    }
+    let police_balance_after = await Util.balanceOf(quantstamp_token, quantstamp_audit_police.address);
+    assert.isTrue(police_balance_before > police_balance_after);
+  });
+
+  it("should not pay the police node if they do not check enough reports", async function() {
+    // re-add a police node
+    all_police = [police1];
+    await quantstamp_audit_police.addPoliceNode(police1);
+    currentId = await submitNewReport();
+
+    // the police node should not receive payment, even though the report check has not expired
+    await Util.assertTxFail(quantstamp_audit.claimPoliceFees({from: police1}));
+    // after the report is submitted, they should be able to request a payment
+    let police_node_balance_before = await Util.balanceOf(quantstamp_token, police1);
+    await quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, true, {from: police1});
+    await quantstamp_audit.claimPoliceFees({from: police1});
+    // TODO: check emitted events...
+    let police_node_balance_after = await Util.balanceOf(quantstamp_token, police1);
+    assert.isTrue(police_node_balance_before < police_node_balance_after);
+  });
 
 });
 

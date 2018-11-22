@@ -255,7 +255,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param auditResult Result of an audit.
    * @param report a compressed report. TODO, let's document the report format.
    */
-  function submitReport(uint256 requestId, QuantstampAuditData.AuditState auditResult, bytes report) public onlyWhitelisted {
+  function submitReport(uint256 requestId, QuantstampAuditData.AuditState auditResult, bytes report) public onlyWhitelisted { // solhint-disable function-max-lines
     if (QuantstampAuditData.AuditState.Completed != auditResult && QuantstampAuditData.AuditState.Error != auditResult) {
       emit LogReportSubmissionError_InvalidResult(requestId, msg.sender, auditResult);
       return;

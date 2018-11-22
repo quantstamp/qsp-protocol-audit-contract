@@ -7,7 +7,7 @@ import "./QuantstampAuditData.sol";
 import "./QuantstampAuditTokenEscrow.sol";
 
 
-contract QuantstampAuditPolice is Whitelist {
+contract QuantstampAuditPolice is Whitelist { // solhint-disable max-states-count
   using SafeMath for uint256;
   using LinkedListLib for LinkedListLib.LinkedList;
 
@@ -69,11 +69,11 @@ contract QuantstampAuditPolice is Whitelist {
   // the block in which each police node was last paid
   mapping(address => uint256) public policeNodeLastPaidBlock;
 
-  // tracks the total number of reports since last payment assigned to a police node
-  mapping(address => uint256) public reportsAssignedSincePayment;
+  // tracks the total number of reports assigned to a police node
+  mapping(address => uint256) public reportsAssigned;
 
-  // tracks the total number of reports since last payment checked by a police node
-  mapping(address => uint256) public reportsCheckedSincePayment;
+  // tracks the total number of reports checked by a police node
+  mapping(address => uint256) public reportsChecked;
 
   // the collected fees for each report
   mapping(uint256 => uint256) public collectedFees;
@@ -125,7 +125,7 @@ contract QuantstampAuditPolice is Whitelist {
         // push the request ID to the tail of the assignment list for the police node
         assignedReports[lastAssignedPoliceNode].push(requestId, PREV);
         emit PoliceNodeAssignedToReport(lastAssignedPoliceNode, requestId);
-        reportsAssignedSincePayment[lastAssignedPoliceNode] = reportsAssignedSincePayment[lastAssignedPoliceNode] + 1;
+        reportsAssigned[lastAssignedPoliceNode] = reportsAssigned[lastAssignedPoliceNode] + 1;
         numToAssign = numToAssign - 1;
       }
     }
@@ -181,7 +181,7 @@ contract QuantstampAuditPolice is Whitelist {
     // remove the report from the assignments to the node
     assignedReports[policeNode].remove(requestId);
     // increment the number of reports checked by the police node
-    reportsCheckedSincePayment[policeNode] = reportsCheckedSincePayment[policeNode] + 1;
+    reportsChecked[policeNode] = reportsChecked[policeNode] + 1;
     // store the report
     policeReports[requestId][policeNode] = report;
     // emit an event
@@ -380,42 +380,24 @@ contract QuantstampAuditPolice is Whitelist {
    * @param addr The address of the police node
    */
   function getUnpaidFees(address addr) public view returns (uint256) {
+    require(policeNodeLastPaidBlock[addr] != 0);
     return (block.number - policeNodeLastPaidBlock[addr]) * policeFeesPerBlock;
   }
 
   /**
    * @dev Determines whether the police node meets the report check requirements.
    *      If no reports were assigned, defaults to true.
+   * @dev NOTE: if there are assigned reports that have not been checked but are not expired,
+   *            this still counts against the audit node. As such, we should not have
+   *            policeCheckPercentageForPayment set *too* high early on.
    * @param addr The address of the police node
    */
   function policeNodeMeetsCheckThreshold(address addr) public view returns (bool) {
-    if (reportsAssignedSincePayment[addr] > 0) {
-      uint256 percentChecked = reportsCheckedSincePayment[addr].mul(100).div(reportsAssignedSincePayment[addr]);
+    if (reportsAssigned[addr] > 0) {
+      uint256 percentChecked = reportsChecked[addr].mul(100).div(reportsAssigned[addr]);
       return percentChecked >= policeCheckPercentageForPayment;
     }
     return true;
-  }
-
-  /**
-   * @dev Helper function to transfer police fees.
-   *      Marked as internal but called from both onlyWhitelisted and onlyOwner functions.
-   * @param addr The address to transfer the fees.
-   */
-  function transferPoliceFees(address addr) internal returns (bool) {
-    uint256 unpaidFees = getUnpaidFees(addr);
-
-    // zero out the assigned and checked reports tally for the new payment period
-    // this prevents the police node from being punished for poor performance in earlier periods
-    reportsAssignedSincePayment[addr] = 0;
-    reportsCheckedSincePayment[addr] = 0;
-    policeNodeLastPaidBlock[addr] = block.number;
-
-    if (unpaidFees > 0 && policeNodeMeetsCheckThreshold(addr)) {
-      require(auditData.token().transfer(addr, unpaidFees));
-      emit PoliceFeesClaimed(addr, unpaidFees);
-      return true;
-    }
-    return false;
   }
 
   /**
@@ -423,7 +405,8 @@ contract QuantstampAuditPolice is Whitelist {
    * @param policeNode The address of the police node that wishes to collect fees.
    */
   function claimPoliceFees(address policeNode) public onlyWhitelisted returns (bool) {
-    return transferPoliceFees(policeNode);
+    require(isPoliceNode(policeNode));
+    require(transferPoliceFees(policeNode));
   }
 
   /**
@@ -448,8 +431,8 @@ contract QuantstampAuditPolice is Whitelist {
 
       // zero out all associated state variables; otherwise could be problematic if re-adding nodes
       delete policeNodeLastPaidBlock[addr];
-      delete reportsAssignedSincePayment[addr];
-      delete reportsCheckedSincePayment[addr];
+      delete reportsAssigned[addr];
+      delete reportsChecked[addr];
 
       emit PoliceNodeRemoved(addr);
       success = true;
@@ -474,6 +457,23 @@ contract QuantstampAuditPolice is Whitelist {
 
   function isAssigned(uint256 requestId, address policeAddr) public view returns (bool) {
     return assignedReports[policeAddr].nodeExists(requestId);
+  }
+
+  /**
+   * @dev Helper function to transfer police fees.
+   *      Marked as internal but called from both onlyWhitelisted and onlyOwner functions.
+   * @param addr The address to transfer the fees.
+   */
+  function transferPoliceFees(address addr) internal returns (bool) {
+    uint256 unpaidFees = getUnpaidFees(addr);
+    policeNodeLastPaidBlock[addr] = block.number;
+
+    if (unpaidFees > 0 && policeNodeMeetsCheckThreshold(addr)) {
+      require(auditData.token().transfer(addr, unpaidFees));
+      emit PoliceFeesClaimed(addr, unpaidFees);
+      return true;
+    }
+    return false;
   }
 
   /**

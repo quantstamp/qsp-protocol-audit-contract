@@ -71,11 +71,12 @@ contract('QuantstampAuditView', function(accounts) {
 
   it("lets the owner change the QuantstampAudit address", async function () {
     const audit = await quantstamp_audit_view.audit.call();
+    const non_zero_address = accounts[9];
     const another_quantstamp_audit_data = (await QuantstampAuditData.new(quantstamp_token.contract.address)).contract.address;
     const another_quantstamp_audit_multirequest_data = (await QuantstampAuditMultiRequestData.new()).contract.address;
     const another_quantstamp_audit_report_data = (await QuantstampAuditReportData.new()).contract.address;
     const another_quantstamp_audit_token_escrow = (await QuantstampAuditTokenEscrow.new(quantstamp_token.contract.address)).contract.address;
-    const another_quantstamp_audit_police = (await QuantstampAuditPolice.new()).contract.address;
+    const another_quantstamp_audit_police = (await QuantstampAuditPolice.new(non_zero_address, non_zero_address)).contract.address;
     const another_quantstamp_audit = (await QuantstampAudit.new(another_quantstamp_audit_data,
                                                                 another_quantstamp_audit_multirequest_data,
                                                                 another_quantstamp_audit_report_data,
