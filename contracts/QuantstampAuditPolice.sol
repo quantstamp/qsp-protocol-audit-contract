@@ -397,7 +397,7 @@ contract QuantstampAuditPolice is Whitelist { // solhint-disable max-states-coun
       uint256 percentChecked = reportsChecked[addr].mul(100).div(reportsAssigned[addr]);
       return percentChecked >= policeCheckPercentageForPayment;
     }
-    return true;
+    return false;
   }
 
   /**

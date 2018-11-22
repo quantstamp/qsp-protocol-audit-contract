@@ -481,7 +481,7 @@ contract('QuantstampAuditPolice', function(accounts) {
     assert.equal(balance_before + expected_payment + expected_auditor_payment, balance_after2);
   });
 
-  it("should allow a police node to claim fees even if no audit requests happened", async function() {
+  it("should not allow a police node to claim fees if no audit requests happened", async function() {
     // clear out any existing outstanding payments by deleting each police node
     let i;
     for(i = 0; i < all_police.length; i++) {
@@ -498,6 +498,14 @@ contract('QuantstampAuditPolice', function(accounts) {
     // mine 20 blocks
     const num_mined_blocks = 20;
     await Util.mineNBlocks(num_mined_blocks);
+
+    await Util.assertTxFail(quantstamp_audit.claimPoliceFees({from: police1}));
+
+    // each node submits a police report
+    currentId = await submitNewReport();
+    for(i = 0; i < all_police.length; i++) {
+      await quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, true, {from: all_police[i]});
+    }
 
     let police_balance_before = await Util.balanceOf(quantstamp_token, quantstamp_audit_police.address);
     let police_node_balance_before = await Util.balanceOf(quantstamp_token, police1);
