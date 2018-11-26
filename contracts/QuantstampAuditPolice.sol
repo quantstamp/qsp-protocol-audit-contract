@@ -125,8 +125,8 @@ contract QuantstampAuditPolice is Whitelist { // solhint-disable max-states-coun
         // push the request ID to the tail of the assignment list for the police node
         assignedReports[lastAssignedPoliceNode].push(requestId, PREV);
         emit PoliceNodeAssignedToReport(lastAssignedPoliceNode, requestId);
-        reportsAssigned[lastAssignedPoliceNode] = reportsAssigned[lastAssignedPoliceNode] + 1;
-        numToAssign = numToAssign - 1;
+        reportsAssigned[lastAssignedPoliceNode] = reportsAssigned[lastAssignedPoliceNode].add(1);
+        numToAssign = numToAssign.sub(1);
       }
     }
   }
@@ -181,7 +181,7 @@ contract QuantstampAuditPolice is Whitelist { // solhint-disable max-states-coun
     // remove the report from the assignments to the node
     assignedReports[policeNode].remove(requestId);
     // increment the number of reports checked by the police node
-    reportsChecked[policeNode] = reportsChecked[policeNode] + 1;
+    reportsChecked[policeNode] = reportsChecked[policeNode].add(1);
     // store the report
     policeReports[requestId][policeNode] = report;
     // emit an event
@@ -323,6 +323,7 @@ contract QuantstampAuditPolice is Whitelist { // solhint-disable max-states-coun
    * @param percentage The percentage in the range of [0-100].
    */
   function setReportProcessingFeePercentage(uint256 percentage) public onlyOwner {
+    require(percentage <= 100);
     reportProcessingFeePercentage = percentage;
   }
 
@@ -331,6 +332,7 @@ contract QuantstampAuditPolice is Whitelist { // solhint-disable max-states-coun
    * @param percentage The percentage in the range of [0-100].
    */
   function setPoliceCheckPercentageForPayment(uint256 percentage) public onlyOwner {
+    require(percentage <= 100);
     policeCheckPercentageForPayment = percentage;
   }
 
