@@ -142,11 +142,11 @@ contract QuantstampAuditPolice is Whitelist { // solhint-disable max-states-coun
 
   /**
    * @dev Collects the police fee for checking a report.
+   *      NOTE: this function assumes that the fee has been transferred by the calling contract.
    * @param requestId The ID of the audit request.
    * @param fee The audit policing fee.
    */
   function collectFee(uint256 requestId, uint256 fee) public onlyWhitelisted returns (uint256) {
-    require(auditData.token().transferFrom(msg.sender, address(this), fee));
     // the collected fee needs to be stored in a map since the owner could change the fee percentage
     collectedFees[requestId] = fee;
     emit PoliceFeesCollected(requestId, fee);
