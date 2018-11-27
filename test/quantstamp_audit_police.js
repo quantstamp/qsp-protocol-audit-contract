@@ -625,6 +625,43 @@ contract('QuantstampAuditPolice', function(accounts) {
     assert.equal(auditor_balance_after, 0);
 
     await checkPoliceBalances(police_balances_before, slash_amount);
+
+    // reset slash percentage back to 5 percent
+    await quantstamp_audit_police.setSlashPercentage(5);
+
+    // top up the auditors stake
+    await stakeAuditor(min_stake);
+  });
+
+  it("should allow the auditor to claim a specific reward", async function() {
+    const balance_before = await Util.balanceOf(quantstamp_token, auditor);
+    currentId = await submitNewReport();
+    await Util.mineNBlocks(police_timeout + 1);
+
+    // a user other than the auditor should not be able to claim the reward
+    await Util.assertTxFail(quantstamp_audit.claimReward(currentId, {from: requestor}));
+
+    await quantstamp_audit.claimReward(currentId, {from: auditor});
+
+    const balance_after = await Util.balanceOf(quantstamp_token, auditor);
+
+    assert.isTrue(new BigNumber(balance_before).plus(expectedAuditorPayment).eq(balance_after));
+  });
+
+    it("should allow the owner to change the report processing fee percentage", async function() {
+    // a non-owner cannot make the change
+    await Util.assertTxFail(quantstamp_audit_police.setReportProcessingFeePercentage(25, {from: requestor}));
+    await Util.assertTxFail(quantstamp_audit_police.setReportProcessingFeePercentage(101));
+    await quantstamp_audit_police.setReportProcessingFeePercentage(100);
+    let reportProcessingPercentage = await quantstamp_audit_police.reportProcessingFeePercentage();
+    expectedAuditorPayment = price - await quantstamp_audit_police.getPoliceFee(price);
+
+    const balance_before = await Util.balanceOf(quantstamp_token, auditor);
+    await submitNewReport();
+    await Util.mineNBlocks(police_timeout + 1);
+    await quantstamp_audit.claimRewards({from: auditor});
+    const balance_after = await Util.balanceOf(quantstamp_token, auditor);
+    assert.isTrue(new BigNumber(balance_before).plus(expectedAuditorPayment).eq(balance_after));
   });
 });
 
