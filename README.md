@@ -36,6 +36,7 @@ change `QuantstampAudit-v-0-meta.json` to `QuantstampAudit-v-0.1.0-meta.json` in
 1. Audit View contract:
     - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract/dev/QuantstampAuditView-v-0-meta.json
     - ABI: https://s3.amazonaws.com/qsp-protocol-contract/dev/QuantstampAuditView-v-0-abi.json
+1. QSP token contract address `0xc1220b0bA0760817A9E8166C114D3eb2741F5949`, ABI: http://api-ropsten.etherscan.io/api?module=contract&action=getabi&address=0xc1220b0bA0760817A9E8166C114D3eb2741F5949&format=raw
 
 For querying, go to: https://ropsten.etherscan.io/address/{address}#readContract , where `{address}` is `contractAddress` copied from the corresponding metadata file.
 
@@ -49,8 +50,63 @@ For querying, go to: https://ropsten.etherscan.io/address/{address}#readContract
 1. Audit View contract:
     - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract/prod/QuantstampAuditView-v-0-meta.json
     - ABI: https://s3.amazonaws.com/qsp-protocol-contract/prod/QuantstampAuditView-v-0-abi.json
+1. QSP token contract address `0x99ea4db9ee77acd40b119bd1dc4e33e1c070b80d`, ABI: http://api.etherscan.io/api?module=contract&action=getabi&address=0x99ea4db9ee77acd40b119bd1dc4e33e1c070b80d&format=raw
 
 For querying, go to: https://etherscan.io/address/{address}#readContract , where `{address}` is `contractAddress` copied from the corresponding metadata file.
+
+## Interaction with the protocol
+
+From our target user perspective, interaction with the protocol involves the following steps:
+1) Give permission allowing Quantstamp protocol to withdraw QSP tokens from your wallet to pay for one or more audits,
+2) Request an automated audit and trigger the actual payment associated with the audit, and
+3) Obtain and view your audit report.
+
+Below we describe each step in more details. We assume that you are using JS Web3 API and that the following variables are used in your code:
+* `quantstamp_token` is the instantiated QSP token contract,
+* `quantstamp_audit` is the instantiated QSP Audit contract,
+* `quantstamp_report_data` is the instantiated QSP Audit Report Data contract,
+* `requestor` is your address that holds the QSP tokens and that you will use to submit an audit request. You need some ETH to pay for the gas fees, like with any other transaction on Ethereum.
+
+Note that the address and ABI for each contract depends on whether you are on Ropsten or Mainnet. You can find the relevant information in the previous section.
+
+### Step 1: Authorize Quantstamp Protocol to collect your QSP as payment
+
+You can authorize Quantstamp Protocol to collect your QSP as payment as follows:
+
+`await quantstamp_token.approve(quantstamp_audit.address, _value, {from : requestor});`
+
+where:
+* `_value` is the total amount of QSP which you are giving permission to withdraw. Please note that this amount needs to be multiplied by 10^18 (similarly to how ETH gets converted into Wei). One way of doing the conversion is via `web3.toWei(n, "ether")`, where `n` is the amount of QSP tokens. The audit price is dynamic and presented on the dashboard: https://qsp-dashboard.quantstamp.com.​ If you want to do three audits and each audit costs 1000 QSP then you would set `​_value`​ to `web3.toWei(3000, "ether")` (as an example). You can keep running audits until the audit node has withdrawn the full amount of QSP you set here.
+
+### Step 2: Request a security audit from Quantstamp Protocol
+
+You can request an audit as follows:
+
+`const requestId = await quantstamp_audit.requestAudit(uri, price, {from:requestor});`
+
+where:
+* `uri` is URI for the smart contract you wish to audit. This URI must ​not be a link to Etherscan, Etherchain, etc. It must be a web address which returns only​ plain Solidity source code, like this ​[URI example​](https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-solidity/1d2d18f9dab55b58802c3b1e70257183bb558aa2/contracts/math/SafeMath.sol). Do ​not​ enter a [​URL to a Github repo like this example​](https://github.com/OpenZeppelin/openzeppelin-solidity/blob/master/contracts/math/SafeMath.sol). We need the URI to the raw code, directly. Note that our protocol currently supports Solidity up to version 0.4.24, and that the version must be prefixed with the caret character (^) if it’s lower than 0.4.24.
+* `price` is the audit price. The audit price should be no higher than the amount you granted the Quantstamp protocol permission to withdraw in Step 1. As previously, you may find it handy to use the conversion function `web3.toWei(n, "ether")` (where `n` is the amount of QSP tokens) to obtain the correct QSP amount.
+* `requestId` is the Id of your request.
+
+### Step 3: Check status of your audit and view your security report
+
+Upon successful audit, the QSP Audit contract will emit the following event:
+
+`LogAuditFinished(requestId, node, auditResult)`
+
+where:
+
+* `requestId` is a request Id, and should match the one you obtained in the previous step.
+* `node` is the auditor node that processed your request.
+* `auditResult` is the result of the the audit.
+
+Once the report is ready, you can obtain it 
+
+`const report  = await quantstamp_report_data.getReport(requestId);`
+
+where
+* `report` is the audit report submitted by an audit node.
 
 ## Run locally
 ### Requirements
