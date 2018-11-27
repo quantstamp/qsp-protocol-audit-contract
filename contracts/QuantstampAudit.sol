@@ -209,7 +209,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param price The total amount of tokens that will be paid per audit. The requester should
    * eventually pay price * count qsp.
    * @param count Number of audits by different Auditors
-   */
+
   function multiRequestAudit(string contractUri, uint256 price, uint256 count) public whenNotPaused returns(uint256[]) {
     require(count > 1, "multiRequest must be more than one");
     require(price.mul(count) <= auditData.token().allowance(msg.sender, address(this)),
@@ -228,6 +228,7 @@ contract QuantstampAudit is Ownable, Pausable {
     require(false, "Invalid Feature");
     return result;
   }
+  */
 
   /**
    * @dev Submits audit request.
@@ -302,6 +303,13 @@ contract QuantstampAudit is Ownable, Pausable {
       police.assignPoliceToReport(requestId);
       // add the requestId to the pending payments that should be paid to the auditor after policing
       police.addPendingPayment(msg.sender, requestId);
+      // pay fee to the police
+      if (police.reportProcessingFeePercentage() > 0 && police.numPoliceNodes() > 0) {
+        uint256 policeFee = police.getPoliceFee(auditData.getAuditPrice(requestId));
+        auditData.token().transfer(address(police), policeFee);
+        police.collectFee(requestId, policeFee);
+        police.splitPayment(policeFee);
+      }
     }
   }
 
@@ -322,11 +330,16 @@ contract QuantstampAudit is Ownable, Pausable {
     address auditNode = auditData.getAuditAuditor(requestId);
     bool hasBeenSubmitted;
     bool slashOccurred;
+    uint256 slashAmount;
     // hasBeenSubmitted may be false if the police submission period has ended
-    (hasBeenSubmitted, slashOccurred) = police.submitPoliceReport(msg.sender, auditNode, requestId, report, isVerified);
+    (hasBeenSubmitted, slashOccurred, slashAmount) = police.submitPoliceReport(msg.sender, auditNode, requestId, report, isVerified);
     if (slashOccurred) {
       // transfer the audit request price to the police
-      require(auditData.token().transfer(address(police), auditData.getAuditPrice(requestId)));
+      uint256 auditPoliceFee = police.collectedFees(requestId);
+      uint256 adjustedPrice = auditData.getAuditPrice(requestId).sub(auditPoliceFee);
+      require(auditData.token().transfer(address(police), adjustedPrice));
+      // divide the adjusted price + slash among police assigned to report
+      police.splitPayment(adjustedPrice.add(slashAmount));
     }
     return hasBeenSubmitted;
   }
@@ -349,9 +362,10 @@ contract QuantstampAudit is Ownable, Pausable {
   function claimReward (uint256 requestId) public returns (bool) {
     require(police.canClaimAuditReward(msg.sender, requestId));
     police.setRewardClaimed(msg.sender, requestId);
-    uint256 auditPrice = auditData.getAuditPrice(requestId);
-    auditData.token().transfer(msg.sender, auditPrice);
-    emit LogPayAuditor(requestId, msg.sender, auditPrice);
+    uint256 auditPoliceFee = police.collectedFees(requestId);
+    uint256 auditorPayment = auditData.getAuditPrice(requestId).sub(auditPoliceFee);
+    auditData.token().transfer(msg.sender, auditorPayment);
+    emit LogPayAuditor(requestId, msg.sender, auditorPayment);
     return true;
   }
 
@@ -365,7 +379,8 @@ contract QuantstampAudit is Ownable, Pausable {
     uint256 totalPrice;
     bool exists;
     uint256 requestId = HEAD;
-    uint256 auditPrice;
+    uint256 auditPoliceFee;
+    uint256 auditorPayment;
     // This loop occurs here (not in QuantstampAuditPolice) due to requiring the audit price,
     // as otherwise we require more dependencies/mappings in QuantstampAuditPolice.
     while (true) {
@@ -373,9 +388,10 @@ contract QuantstampAudit is Ownable, Pausable {
       if (!exists) {
         break;
       }
-      auditPrice = auditData.getAuditPrice(requestId);
-      totalPrice = totalPrice.add(auditPrice);
-      emit LogPayAuditor(requestId, msg.sender, auditPrice);
+      auditPoliceFee = police.collectedFees(requestId);
+      auditorPayment = auditData.getAuditPrice(requestId).sub(auditPoliceFee);
+      totalPrice = totalPrice.add(auditorPayment);
+      emit LogPayAuditor(requestId, msg.sender, auditorPayment);
     }
     auditData.token().transfer(msg.sender, totalPrice);
     return totalPrice;

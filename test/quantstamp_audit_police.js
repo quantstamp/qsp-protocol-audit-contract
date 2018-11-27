@@ -32,6 +32,7 @@ contract('QuantstampAuditPolice', function(accounts) {
   let min_stake;
   let slash_percentage;
   let slash_amount;
+  let expected_auditor_payment;
 
   let quantstamp_audit;
   let quantstamp_audit_data;
@@ -83,6 +84,8 @@ contract('QuantstampAuditPolice', function(accounts) {
     await quantstamp_audit_data.setMaxAssignedRequests(maxAssignedRequests);
     // get the minimum stake needed to be an auditor
     min_stake = await quantstamp_audit.getMinAuditStake();
+    // since the police now take a fee, the auditor payment no longer equals the price
+    expected_auditor_payment = price - await quantstamp_audit_police.getPoliceFee(price);
     // get the slash percentage and amount
     slash_percentage = await quantstamp_audit_police.slashPercentage();
     slash_amount = await quantstamp_audit_token_escrow.getSlashAmount(slash_percentage);
