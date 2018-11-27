@@ -36,7 +36,7 @@ change `QuantstampAudit-v-0-meta.json` to `QuantstampAudit-v-0.1.0-meta.json` in
 1. Audit View contract:
     - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract/dev/QuantstampAuditView-v-0-meta.json
     - ABI: https://s3.amazonaws.com/qsp-protocol-contract/dev/QuantstampAuditView-v-0-abi.json
-1. QSP token contract address `0xc1220b0bA0760817A9E8166C114D3eb2741F5949`, ABI: http://api-ropsten.etherscan.io/api?module=contract&action=getabi&address=0xc1220b0bA0760817A9E8166C114D3eb2741F5949&format=raw
+1. QSP Token contract address `0xc1220b0bA0760817A9E8166C114D3eb2741F5949`, ABI: http://api-ropsten.etherscan.io/api?module=contract&action=getabi&address=0xc1220b0bA0760817A9E8166C114D3eb2741F5949&format=raw
 
 For querying, go to: https://ropsten.etherscan.io/address/{address}#readContract , where `{address}` is `contractAddress` copied from the corresponding metadata file.
 
@@ -50,7 +50,7 @@ For querying, go to: https://ropsten.etherscan.io/address/{address}#readContract
 1. Audit View contract:
     - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract/prod/QuantstampAuditView-v-0-meta.json
     - ABI: https://s3.amazonaws.com/qsp-protocol-contract/prod/QuantstampAuditView-v-0-abi.json
-1. QSP token contract address `0x99ea4db9ee77acd40b119bd1dc4e33e1c070b80d`, ABI: http://api.etherscan.io/api?module=contract&action=getabi&address=0x99ea4db9ee77acd40b119bd1dc4e33e1c070b80d&format=raw
+1. QSP Token contract address `0x99ea4db9ee77acd40b119bd1dc4e33e1c070b80d`, ABI: http://api.etherscan.io/api?module=contract&action=getabi&address=0x99ea4db9ee77acd40b119bd1dc4e33e1c070b80d&format=raw
 
 For querying, go to: https://etherscan.io/address/{address}#readContract , where `{address}` is `contractAddress` copied from the corresponding metadata file.
 
@@ -62,7 +62,7 @@ From our target user perspective, interaction with the protocol involves the fol
 3) Obtain and view your audit report.
 
 Below we describe each step in more details. We assume that you are using JS Web3 API and that the following variables are used in your code:
-* `quantstamp_token` is the instantiated QSP token contract,
+* `quantstamp_token` is the instantiated QSP Token contract,
 * `quantstamp_audit` is the instantiated QSP Audit contract,
 * `quantstamp_report_data` is the instantiated QSP Audit Report Data contract,
 * `requestor` is your address that holds the QSP tokens and that you will use to submit an audit request. You need some ETH to pay for the gas fees, like with any other transaction on Ethereum.
@@ -101,7 +101,7 @@ where:
 * `node` is the auditor node that processed your request.
 * `auditResult` is the result of the the audit.
 
-Once the report is ready, you can obtain it 
+Once the report is ready, you can obtain it as follows: 
 
 `const report  = await quantstamp_report_data.getReport(requestId);`
 
