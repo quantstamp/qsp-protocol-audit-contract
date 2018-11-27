@@ -97,7 +97,7 @@ contract('QuantstampAudit', function(accounts) {
     const balance_before = await Util.balanceOf(quantstamp_token, auditor);
     await quantstamp_audit.unstake({from : auditor});
     const balance_after = await Util.balanceOf(quantstamp_token, auditor);
-    assert.equal(balance_before + min_stake, balance_after);
+    assert.isTrue(balance_before.plus(min_stake).eq(balance_after));
     assert.equal(0, await quantstamp_audit.totalStakedFor(auditor));
   });
 

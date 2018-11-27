@@ -145,10 +145,10 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
    * @param amount The amount to be split, which should have been transferred to this contract earlier.
    */
   function splitPayment(uint256 amount) public onlyWhitelisted {
+    require(numPoliceNodes != 0);
     address policeNode = getNextPoliceNode(address(HEAD));
     uint256 amountPerNode = amount.div(numPoliceNodes);
     // TODO: upgrade our openzeppelin version to use mod
-    require(numPoliceNodes != 0);
     uint256 largerAmount = amountPerNode.add(amount % numPoliceNodes);
     while (policeNode != address(HEAD)) {
       // give the largerAmount to the current lastAssignedPoliceNode
@@ -161,6 +161,7 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
         require(auditData.token().transfer(policeNode, amountPerNode));
         emit PoliceFeesClaimed(policeNode, amountPerNode);
       }
+      policeNode = getNextPoliceNode(address(policeNode));
     }
   }
 
@@ -379,9 +380,6 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
     if (policeList.insert(HEAD, uint256(addr), PREV)) {
       numPoliceNodes = numPoliceNodes.add(1);
       emit PoliceNodeAdded(addr);
-      if (lastAssignedPoliceNode == address(NULL)) {
-        lastAssignedPoliceNode = addr;
-      }
       success = true;
     }
   }

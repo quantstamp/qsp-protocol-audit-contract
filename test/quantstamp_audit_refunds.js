@@ -78,7 +78,7 @@ contract('QuantstampAudit_refunds', function(accounts) {
     const requestorBalance = await Util.balanceOf(quantstamp_token, requestor);
     const result = await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor});
     const sizeBeforeRefund = await quantstamp_audit_view.getQueueLength.call();
-    assert.equal(await Util.balanceOf(quantstamp_token, requestor), requestorBalance - price);
+    assert.isTrue((await Util.balanceOf(quantstamp_token, requestor)).eq(requestorBalance - price));
     const requestId = Util.extractRequestId(result);
     assert.equal(await Util.getAuditState(quantstamp_audit_data, requestId), AuditState.Queued);
 
@@ -93,7 +93,7 @@ contract('QuantstampAudit_refunds', function(accounts) {
     });
     assert.equal(await quantstamp_audit_view.getQueueLength.call(), sizeBeforeRefund - 1);
     assert.equal(await Util.getAuditState(quantstamp_audit_data, requestId), AuditState.Refunded);
-    assert.equal(await Util.balanceOf(quantstamp_token, requestor), requestorBalance);
+    assert.isTrue((await Util.balanceOf(quantstamp_token, requestor)).eq(requestorBalance));
   });
 
   it("should not allow a user that did not submit the request to get a refund", async function () {
