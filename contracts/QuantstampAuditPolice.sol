@@ -3,10 +3,14 @@ pragma solidity 0.4.24;
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Whitelist.sol";
 import "./LinkedListLib.sol";
+import "./QuantstampAuditData.sol";
+import "./QuantstampAuditTokenEscrow.sol";
 
 
 // TODO (QSP-833): salary and taxing
-contract QuantstampAuditPolice is Whitelist {
+// TODO transfer existing salary if removing police
+contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-count
+
   using SafeMath for uint256;
   using LinkedListLib for LinkedListLib.LinkedList;
 
@@ -35,12 +39,16 @@ contract QuantstampAuditPolice is Whitelist {
   // the number of blocks the police have to verify a report
   uint256 public policeTimeoutInBlocks = 75;
 
+  // number from [0-100] that indicates the percentage of the minAuditStake that should be slashed
+  uint256 public slashPercentage = 20;
+
   event PoliceNodeAdded(address addr);
   event PoliceNodeRemoved(address addr);
   // TODO: we may want these parameters indexed
   event PoliceNodeAssignedToReport(address policeNode, uint256 requestId);
   event PoliceReportSubmitted(address policeNode, uint256 requestId, PoliceReportState reportState);
   event PoliceSubmissionPeriodExceeded(uint256 requestId, uint256 timeoutBlock, uint256 currentBlock);
+  event PoliceSlash(uint256 requestId, address policeNode, address auditNode, uint256 amount);
 
   // pointer to the police node that was last assigned to a report
   address private lastAssignedPoliceNode = address(HEAD);
@@ -68,6 +76,24 @@ contract QuantstampAuditPolice is Whitelist {
 
   // tracks the total number of reports ever checked by a police node
   mapping(address => uint256) public totalReportsChecked;
+
+  // contract that stores audit data (separate from the auditing logic)
+  QuantstampAuditData public auditData;
+
+  // contract that stores token escrows of nodes on the network
+  QuantstampAuditTokenEscrow public tokenEscrow;
+
+  /**
+   * @dev The constructor creates a police contract.
+   * @param auditDataAddress The address of an AuditData that stores data used for performing audits.
+   * @param escrowAddress The address of a QuantstampTokenEscrow contract that holds staked deposits of nodes.
+   */
+  constructor (address auditDataAddress, address escrowAddress) public {
+    require(auditDataAddress != address(0));
+    require(escrowAddress != address(0));
+    auditData = QuantstampAuditData(auditDataAddress);
+    tokenEscrow = QuantstampAuditTokenEscrow(escrowAddress);
+  }
 
   /**
    * @dev Assigns police nodes to a submitted report
@@ -110,20 +136,20 @@ contract QuantstampAuditPolice is Whitelist {
    * @param report The compressed bytecode representation of the report.
    * @param isVerified Whether the police node's report matches the submitted report.
    *                   If not, the auditor is slashed.
-   * @return true if the report was successfully submitted.
+   * @return a pair of bools: (true if the report was successfully submitted, true if a slash occurred).
    */
   function submitPoliceReport(
     address policeNode,
     address auditNode,
     uint256 requestId,
     bytes report,
-    bool isVerified) public onlyWhitelisted returns (bool) {
+    bool isVerified) public onlyWhitelisted returns (bool, bool) {
     // remove expired assignments
     bool hasRemovedCurrentId = removeExpiredAssignments(policeNode, requestId);
     // if the current request has timed out, return
     if (hasRemovedCurrentId) {
       emit PoliceSubmissionPeriodExceeded(requestId, policeTimeouts[requestId], block.number);
-      return false;
+      return (false, false);
     }
     // the police node is assigned to the report
     require(isAssigned(requestId, policeNode));
@@ -144,16 +170,21 @@ contract QuantstampAuditPolice is Whitelist {
     emit PoliceReportSubmitted(policeNode, requestId, state);
     // the report was already marked invalid by a different police node
     if (verifiedReports[requestId] == PoliceReportState.INVALID) {
-      return true;
+      return (true, false);
     } else {
       verifiedReports[requestId] = state;
     }
+    bool slashOccurred;
     if (!isVerified) {
       verifiedReports[requestId] = PoliceReportState.INVALID;
       pendingPayments[auditNode].remove(requestId);
-      // TODO (QSP-832): slash the auditor, be careful of double slash logic
+      // an audit node can only be slashed once for each report,
+      // even if multiple police mark the report as invalid
+      uint256 slashAmount = tokenEscrow.slash(auditNode, slashPercentage);
+      slashOccurred = true;
+      emit PoliceSlash(requestId, policeNode, auditNode, slashAmount);
     }
-    return true;
+    return (true, slashOccurred);
   }
 
   /**
@@ -266,6 +297,15 @@ contract QuantstampAuditPolice is Whitelist {
    */
   function setPoliceTimeoutInBlocks(uint256 numBlocks) public onlyOwner {
     policeTimeoutInBlocks = numBlocks;
+  }
+
+  /**
+   * @dev Sets the slash percentage.
+   * @param percentage The percentage as an integer from [0-100].
+   */
+  function setSlashPercentage(uint256 percentage) public onlyOwner {
+    require(0 <= percentage && percentage <= 100);
+    slashPercentage = percentage;
   }
 
   /**

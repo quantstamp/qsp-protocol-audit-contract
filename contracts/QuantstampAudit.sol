@@ -320,7 +320,15 @@ contract QuantstampAudit is Ownable, Pausable {
     require(police.isPoliceNode(msg.sender));
     // get the address of the audit node
     address auditNode = auditData.getAuditAuditor(requestId);
-    return police.submitPoliceReport(msg.sender, auditNode, requestId, report, isVerified);
+    bool hasBeenSubmitted;
+    bool slashOccurred;
+    // hasBeenSubmitted may be false if the police submission period has ended
+    (hasBeenSubmitted, slashOccurred) = police.submitPoliceReport(msg.sender, auditNode, requestId, report, isVerified);
+    if (slashOccurred) {
+      // transfer the audit request price to the police
+      require(auditData.token().transfer(address(police), auditData.getAuditPrice(requestId)));
+    }
+    return hasBeenSubmitted;
   }
 
   /**
