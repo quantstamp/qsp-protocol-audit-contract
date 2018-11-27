@@ -209,8 +209,10 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param price The total amount of tokens that will be paid per audit. The requester should
    * eventually pay price * count qsp.
    * @param count Number of audits by different Auditors
-
-  function multiRequestAudit(string contractUri, uint256 price, uint256 count) public whenNotPaused returns(uint256[]) {
+   */
+  function multiRequestAudit(string contractUri, uint256 price, uint256 count) public whenNotPaused returns(uint256[]) { // solhint-disable-line no-unused-vars
+    require(false, "Invalid Feature");
+    /*
     require(count > 1, "multiRequest must be more than one");
     require(price.mul(count) <= auditData.token().allowance(msg.sender, address(this)),
       "token transfer must be approved more than price*count");
@@ -225,10 +227,9 @@ contract QuantstampAudit is Ownable, Pausable {
     emit LogMultiRequestRequested(newMultiRequestId,
       multiRequestData.getMultiRequestFirstRequestId(newMultiRequestId),
       multiRequestData.getMultiRequestLastRequestId(newMultiRequestId));
-    require(false, "Invalid Feature");
     return result;
+    */
   }
-  */
 
   /**
    * @dev Submits audit request.
@@ -256,7 +257,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param auditResult Result of an audit.
    * @param report a compressed report. TODO, let's document the report format.
    */
-  function submitReport(uint256 requestId, QuantstampAuditData.AuditState auditResult, bytes report) public onlyWhitelisted {
+  function submitReport(uint256 requestId, QuantstampAuditData.AuditState auditResult, bytes report) public onlyWhitelisted { // solhint-disable-line function-max-lines
     if (QuantstampAuditData.AuditState.Completed != auditResult && QuantstampAuditData.AuditState.Error != auditResult) {
       emit LogReportSubmissionError_InvalidResult(requestId, msg.sender, auditResult);
       return;

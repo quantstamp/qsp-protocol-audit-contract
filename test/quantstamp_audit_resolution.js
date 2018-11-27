@@ -71,7 +71,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
       }
     });
 
-    assert.equal(await Util.balanceOf(quantstamp_token, auditor), balanceOfAuditorBeforeAudit);
+    assert.isTrue((await Util.balanceOf(quantstamp_token, auditor)).eq(balanceOfAuditorBeforeAudit));
   });
 
   it("should resolve an error report in favor of the auditor given owner's wish", async function () {
@@ -82,7 +82,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
     const balanceOfRequesterBeforeAudit = await Util.balanceOf(quantstamp_token, requestor);
     await quantstamp_audit.getNextAuditRequest({from:auditor});
     await quantstamp_audit.submitReport(requestId, AuditState.Error, Util.reportUri, Util.emptyReport, {from: auditor});
-    assert.equal(await Util.balanceOf(quantstamp_token, auditor), balanceOfAuditorBeforeAudit);
+    assert.isTrue((await Util.balanceOf(quantstamp_token, auditor)).eq(balanceOfAuditorBeforeAudit));
 
     Util.assertEvent({
       result: await quantstamp_audit.resolveErrorReport(requestId, false),
@@ -94,8 +94,8 @@ contract('QuantstampAudit_resolution', function(accounts) {
       }
     });
 
-    assert.equal(await Util.balanceOf(quantstamp_token, auditor), balanceOfAuditorBeforeAudit + price);
-    assert.equal(await Util.balanceOf(quantstamp_token, requestor), balanceOfRequesterBeforeAudit);
+    assert.isTrue((await Util.balanceOf(quantstamp_token, auditor)).eq(balanceOfAuditorBeforeAudit + price));
+    assert.isTrue((await Util.balanceOf(quantstamp_token, requestor)).eq(balanceOfRequesterBeforeAudit));
   });
 
   it("should resolve an error report in favor of the requester given owner's wish", async function () {
@@ -106,7 +106,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
     const balanceOfRequesterBeforeAudit = await await quantstamp_token.balanceOf(requestor);
     await quantstamp_audit.getNextAuditRequest({from:auditor});
     await quantstamp_audit.submitReport(requestId, AuditState.Error, Util.reportUri, Util.emptyReport, {from: auditor});
-    assert.equal(await Util.balanceOf(quantstamp_token, auditor), balanceOfAuditorBeforeAudit);
+    assert.isTrue((await Util.balanceOf(quantstamp_token, auditor)).eq(balanceOfAuditorBeforeAudit));
 
     Util.assertEvent({
       result: await quantstamp_audit.resolveErrorReport(requestId, true),
@@ -118,8 +118,8 @@ contract('QuantstampAudit_resolution', function(accounts) {
       }
     });
 
-    assert.equal(await Util.balanceOf(quantstamp_token, auditor), balanceOfAuditorBeforeAudit);
-    assert.equal(await Util.balanceOf(quantstamp_token, requestor), balanceOfRequesterBeforeAudit.add(price));
+    assert.isTrue((await Util.balanceOf(quantstamp_token, auditor)).eq(balanceOfAuditorBeforeAudit));
+    assert.isTrue((await Util.balanceOf(quantstamp_token, requestor)).eq(balanceOfRequesterBeforeAudit.add(price)));
   });
 
   it("should not resolve a request without an error status", async function () {
@@ -130,7 +130,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
     const balanceOfRequesterBeforeAudit = await Util.balanceOf(quantstamp_token, requestor);
     await quantstamp_audit.getNextAuditRequest({from:auditor});
     await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.emptyReport, {from: auditor});
-    assert.equal(await Util.balanceOf(quantstamp_token, auditor), balanceOfAuditorBeforeAudit);
+    assert.isTrue((await Util.balanceOf(quantstamp_token, auditor)).eq(balanceOfAuditorBeforeAudit));
 
     Util.assertEvent({
       result: await quantstamp_audit.resolveErrorReport(requestId, true),
@@ -139,8 +139,8 @@ contract('QuantstampAudit_resolution', function(accounts) {
         assert.equal(args.requestId, requestId);
       }
     });
-    assert.equal(await Util.balanceOf(quantstamp_token, auditor), balanceOfAuditorBeforeAudit);
-    assert.equal(await Util.balanceOf(quantstamp_token, requestor), balanceOfRequesterBeforeAudit);
+    assert.isTrue((await Util.balanceOf(quantstamp_token, auditor)).eq(balanceOfAuditorBeforeAudit));
+    assert.isTrue((await Util.balanceOf(quantstamp_token, requestor)).eq(balanceOfRequesterBeforeAudit));
   });
 
   it("should not re-resolve an error report", async function () {
