@@ -423,6 +423,35 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
+   *  @dev Returns the timeout time (in blocks) for any given audit.
+   */
+  function getAuditTimeoutInBlocks() public view returns(uint256) {
+    return auditData.auditTimeoutInBlocks();
+  }
+
+  /**
+   *  @dev Returns the timeout time (in blocks) for any given auditor.
+   */
+  function getMinAuditPrice (address auditor) public view returns(uint256) {
+    return auditData.getMinAuditPrice(auditor);
+  }
+
+  /**
+   * @dev Returns true if a node is whitelisted.
+   * param node Node to check.
+   */
+  function isWhitelisted(address node) public view returns(bool) {
+    return auditData.isWhitelisted(node);
+  }
+
+  /**
+   * @dev Returns the maximum number of assigned audits for any given auditor.
+   */
+  function getMaxAssignedRequests() public view returns(uint256) {
+    return auditData.maxAssignedRequests();
+  }
+
+  /**
    * @dev Determines if there is an audit request available to be picked up by the caller
    */
   function anyRequestAvailable() public view returns(AuditAvailabilityState) {
