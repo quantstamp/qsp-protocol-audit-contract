@@ -437,14 +437,6 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Returns true if a node is whitelisted.
-   * param node Node to check.
-   */
-  function isWhitelisted(address node) public view returns(bool) {
-    return auditData.isWhitelisted(node);
-  }
-
-  /**
    * @dev Returns the maximum number of assigned audits for any given auditor.
    */
   function getMaxAssignedRequests() public view returns(uint256) {
