@@ -430,7 +430,7 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   *  @dev Returns the timeout time (in blocks) for any given auditor.
+   *  @dev Returns the minimum price for a specific auditor.
    */
   function getMinAuditPrice (address auditor) public view returns(uint256) {
     return auditData.getMinAuditPrice(auditor);
