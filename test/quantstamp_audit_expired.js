@@ -64,17 +64,19 @@ contract('QuantstampAudit_expires', function(accounts) {
     const requestedId = Util.extractRequestId(await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor}));
 
     Util.extractRequestId(await quantstamp_audit.getNextAuditRequest({from:auditor}));
-    await Util.mineNBlocks(timeout-1);
 
+    await Util.mineNBlocks(timeout-1);
     // let's spend one block
+    let result = await quantstamp_audit.getNextAuditRequest({from:auditor});
     Util.assertEvent({
-      result: await quantstamp_audit.getNextAuditRequest({from:auditor}),
+      result: result,
       name: "LogAuditQueueIsEmpty",
       args: (args) => {}
     });
 
+    result = await quantstamp_audit.getNextAuditRequest({from:auditor});
     Util.assertEventAtIndex({
-      result: await quantstamp_audit.getNextAuditRequest({from:auditor}),
+      result: result,
       name: "LogAuditAssignmentUpdate_Expired",
       args: (args) => {
         assert.equal(args.requestId.toNumber(), requestedId);
@@ -138,15 +140,15 @@ contract('QuantstampAudit_expires', function(accounts) {
 
     // white box testing
     assert.equal((await quantstamp_audit.getNextAssignedRequest(0)).toNumber(), requestedId);
-
     Util.assertEvent({
-      result: await quantstamp_audit.submitReport(requestedId, AuditState.Completed, Util.reportUri, Util.emptyReport, {from: auditor}),
+      result: await quantstamp_audit.submitReport(requestedId, AuditState.Completed, Util.emptyReport, {from: auditor}),
       name: "LogReportSubmissionError_ExpiredAudit",
-      args: (args) => {
+      args: async (args) => {
         assert.equal(args.requestId.toNumber(), requestedId);
         assert.equal(args.auditor, auditor);
         // one less due to new block for calling submitReport
-        assert.equal(args.allowanceBlockNumber.toNumber(), web3.eth.blockNumber - 1);
+        const block = await web3.eth.getBlockNumber();
+        assert.equal(args.allowanceBlockNumber.toNumber(), block - 1);
       }
     });
 

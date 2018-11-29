@@ -58,9 +58,10 @@ contract('QuantstampAudit2', function(accounts) {
   });
 
   it("should audit the contract if the requestor pays", async function () {
+    const b = await Util.balanceOf(quantstamp_token, requestor);
     assert.isTrue((await Util.balanceOf(quantstamp_token, requestor)).eq(requestorBudget));
     // initially the contract has empty budget
-    assert.isTrue((await Util.balanceOf(quantstamp_token, quantstamp_audit.address)).eq(0));
+    assert.equal((await Util.balanceOf(quantstamp_token, quantstamp_audit.address)).toNumber(), 0);
     const price = Util.toQsp(35);
     const ownerBalance = await Util.getEthBalance(owner);
     // request an audit

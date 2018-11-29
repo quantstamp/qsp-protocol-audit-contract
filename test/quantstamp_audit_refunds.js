@@ -6,7 +6,7 @@ const QuantstampAuditMultiRequestData = artifacts.require('QuantstampAuditMultiR
 const QuantstampAuditReportData = artifacts.require('QuantstampAuditReportData');
 const QuantstampAuditPolice = artifacts.require('QuantstampAuditPolice');
 const QuantstampAuditTokenEscrow = artifacts.require('QuantstampAuditTokenEscrow');
-
+const BN = require('bn.js');
 const Util = require("./util.js");
 const AuditState = Util.AuditState;
 
@@ -77,7 +77,7 @@ contract('QuantstampAudit_refunds', function(accounts) {
     const requestorBalance = await Util.balanceOf(quantstamp_token, requestor);
     const result = await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor});
     const sizeBeforeRefund = await quantstamp_audit_view.getQueueLength.call();
-    assert.isTrue((await Util.balanceOf(quantstamp_token, requestor)).eq(requestorBalance - price));
+    assert.isTrue((await Util.balanceOf(quantstamp_token, requestor)).eq(requestorBalance.sub(price)));
     const requestId = Util.extractRequestId(result);
     assert.equal(await Util.getAuditState(quantstamp_audit_data, requestId), AuditState.Queued);
 
@@ -87,7 +87,7 @@ contract('QuantstampAudit_refunds', function(accounts) {
       args: (args) => {
         assert.equal(args.requestId.toNumber(), requestId);
         assert.equal(args.requestor, requestor);
-        assert.equal(args.amount, price);
+        assert.isTrue(args.amount.eq(new BN(price)));
       }
     });
     assert.equal(await quantstamp_audit_view.getQueueLength.call(), sizeBeforeRefund - 1);
@@ -112,7 +112,7 @@ contract('QuantstampAudit_refunds', function(accounts) {
   it("should not allow a requestor to get a refund after a report has been submitted", async function () {
     assert(await quantstamp_audit_view.getQueueLength.call(), 1);
     await quantstamp_audit.getNextAuditRequest({from:auditor});
-    await quantstamp_audit.submitReport(globalRequestId, AuditState.Completed, Util.reportUri, Util.emptyReport, {from: auditor});
+    await quantstamp_audit.submitReport(globalRequestId, AuditState.Completed, Util.emptyReport, {from: auditor});
 
     Util.assertEvent({
       result: await quantstamp_audit.refund(globalRequestId, {from: requestor}),
@@ -129,7 +129,7 @@ contract('QuantstampAudit_refunds', function(accounts) {
     const requestId = Util.extractRequestId(result);
     await quantstamp_audit.refund(requestId, {from: requestor});
     Util.assertEvent({
-      result: await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.emptyReport, {from: auditor}),
+      result: await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.emptyReport, {from: auditor}),
       name: "LogReportSubmissionError_InvalidState",
       args: (args) => {
         assert.equal(args.requestId, requestId);
