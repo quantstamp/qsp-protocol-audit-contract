@@ -352,6 +352,17 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
+   * @dev Internal helper function to perform the transfer of rewards.
+   * @param requestId The ID of the audit request.
+   */
+  function transferReward (uint256 requestId) internal {
+    uint256 auditPoliceFee = police.collectedFees(requestId);
+    uint256 auditorPayment = auditData.getAuditPrice(requestId).sub(auditPoliceFee);
+    auditData.token().transfer(msg.sender, auditorPayment);
+    emit LogPayAuditor(requestId, msg.sender, auditorPayment);
+  }
+
+  /**
    * @dev If the policing period has ended without the report being marked invalid,
    *      allow the auditor to claim the audit's reward.
    * @param requestId The ID of the audit request.
