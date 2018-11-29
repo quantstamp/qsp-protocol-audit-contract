@@ -131,14 +131,6 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Throws if called by any account that's not whitelisted.
-   */
-  modifier onlyWhitelisted() {
-    require(auditData.isWhitelisted(msg.sender));
-    _;
-  }
-
-  /**
    * @dev Allows nodes to stake a deposit. The audit node must approve QuantstampAudit before invoking.
    * @param amount The amount of wei-QSP to deposit.
    */
@@ -257,7 +249,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param auditResult Result of an audit.
    * @param report a compressed report. TODO, let's document the report format.
    */
-  function submitReport(uint256 requestId, QuantstampAuditData.AuditState auditResult, bytes report) public onlyWhitelisted { // solhint-disable-line function-max-lines
+  function submitReport(uint256 requestId, QuantstampAuditData.AuditState auditResult, bytes report) public { // solhint-disable-line function-max-lines
     if (QuantstampAuditData.AuditState.Completed != auditResult && QuantstampAuditData.AuditState.Error != auditResult) {
       emit LogReportSubmissionError_InvalidResult(requestId, msg.sender, auditResult);
       return;
@@ -457,11 +449,6 @@ contract QuantstampAudit is Ownable, Pausable {
   function anyRequestAvailable() public view returns(AuditAvailabilityState) {
     uint256 requestId;
 
-    // only whitelisted nodes are able to call this function
-    if (!auditData.isWhitelisted(msg.sender)) {
-      return AuditAvailabilityState.Error;
-    }
-
     // there are no audits in the queue
     if (!auditQueueExists()) {
       return AuditAvailabilityState.Empty;
@@ -496,7 +483,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @dev Finds a list of most expensive audits and assigns the oldest one to the auditor node.
    */
   /* solhint-disable function-max-lines */
-  function getNextAuditRequest() public onlyWhitelisted {
+  function getNextAuditRequest() public {
     // remove an expired audit request
     if (assignedAudits.listExists()) {
       bool exists;
@@ -564,7 +551,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @dev Allows the audit node to set its minimum price per audit in wei-QSP
    * @param price The minimum price.
    */
-  function setAuditNodePrice(uint256 price) public onlyWhitelisted {
+  function setAuditNodePrice(uint256 price) public {
     auditData.setMinAuditPrice(msg.sender, price);
     emit LogAuditNodePriceChanged(msg.sender, price);
   }

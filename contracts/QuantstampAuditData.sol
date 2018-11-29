@@ -59,14 +59,8 @@ contract QuantstampAuditData is Whitelist {
   // map audit nodes to their minimum prices. Defaults to zero: the node accepts all requests.
   mapping(address => uint256) public minAuditPrice;
 
-  // whitelist audit nodes
-  LinkedListLib.LinkedList internal whitelistedNodesList;
-
   // For generating requestIds starting from 1
   uint256 private requestCounter;
-
-  event WhitelistedNodeAdded(address addr);
-  event WhitelistedNodeRemoved(address addr);
 
   /**
    * @dev The constructor creates an audit contract.
@@ -163,49 +157,5 @@ contract QuantstampAuditData is Whitelist {
    */
   function setMinAuditPrice(address auditor, uint256 price) public onlyWhitelisted {
     minAuditPrice[auditor] = price;
-  }
-
-  /**
-   * @dev Returns true if a node is whitelisted
-   * param node Node to check.
-   */
-  function isWhitelisted(address node) public view returns(bool) {
-    return whitelistedNodesList.nodeExists(uint256(node));
-  }
-
-  /**
-   * @dev Adds an address to the whitelist
-   * @param addr address
-   * @return true if the address was added to the whitelist
-   */
-  function addNodeToWhitelist(address addr) public onlyOwner returns(bool success) {
-    if (whitelistedNodesList.insert(HEAD, uint256(addr), PREV)) {
-      emit WhitelistedNodeAdded(addr);
-      success = true;
-    }
-  }
-
-  /**
-   * @dev Removes an address from the whitelist linked-list
-   * @param addr address
-   * @return true if the address was removed from the whitelist,
-   */
-  function removeNodeFromWhitelist(address addr) public onlyOwner returns(bool success) {
-    if (whitelistedNodesList.remove(uint256(addr)) != 0) {
-      emit WhitelistedNodeRemoved(addr);
-      success = true;
-    }
-  }
-
-  /**
-   * @dev Given a whitelisted address, returns the next address from the whitelist
-   * @param addr address
-   * @return next address of the given param
-   */
-  function getNextWhitelistedNode(address addr) public view returns(address) {
-    bool direction;
-    uint256 next;
-    (direction, next) = whitelistedNodesList.getAdjacent(uint256(addr), NEXT);
-    return address(next);
   }
 }
