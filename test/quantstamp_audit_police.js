@@ -78,8 +78,6 @@ contract('QuantstampAuditPolice', function(accounts) {
     await quantstamp_audit_police.setPoliceTimeoutInBlocks(police_timeout);
     // allow the audit contract use up to 65QSP for audits
     await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(approvalAmount), {from : requestor});
-    // whitelisting auditor
-    await quantstamp_audit_data.addNodeToWhitelist(auditor);
     // relaxing the requirement for other tests
     await quantstamp_audit_data.setMaxAssignedRequests(maxAssignedRequests);
     // get the minimum stake needed to be an auditor

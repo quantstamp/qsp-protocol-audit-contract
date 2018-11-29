@@ -3,19 +3,8 @@ pragma solidity 0.4.24;
 import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
 import "openzeppelin-solidity/contracts/ownership/Whitelist.sol";
 
-import "./LinkedListLib.sol";
-
 
 contract QuantstampAuditData is Whitelist {
-  // the audit data has a whitelist of addresses of audit contracts that may interact with this contract
-  using LinkedListLib for LinkedListLib.LinkedList;
-
-  // constants used by LinkedListLib
-  uint256 constant internal NULL = 0;
-  uint256 constant internal HEAD = 0;
-  bool constant internal PREV = false;
-  bool constant internal NEXT = true;
-
   // state of audit requests submitted to the contract
   enum AuditState {
     None,

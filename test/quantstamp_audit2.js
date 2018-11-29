@@ -50,8 +50,6 @@ contract('QuantstampAudit2', function(accounts) {
     await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(65), {from : requestor});
     // timeout requests
     await quantstamp_audit_data.setAuditTimeout(10000);
-    // whitelisting auditor
-    await quantstamp_audit_data.addNodeToWhitelist(auditor);
     // add QuantstampAudit to the whitelist of the escrow
     await quantstamp_audit_token_escrow.addAddressToWhitelist(quantstamp_audit.address);
     // set the minimum stake to zero
