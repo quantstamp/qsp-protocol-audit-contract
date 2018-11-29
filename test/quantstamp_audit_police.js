@@ -8,6 +8,7 @@ const QuantstampAuditPolice = artifacts.require('QuantstampAuditPolice');
 const QuantstampAuditTokenEscrow = artifacts.require('QuantstampAuditTokenEscrow');
 
 const BigNumber = require('bignumber.js');
+const BN = require('bn.js');
 const Util = require("./util.js");
 const AuditState = Util.AuditState;
 const abiDecoder = require('abi-decoder');
@@ -85,7 +86,7 @@ contract('QuantstampAuditPolice', function(accounts) {
     // get the minimum stake needed to be an auditor
     min_stake = await quantstamp_audit.getMinAuditStake();
     // since the police now take a fee, the auditor payment no longer equals the price
-    expectedAuditorPayment = price - await quantstamp_audit_police.getPoliceFee(price);
+    expectedAuditorPayment = new BN(price - await quantstamp_audit_police.getPoliceFee(price));
     // get the slash percentage and amount
     slash_percentage = await quantstamp_audit_police.slashPercentage();
     slash_amount = await quantstamp_audit_token_escrow.getSlashAmount(slash_percentage);
@@ -106,7 +107,7 @@ contract('QuantstampAuditPolice', function(accounts) {
 
   // an audit is requested and a report is submitted
   async function submitNewReport() {
-    await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
+    let res = await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     const result = await quantstamp_audit.getNextAuditRequest({from: auditor});
     const requestId = Util.extractRequestId(result);
     await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.emptyReport, {from : auditor});
@@ -124,12 +125,15 @@ contract('QuantstampAuditPolice', function(accounts) {
   // checks that the police balances are split correctly after payment
   async function checkPoliceBalances(previousBalances, payment) {
     // integerValue() doesn't seem to work
-    let expectedIncrease = payment.dividedBy(all_police.length).minus(payment.dividedBy(all_police.length).mod(1));
+    const paymentBigNum = new BigNumber(payment);
+    const expectedIncreaseBigNum = paymentBigNum.dividedBy(all_police.length).sub(paymentBigNum.dividedBy(all_police.length).mod(1))
+    // div seems broken in BN.
+    let expectedIncrease = new BN(expectedIncreaseBigNum.toString());
     let balance;
     for (var i = 0; i < all_police.length; i++) {
       balance = await Util.balanceOf(quantstamp_token, all_police[i]);
       // the true balance might be slightly higher due to the remainder
-      assert.isTrue(new BigNumber(previousBalances[i]).plus(expectedIncrease).lte(balance))
+      assert.isTrue(new BN(previousBalances[i]).add(expectedIncrease).lte(balance))
     }
 
   }
@@ -145,8 +149,8 @@ contract('QuantstampAuditPolice', function(accounts) {
 
   it("should not be possible to deploy the police with bad constructor arguments", async function() {
     const non_zero_addr = accounts[9];
-    await Util.assertTxFail(QuantstampAuditPolice.new(0, non_zero_addr));
-    await Util.assertTxFail(QuantstampAuditPolice.new(non_zero_addr, 0));
+    await Util.assertTxFail(QuantstampAuditPolice.new(Util.zeroAddress, non_zero_addr));
+    await Util.assertTxFail(QuantstampAuditPolice.new(non_zero_addr, Util.zeroAddress));
   });
 
   it("should not allow an auditor to claim the reward before the policing period finishes", async function() {
@@ -191,7 +195,7 @@ contract('QuantstampAuditPolice', function(accounts) {
       args: (args) => {
         assert.equal(args.requestId.toNumber(), currentId);
         assert.equal(args.auditor, auditor);
-        assert.equal(args.amount, expectedAuditorPayment);
+        assert.isTrue(args.amount.eq(expectedAuditorPayment));
       }
     });
     assert.equal(await quantstamp_audit_police.verifiedReports(currentId), Util.PoliceReportState.Expired);
@@ -205,11 +209,12 @@ contract('QuantstampAuditPolice', function(accounts) {
     currentId = await submitNewReport();
 
     const result = await quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, true, {from: police1});
+
     Util.assertNestedEvent({
       result: result,
       name: "PoliceReportSubmitted",
       args: (args) => {
-        assert.equal(args.policeNode, police1);
+        assert.equal(args.policeNode, police1.toLowerCase());
         assert.equal(args.requestId, currentId);
         assert.equal(args.reportState, Util.PoliceReportState.Valid);
       }
@@ -235,11 +240,11 @@ contract('QuantstampAuditPolice', function(accounts) {
       args: (args) => {
         assert.equal(args.requestId.toNumber(), currentId);
         assert.equal(args.auditor, auditor);
-        assert.equal(args.amount, expectedAuditorPayment);
+        assert.isTrue(args.amount.eq(expectedAuditorPayment));
       }
     });
     const balance_after = await Util.balanceOf(quantstamp_token, auditor);
-    assert.isTrue(new BigNumber(balance_before).plus(expectedAuditorPayment).eq(balance_after));
+    assert.isTrue(new BN(balance_before).add(expectedAuditorPayment).eq(balance_after));
   });
 
   it("should allow the police to submit a negative report", async function() {
@@ -258,7 +263,7 @@ contract('QuantstampAuditPolice', function(accounts) {
       result: result,
       name: "PoliceReportSubmitted",
       args: (args) => {
-        assert.equal(args.policeNode, police1);
+        assert.equal(args.policeNode, police1.toLowerCase());
         assert.equal(args.requestId, currentId);
         assert.equal(args.reportState, Util.PoliceReportState.Invalid);
       },
@@ -269,8 +274,8 @@ contract('QuantstampAuditPolice', function(accounts) {
       result: result,
       name: "Slashed",
       args: (args) => {
-        assert.equal(args.addr, auditor);
-        assert.equal(args.amount, slash_amount.toNumber());
+        assert.equal(args.addr, auditor.toLowerCase());
+        assert.equal(args.amount, slash_amount);
       },
       index: 2
     });
@@ -280,9 +285,9 @@ contract('QuantstampAuditPolice', function(accounts) {
       name: "PoliceSlash",
       args: (args) => {
         assert.equal(args.requestId, currentId);
-        assert.equal(args.policeNode, police1);
-        assert.equal(args.auditNode, auditor);
-        assert.equal(args.amount, slash_amount.toNumber());
+        assert.equal(args.policeNode, police1.toLowerCase());
+        assert.equal(args.auditNode, auditor.toLowerCase());
+        assert.equal(args.amount, slash_amount);
       },
       index: 3
     });
@@ -305,7 +310,7 @@ contract('QuantstampAuditPolice', function(accounts) {
     assert.equal(report, Util.nonEmptyReport);
 
     // check that the individual police gained QSP
-    await checkPoliceBalances(police_balances_before, new BigNumber(slash_amount).plus(expectedAuditorPayment));
+    await checkPoliceBalances(police_balances_before, new BN(slash_amount).add(expectedAuditorPayment));
 
     // top up the stake of the auditor
     await stakeAuditor(slash_amount);
@@ -388,7 +393,7 @@ contract('QuantstampAuditPolice', function(accounts) {
       result: result,
       name: "PoliceNodeRemoved",
       args: (args) => {
-        assert.equal(args.addr, police3);
+        assert.equal(args.addr, police3.toLowerCase());
       }
     });
 
@@ -409,7 +414,7 @@ contract('QuantstampAuditPolice', function(accounts) {
       result: result,
       name: "PoliceNodeAdded",
       args: (args) => {
-        assert.equal(args.addr, police4);
+        assert.equal(args.addr, police4.toLowerCase());
       }
     });
     all_police = [police1, police2, police4];
@@ -496,7 +501,7 @@ contract('QuantstampAuditPolice', function(accounts) {
 
     const balance_after = await Util.balanceOf(quantstamp_token, auditor);
     // if there are no police, they should receive the full price
-    assert.isTrue(new BigNumber(balance_before).plus(price).eq(balance_after));
+    assert.isTrue(new BN(balance_before).add(new BN(price)).eq(balance_after));
   });
 
   it("should not allow auditors to claim rewards for reports not marked completed", async function() {
@@ -510,7 +515,7 @@ contract('QuantstampAuditPolice', function(accounts) {
   it("should allow auditors to claim multiple rewards at the same time", async function() {
     const num_reports = 5;
     for(var i = 0; i < num_reports; i++) {
-      await submitNewReport()
+      await submitNewReport();
     }
     const balance_before = await Util.balanceOf(quantstamp_token, auditor);
 
@@ -520,7 +525,7 @@ contract('QuantstampAuditPolice', function(accounts) {
     await quantstamp_audit.claimRewards({from: auditor});
 
     const balance_after = await Util.balanceOf(quantstamp_token, auditor);
-    assert.isTrue(new BigNumber(balance_before).plus(new BigNumber(price).mul(num_reports)).eq(balance_after));
+    assert.isTrue(new BN(balance_before).add(new BN(price * num_reports)).eq(balance_after));
 
   });
 
@@ -541,28 +546,28 @@ contract('QuantstampAuditPolice', function(accounts) {
     }
 
     const auditor_balance_before = await quantstamp_audit_token_escrow.depositsOf(auditor);
-    assert.equal(auditor_balance_before, min_stake.plus(extra_stake).toNumber());
+    assert.isTrue(auditor_balance_before.eq(min_stake.add(extra_stake)));
 
     const police_balances_before = await getPoliceBalances();
 
-    let expected_total_slashed = 0;
+    let expected_total_slashed = new BN(0);
     let current_police_balance;
     let current_auditor_balance;
 
     for(i = 0; i < num_reports; i++) {
       const result = await quantstamp_audit.submitPoliceReport(requestIds[i], Util.nonEmptyReport, false, {from: police1});
       if (i != num_reports - 1) {
-        expected_total_slashed = slash_amount.plus(expected_total_slashed);
+        expected_total_slashed = slash_amount.add(expected_total_slashed);
       }
       else {
-        expected_total_slashed = new BigNumber(extra_stake).plus(expected_total_slashed);
+        expected_total_slashed = new BN(extra_stake).add(expected_total_slashed);
       }
       current_auditor_balance = await quantstamp_audit_token_escrow.depositsOf(auditor);
       current_police_balance = await Util.balanceOf(quantstamp_token, quantstamp_audit_police.address);
       // the police nodes' QSP balance has increased
       await checkPoliceBalances(police_balances_before, expected_total_slashed);
       // the auditor's stake has decreased
-      assert.isTrue(new BigNumber(auditor_balance_before).sub(expected_total_slashed).eq(current_auditor_balance));
+      assert.isTrue(new BN(auditor_balance_before).sub(expected_total_slashed).eq(current_auditor_balance));
     }
 
     // top up the auditors stake
@@ -573,7 +578,7 @@ contract('QuantstampAuditPolice', function(accounts) {
     const balance_before = await Util.balanceOf(quantstamp_token, auditor);
 
     const otherAuditPrice = 555;
-    const otherExpectedAuditorPayment = new BigNumber(otherAuditPrice - await quantstamp_audit_police.getPoliceFee(otherAuditPrice));
+    const otherExpectedAuditorPayment = new BN(otherAuditPrice - await quantstamp_audit_police.getPoliceFee(otherAuditPrice));
 
     await submitNewReport();
 
@@ -594,7 +599,7 @@ contract('QuantstampAuditPolice', function(accounts) {
 
     const balance_after = await Util.balanceOf(quantstamp_token, auditor);
     // the reward should include the 2nd price (555), but not the first (123)
-    assert.isTrue(balance_before.plus(otherExpectedAuditorPayment).eq(balance_after));
+    assert.isTrue(balance_before.add(otherExpectedAuditorPayment).eq(balance_after));
 
     // raise the police timeout
     police_timeout = 15;
@@ -604,7 +609,7 @@ contract('QuantstampAuditPolice', function(accounts) {
     await quantstamp_audit.claimRewards({from: auditor});
 
     const balance_after2 = await Util.balanceOf(quantstamp_token, auditor);
-    assert.isTrue(balance_before.plus(otherExpectedAuditorPayment).plus(expectedAuditorPayment).eq(balance_after2));
+    assert.isTrue(balance_before.add(otherExpectedAuditorPayment).add(expectedAuditorPayment).eq(balance_after2));
   });
 
   it("should allow the owner to change the slash percentage", async function() {
@@ -615,7 +620,7 @@ contract('QuantstampAuditPolice', function(accounts) {
     slash_percentage = await quantstamp_audit_police.slashPercentage();
     slash_amount = await quantstamp_audit_token_escrow.getSlashAmount(slash_percentage);
     assert.equal(slash_percentage, 100);
-    assert.equal(slash_amount.toNumber(), min_stake.toNumber());
+    assert.isTrue(slash_amount.eq(min_stake));
 
     const police_balances_before = await getPoliceBalances();
     currentId = await submitNewReport();
@@ -645,7 +650,7 @@ contract('QuantstampAuditPolice', function(accounts) {
 
     const balance_after = await Util.balanceOf(quantstamp_token, auditor);
 
-    assert.isTrue(new BigNumber(balance_before).plus(expectedAuditorPayment).eq(balance_after));
+    assert.isTrue(new BN(balance_before).add(expectedAuditorPayment).eq(balance_after));
   });
 
     it("should allow the owner to change the report processing fee percentage", async function() {
@@ -654,14 +659,14 @@ contract('QuantstampAuditPolice', function(accounts) {
     await Util.assertTxFail(quantstamp_audit_police.setReportProcessingFeePercentage(101));
     await quantstamp_audit_police.setReportProcessingFeePercentage(100);
     let reportProcessingPercentage = await quantstamp_audit_police.reportProcessingFeePercentage();
-    expectedAuditorPayment = price - await quantstamp_audit_police.getPoliceFee(price);
+    expectedAuditorPayment = new BN(price - await quantstamp_audit_police.getPoliceFee(price));
 
     const balance_before = await Util.balanceOf(quantstamp_token, auditor);
     await submitNewReport();
     await Util.mineNBlocks(police_timeout + 1);
     await quantstamp_audit.claimRewards({from: auditor});
     const balance_after = await Util.balanceOf(quantstamp_token, auditor);
-    assert.isTrue(new BigNumber(balance_before).plus(expectedAuditorPayment).eq(balance_after));
+    assert.isTrue(new BN(balance_before).add(expectedAuditorPayment).eq(balance_after));
   });
 });
 

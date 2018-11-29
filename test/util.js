@@ -1,10 +1,13 @@
 const abiDecoder = require('abi-decoder'); // NodeJS
+const BigNumber = require('bignumber.js'); // TODO depricated (not sure)?
+const BN = require('bn.js');
+
 
 const uri = "http://www.quantstamp.com/contract.sol";
 const sha256emptyFile = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-const emptyReport = 0x0;
+const emptyReport = "0x";
 const nonEmptyReport = "0x123456";
-const emptyReportStr = "0x";
+const zeroAddress = "0x0000000000000000000000000000000000000000";
 
 const AuditState = Object.freeze({
   None : 0,
@@ -33,7 +36,7 @@ const AuditAvailabilityState = Object.freeze({
 });
 
 function toEther (n) {
-  return web3.toWei(n, "ether");
+  return new BN(web3.utils.toWei(new BigNumber(n).toString(), "ether"));
 }
 
 async function expectThrow (promise) {
@@ -55,7 +58,8 @@ async function assertTxFail (promise) {
     const result = await promise;
     txFailed = parseInt(result.receipt.status) === 0;
   } catch (err) {
-    txFailed = (err.message.startsWith("VM Exception while processing transaction: revert"));
+    txFailed = (err.message.startsWith("VM Exception while processing transaction: revert") ||
+                err.message.startsWith("Returned error: VM Exception while processing transaction: revert"));
   }
   assert.isTrue(txFailed);
 }
@@ -90,7 +94,7 @@ function assertNestedEventHelper({log, name, args}) {
 // the event is not decoded automatically by truffle.
 // Must have previously called abiDecoder.addABI(contract_abi)
 function assertNestedEvent({result, name, args}) {
-  const decodedLogs = abiDecoder.decodeLogs(result.receipt.logs);
+  const decodedLogs = abiDecoder.decodeLogs(result.receipt.rawLogs);
   assert.equal(decodedLogs.length, 1);
   assertNestedEventHelper({
     log: decodedLogs[0],
@@ -99,7 +103,7 @@ function assertNestedEvent({result, name, args}) {
 }
 
 function assertNestedEventAtIndex({result, name, args, index}) {
-  const decodedLogs = abiDecoder.decodeLogs(result.receipt.logs);
+  const decodedLogs = abiDecoder.decodeLogs(result.receipt.rawLogs);
   assertNestedEventHelper({
     log: decodedLogs[index],
     name: name,
@@ -141,7 +145,7 @@ async function mineOneBlock () {
     method: 'evm_mine',
     params: [],
     id: 0,
-  })
+  }, function (error, hash) {});
 }
 
 async function mineNBlocks (n) {
@@ -155,7 +159,7 @@ module.exports = {
   sha256emptyFile : sha256emptyFile,
   emptyReport: emptyReport,
   nonEmptyReport: nonEmptyReport,
-  emptyReportStr: emptyReportStr,
+  zeroAddress: zeroAddress,
   toEther : toEther,
   toQsp : toEther,
   oneEther : toEther(1),

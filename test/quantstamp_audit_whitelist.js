@@ -41,7 +41,7 @@ contract('QuantstampAudit_whitelist', function(accounts) {
     await quantstamp_audit_data.addNodeToWhitelist(auditor);
     await quantstamp_audit_data.removeNodeFromWhitelist(auditor);
 
-    assert.equal(0, web3.toHex((await quantstamp_audit_data.getNextWhitelistedNode.call(0))));
+    assert.equal(0, web3.utils.toHex((await quantstamp_audit_data.getNextWhitelistedNode.call(Util.zeroAddress))));
   });
 
   it ("should not let anyone other than the owner modify whitelist", async function () {
@@ -59,10 +59,10 @@ contract('QuantstampAudit_whitelist', function(accounts) {
       await quantstamp_audit_data.addNodeToWhitelist(auditors[i]);
     }
 
-    for (var current = 0, i = 0;
-         await quantstamp_audit_data.getNextWhitelistedNode.call(current) != 0;
+    for (var current = Util.zeroAddress, i = 0;
+         await quantstamp_audit_data.getNextWhitelistedNode.call(current) != Util.zeroAddress;
          current = await quantstamp_audit_data.getNextWhitelistedNode.call(current), ++i) {
-      assert.equal(auditors[i], web3.toHex(await quantstamp_audit_data.getNextWhitelistedNode.call(current)));
+      assert.equal(auditors[i].toLowerCase(), web3.utils.toHex(await quantstamp_audit_data.getNextWhitelistedNode.call(current)));
     }
 
     // remove all auditors from the whitelist

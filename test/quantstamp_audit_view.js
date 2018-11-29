@@ -1,5 +1,5 @@
 const Util = require("./util.js");
-const BN = require('web3').utils.BN;
+const BN = require('bn.js');
 
 const QuantstampAudit = artifacts.require('QuantstampAudit');
 const QuantstampAuditData = artifacts.require('QuantstampAuditData');
@@ -71,16 +71,17 @@ contract('QuantstampAuditView', function(accounts) {
 
   it("lets the owner change the QuantstampAudit address", async function () {
     const audit = await quantstamp_audit_view.audit.call();
-    const another_quantstamp_audit_data = (await QuantstampAuditData.new(quantstamp_token.contract.address)).contract.address;
-    const another_quantstamp_audit_multirequest_data = (await QuantstampAuditMultiRequestData.new()).contract.address;
-    const another_quantstamp_audit_report_data = (await QuantstampAuditReportData.new()).contract.address;
-    const another_quantstamp_audit_token_escrow = (await QuantstampAuditTokenEscrow.new(quantstamp_token.contract.address)).contract.address;
-    const another_quantstamp_audit_police = (await QuantstampAuditPolice.new(another_quantstamp_audit_data, another_quantstamp_audit_token_escrow)).contract.address;
+    const another_quantstamp_audit_data = (await QuantstampAuditData.new(quantstamp_token.address)).address;
+    const another_quantstamp_audit_multirequest_data = (await QuantstampAuditMultiRequestData.new()).address;
+    const another_quantstamp_audit_report_data = (await QuantstampAuditReportData.new()).address;
+    const another_quantstamp_audit_token_escrow = (await QuantstampAuditTokenEscrow.new(quantstamp_token.address)).address;
+    const another_quantstamp_audit_police = (await QuantstampAuditPolice.new(another_quantstamp_audit_data, another_quantstamp_audit_token_escrow)).address;
+
     const another_quantstamp_audit = (await QuantstampAudit.new(another_quantstamp_audit_data,
                                                                 another_quantstamp_audit_multirequest_data,
                                                                 another_quantstamp_audit_report_data,
                                                                 another_quantstamp_audit_token_escrow,
-                                                                another_quantstamp_audit_police)).contract.address;
+                                                                another_quantstamp_audit_police)).address;
 
     // change QuantstampAudit to something else
     await quantstamp_audit_view.setQuantstampAudit(another_quantstamp_audit);
@@ -88,9 +89,10 @@ contract('QuantstampAuditView', function(accounts) {
     assert.equal(await quantstamp_audit_view.auditData.call(), another_quantstamp_audit_data);
 
     // only owner can change
-    Util.assertTxFail(quantstamp_audit_view.setQuantstampAudit(audit, {from : requestor}));
+    await Util.assertTxFail(quantstamp_audit_view.setQuantstampAudit(audit, {from : requestor}));
+
     // address should be valid
-    Util.assertTxFail(quantstamp_audit_view.setQuantstampAudit(0, {from : requestor}));
+    await Util.assertTxFail(quantstamp_audit_view.setQuantstampAudit(Util.zeroAddress, {from : requestor}));
 
     // change it back
     await quantstamp_audit_view.setQuantstampAudit(audit);
@@ -175,7 +177,7 @@ contract('QuantstampAuditView', function(accounts) {
 
     const notRequestedRequestId = 11111;
     const price = 123;
-    const report = 0xab;
+    const report = "0xab";
     const hashOfNonExistedReport = await quantstamp_audit_view.getReportHash(notRequestedRequestId);
 
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
@@ -185,7 +187,6 @@ contract('QuantstampAuditView', function(accounts) {
     await quantstamp_audit_data.removeNodeFromWhitelist(auditor);
 
     const hashOfReport = await quantstamp_audit_view.getReportHash(requestId);
-
     assert.notEqual(hashOfNonExistedReport, hashOfReport);
   });
 

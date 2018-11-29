@@ -8,6 +8,7 @@ const QuantstampAuditTokenEscrow = artifacts.require('QuantstampAuditTokenEscrow
 const QuantstampAuditPolice = artifacts.require('QuantstampAuditPolice');
 
 const Util = require("./util.js");
+const BN = require('bn.js');
 const AuditState = Util.AuditState;
 
 
@@ -90,20 +91,20 @@ contract('QuantstampAudit', function(accounts) {
     const result = await quantstamp_audit.anyRequestAvailable({from: auditor});
     assert.isTrue(await quantstamp_audit.hasEnoughStake({from: auditor}));
     assert.equal(result.toNumber(), Util.AuditAvailabilityState.Ready);
-    assert.equal(min_stake, (await quantstamp_audit.totalStakedFor(auditor)).toNumber());
+    assert.isTrue((await quantstamp_audit.totalStakedFor(auditor)).eq(min_stake));
   });
 
   it("should allow auditors to unstake tokens", async function() {
     const balance_before = await Util.balanceOf(quantstamp_token, auditor);
     await quantstamp_audit.unstake({from : auditor});
     const balance_after = await Util.balanceOf(quantstamp_token, auditor);
-    assert.isTrue(balance_before.plus(min_stake).eq(balance_after));
+    assert.isTrue(balance_before.add(min_stake).eq(balance_after));
     assert.equal(0, await quantstamp_audit.totalStakedFor(auditor));
   });
 
   it("should be understaked if the stake was not large enough", async function() {
     // transfer min_stake QSP tokens to the auditor
-    const insufficient_stake = min_stake.minus(1);
+    const insufficient_stake = min_stake.sub(new BN(1));
     await quantstamp_token.transfer(auditor, insufficient_stake, {from : owner});
     // approve the audit contract to use up to min_stake for staking
     await quantstamp_token.approve(quantstamp_audit.address, insufficient_stake, {from : auditor});

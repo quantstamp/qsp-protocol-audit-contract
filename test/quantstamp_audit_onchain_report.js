@@ -65,7 +65,7 @@ contract('QuantstampAudit_report', function(accounts) {
 
     let requestId;
     // two bytes
-    const submittedReport = 0xFFAB;
+    const submittedReport = "0xFFAB";
 
     before(async function() {
       await initialize();

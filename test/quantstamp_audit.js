@@ -220,8 +220,8 @@ contract('QuantstampAudit', function(accounts) {
     const requestId = requestCounter++;
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     await quantstamp_audit.getNextAuditRequest({from: auditor});
-
     const result = await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.emptyReport, {from: auditor});
+
     Util.assertEventAtIndex({
       result: result,
       name: "LogAuditFinished",
@@ -265,13 +265,11 @@ contract('QuantstampAudit', function(accounts) {
   });
 
   it("should prevent not-whitelisted auditor to get next audit request", async function() {
-    const auditor = accounts[4];
     const requestId = requestCounter++;
 
     // for the sake of dependency, let's ensure the auditor is not in the whitelist
     await quantstamp_audit_data.removeNodeFromWhitelist(auditor);
-
-    Util.assertTxFail(quantstamp_audit.getNextAuditRequest({from: auditor}));
+    await Util.assertTxFail(quantstamp_audit.getNextAuditRequest({from: auditor}));
   });
 
   it("should prevent not-whitelisted auditor to submit a report", async function() {
@@ -281,7 +279,7 @@ contract('QuantstampAudit', function(accounts) {
     // for the sake of dependency, let's ensure the auditor is not in the whitelist
     await quantstamp_audit_data.removeNodeFromWhitelist(auditor);
 
-    Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.emptyReport, {from: auditor}));
+    await Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.emptyReport, {from: auditor}));
   });
 
   it("should prevent a whitelisted user from submitting a report to an audit that they are not assigned", async function() {
@@ -493,7 +491,7 @@ contract('QuantstampAudit', function(accounts) {
   });
 
   it("should not let ask for request with zero price", async function() {
-    Util.assertTxFail(quantstamp_audit.requestAudit(Util.uri, 0, {from: requestor}));
+    await Util.assertTxFail(quantstamp_audit.requestAudit(Util.uri, 0, {from: requestor}));
   });
 
   it("should record the requests's registrar", async function() {

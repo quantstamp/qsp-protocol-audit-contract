@@ -63,7 +63,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
     await quantstamp_audit.getNextAuditRequest({from:auditor});
 
     Util.assertEvent({
-      result: await quantstamp_audit.submitReport(requestId, AuditState.Error, Util.reportUri, Util.emptyReport, {from: auditor}),
+      result: await quantstamp_audit.submitReport(requestId, AuditState.Error, Util.emptyReport, {from: auditor}),
       name: "LogAuditFinished",
       args: (args) => {
         assert.equal(args.requestId, requestId);
@@ -81,7 +81,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
     const balanceOfAuditorBeforeAudit = await Util.balanceOf(quantstamp_token, auditor);
     const balanceOfRequesterBeforeAudit = await Util.balanceOf(quantstamp_token, requestor);
     await quantstamp_audit.getNextAuditRequest({from:auditor});
-    await quantstamp_audit.submitReport(requestId, AuditState.Error, Util.reportUri, Util.emptyReport, {from: auditor});
+    await quantstamp_audit.submitReport(requestId, AuditState.Error, Util.emptyReport, {from: auditor});
     assert.isTrue((await Util.balanceOf(quantstamp_token, auditor)).eq(balanceOfAuditorBeforeAudit));
 
     Util.assertEvent({
@@ -90,11 +90,11 @@ contract('QuantstampAudit_resolution', function(accounts) {
       args: (args) => {
         assert.equal(args.requestId, requestId);
         assert.equal(args.receiver, auditor);
-        assert.equal(args.auditPrice, price);
+        assert.isTrue(args.auditPrice.eq(price));
       }
     });
 
-    assert.isTrue((await Util.balanceOf(quantstamp_token, auditor)).eq(balanceOfAuditorBeforeAudit + price));
+    assert.isTrue((await Util.balanceOf(quantstamp_token, auditor)).eq(balanceOfAuditorBeforeAudit.add(price)));
     assert.isTrue((await Util.balanceOf(quantstamp_token, requestor)).eq(balanceOfRequesterBeforeAudit));
   });
 
@@ -105,7 +105,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
     const balanceOfAuditorBeforeAudit = await Util.balanceOf(quantstamp_token, auditor);
     const balanceOfRequesterBeforeAudit = await await quantstamp_token.balanceOf(requestor);
     await quantstamp_audit.getNextAuditRequest({from:auditor});
-    await quantstamp_audit.submitReport(requestId, AuditState.Error, Util.reportUri, Util.emptyReport, {from: auditor});
+    await quantstamp_audit.submitReport(requestId, AuditState.Error, Util.emptyReport, {from: auditor});
     assert.isTrue((await Util.balanceOf(quantstamp_token, auditor)).eq(balanceOfAuditorBeforeAudit));
 
     Util.assertEvent({
@@ -114,7 +114,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
       args: (args) => {
         assert.equal(args.requestId, requestId);
         assert.equal(args.receiver, requestor);
-        assert.equal(args.auditPrice, price);
+        assert.isTrue(args.auditPrice.eq(price));
       }
     });
 
@@ -129,7 +129,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
     const balanceOfAuditorBeforeAudit = await quantstamp_token.balanceOf(auditor);
     const balanceOfRequesterBeforeAudit = await Util.balanceOf(quantstamp_token, requestor);
     await quantstamp_audit.getNextAuditRequest({from:auditor});
-    await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.reportUri, Util.emptyReport, {from: auditor});
+    await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.emptyReport, {from: auditor});
     assert.isTrue((await Util.balanceOf(quantstamp_token, auditor)).eq(balanceOfAuditorBeforeAudit));
 
     Util.assertEvent({
@@ -148,7 +148,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
     const result = await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     const requestId = Util.extractRequestId(result);
     await quantstamp_audit.getNextAuditRequest({from:auditor});
-    await quantstamp_audit.submitReport(requestId, AuditState.Error, Util.reportUri, Util.emptyReport, {from: auditor});
+    await quantstamp_audit.submitReport(requestId, AuditState.Error, Util.emptyReport, {from: auditor});
 
     Util.assertEvent({
       result: await quantstamp_audit.resolveErrorReport(requestId, true),
@@ -156,7 +156,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
       args: (args) => {
         assert.equal(args.requestId, requestId);
         assert.equal(args.receiver, requestor);
-        assert.equal(args.auditPrice, price);
+        assert.isTrue(args.auditPrice.eq(price));
       }
     });
 
