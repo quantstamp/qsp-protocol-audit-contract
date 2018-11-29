@@ -67,6 +67,14 @@ module.exports = {
       return [await utils.readAddressFromMetadata(stage, 'QuantstampAudit')];
     }
   },
+  'whitelist-police-contract-in-escrow': {
+    contractName: 'QuantstampAuditTokenEscrow',
+    methodName: 'addAddressToWhitelist',
+    gasLimit: 80000,
+    methodArgs: async(stage, argv) => {
+      return [await utils.readAddressFromMetadata(stage, 'QuantstampAuditPolice')];
+    }
+  },
   'set-max-assigned': {
     contractName: 'QuantstampAuditData',
     methodName: 'setMaxAssignedRequests',
