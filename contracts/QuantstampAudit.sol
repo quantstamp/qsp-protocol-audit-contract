@@ -306,9 +306,8 @@ contract QuantstampAudit is Ownable, Pausable {
       police.addPendingPayment(msg.sender, requestId);
       // pay fee to the police
       if (police.reportProcessingFeePercentage() > 0 && police.numPoliceNodes() > 0) {
-        uint256 policeFee = police.getPoliceFee(auditData.getAuditPrice(requestId));
+        uint256 policeFee = police.collectFee(requestId);
         auditData.token().transfer(address(police), policeFee);
-        police.collectFee(requestId, policeFee);
         police.splitPayment(policeFee);
       }
     }
@@ -353,20 +352,28 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
+   * @dev Internal helper function to perform the transfer of rewards.
+   * @param requestId The ID of the audit request.
+   */
+  function transferReward (uint256 requestId) internal {
+    uint256 auditPoliceFee = police.collectedFees(requestId);
+    uint256 auditorPayment = auditData.getAuditPrice(requestId).sub(auditPoliceFee);
+    auditData.token().transfer(msg.sender, auditorPayment);
+    emit LogPayAuditor(requestId, msg.sender, auditorPayment);
+  }
+
+  /**
    * @dev If the policing period has ended without the report being marked invalid,
    *      allow the auditor to claim the audit's reward.
    * @param requestId The ID of the audit request.
-   * TODO: We need this function if claimRewards always fails due to gas limits.
+   * NOTE: We need this function if claimRewards always fails due to gas limits.
    *       I think this can only happen if the audit node receives many (i.e., hundreds) of audits,
    *       and never calls claimRewards() until much later.
    */
   function claimReward (uint256 requestId) public returns (bool) {
     require(police.canClaimAuditReward(msg.sender, requestId));
     police.setRewardClaimed(msg.sender, requestId);
-    uint256 auditPoliceFee = police.collectedFees(requestId);
-    uint256 auditorPayment = auditData.getAuditPrice(requestId).sub(auditPoliceFee);
-    auditData.token().transfer(msg.sender, auditorPayment);
-    emit LogPayAuditor(requestId, msg.sender, auditorPayment);
+    transferReward(requestId);
     return true;
   }
 
@@ -380,8 +387,6 @@ contract QuantstampAudit is Ownable, Pausable {
     uint256 totalPrice;
     bool exists;
     uint256 requestId = HEAD;
-    uint256 auditPoliceFee;
-    uint256 auditorPayment;
     // This loop occurs here (not in QuantstampAuditPolice) due to requiring the audit price,
     // as otherwise we require more dependencies/mappings in QuantstampAuditPolice.
     while (true) {
@@ -389,10 +394,7 @@ contract QuantstampAudit is Ownable, Pausable {
       if (!exists) {
         break;
       }
-      auditPoliceFee = police.collectedFees(requestId);
-      auditorPayment = auditData.getAuditPrice(requestId).sub(auditPoliceFee);
-      totalPrice = totalPrice.add(auditorPayment);
-      emit LogPayAuditor(requestId, msg.sender, auditorPayment);
+      transferReward(requestId);
     }
     auditData.token().transfer(msg.sender, totalPrice);
     return totalPrice;

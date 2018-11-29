@@ -546,23 +546,39 @@ contract('QuantstampAuditPolice', function(accounts) {
     const police_balances_before = await getPoliceBalances();
 
     let expected_total_slashed = 0;
+    let current_slash;
     let current_police_balance;
     let current_auditor_balance;
 
     for(i = 0; i < num_reports; i++) {
       const result = await quantstamp_audit.submitPoliceReport(requestIds[i], Util.nonEmptyReport, false, {from: police1});
+
       if (i != num_reports - 1) {
-        expected_total_slashed = slash_amount.plus(expected_total_slashed);
+        current_slash = slash_amount.plus(expectedAuditorPayment);
+        expected_total_slashed = current_slash.plus(expected_total_slashed);
       }
       else {
-        expected_total_slashed = new BigNumber(extra_stake).plus(expected_total_slashed);
+        current_slash = new BigNumber(extra_stake).plus(expectedAuditorPayment);
+        expected_total_slashed = new BigNumber(current_slash).plus(expected_total_slashed);
       }
+
+      Util.assertNestedEventAtIndex({
+        result: result,
+        name: "PoliceFeesClaimed",
+        args: (args) => {
+          assert.isTrue(current_slash.eq(args.fee));
+        },
+        index: 6
+      });
+
       current_auditor_balance = await quantstamp_audit_token_escrow.depositsOf(auditor);
       current_police_balance = await Util.balanceOf(quantstamp_token, quantstamp_audit_police.address);
       // the police nodes' QSP balance has increased
       await checkPoliceBalances(police_balances_before, expected_total_slashed);
+
       // the auditor's stake has decreased
-      assert.isTrue(new BigNumber(auditor_balance_before).sub(expected_total_slashed).eq(current_auditor_balance));
+      // must adjust for the amount paid from audit prices, as that was not staked
+      assert.isTrue(new BigNumber(auditor_balance_before).sub(expected_total_slashed).plus(expectedAuditorPayment * (i + 1)).eq(current_auditor_balance));
     }
 
     // top up the auditors stake
@@ -648,7 +664,7 @@ contract('QuantstampAuditPolice', function(accounts) {
     assert.isTrue(new BigNumber(balance_before).plus(expectedAuditorPayment).eq(balance_after));
   });
 
-    it("should allow the owner to change the report processing fee percentage", async function() {
+  it("should allow the owner to change the report processing fee percentage", async function() {
     // a non-owner cannot make the change
     await Util.assertTxFail(quantstamp_audit_police.setReportProcessingFeePercentage(25, {from: requestor}));
     await Util.assertTxFail(quantstamp_audit_police.setReportProcessingFeePercentage(101));
