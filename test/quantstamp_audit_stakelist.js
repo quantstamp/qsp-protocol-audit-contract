@@ -4,6 +4,7 @@ const QuantstampAudit = artifacts.require('QuantstampAudit');
 const QuantstampToken = artifacts.require('QuantstampToken');
 const QuantstampAuditTokenEscrow = artifacts.require('QuantstampAuditTokenEscrow');
 const QuantstampAuditPolice = artifacts.require('QuantstampAuditPolice');
+const abiDecoder = require('abi-decoder');
 
 
 contract('QuantstampAudit_stakedList', function(accounts) {
@@ -30,6 +31,12 @@ contract('QuantstampAudit_stakedList', function(accounts) {
     await quantstamp_audit_police.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_token_escrow.addAddressToWhitelist(quantstamp_audit.address);
 
+    // used to decode events in QuantstampAuditPolice
+    abiDecoder.addABI(quantstamp_audit_police.abi);
+
+    // used to decode events in QuantstampAuditTokenEscrow
+    abiDecoder.addABI(quantstamp_audit_token_escrow.abi);
+
     // enable transfers before any payments are allowed
     await quantstamp_token.enableTransfer({from : owner});
 
@@ -41,59 +48,47 @@ contract('QuantstampAudit_stakedList', function(accounts) {
   });
 
   it ("should stake an address and be accessible from the head", async function () {
-        console.log("B");
-    const res= await quantstamp_audit.stake(minAuditStake, {from: auditor});
-    console.log(res);
-    Util.assertEvent({
-        result: await quantstamp_audit.stake(minAuditStake, {from: auditor}),
-        name: "WhitelistedNodeAdded",
-        args: (args) => {
-        assert.equal(args.addr, auditor);
-        }
+    Util.assertNestedEventAtIndex({
+      result: await quantstamp_audit.stake(minAuditStake, {from: auditor}),
+      name: "StakedNodeAdded",
+      args: (args) => {
+      assert.equal(args.addr, auditor);
+      },
+      index: 4
     });
-    console.log("B");
     // empty the white list for the next test case
-    Util.assertEvent({
-        result: await quantstamp_audit_data.removeNodeFromWhitelist(auditor),
-        name: "WhitelistedNodeRemoved",
-        args: (args) => {
-        assert.equal(args.addr, auditor);
-        }
+    Util.assertNestedEventAtIndex({
+      result: await quantstamp_audit.unstake({from: auditor}),
+      name: "StakedNodeRemoved",
+      args: (args) => {
+      assert.equal(args.addr, auditor);
+      },
+      index: 2
     });
   });
 
-  it ("should empty the whitelist after equally adding and removing addresses", async function () {
-    await quantstamp_audit_data.addNodeToWhitelist(auditor);
-    await quantstamp_audit_data.removeNodeFromWhitelist(auditor);
+  it ("should empty the staked list after equally adding and removing addresses", async function () {
+    await quantstamp_audit.stake(minAuditStake, {from: auditor});
+    await quantstamp_audit.unstake({from: auditor});
 
-    assert.equal(0, web3.toHex((await quantstamp_audit_data.getNextWhitelistedNode.call(0))));
+    assert.equal(0, web3.toHex((await quantstamp_audit_token_escrow.getNextStakedNode.call(0))));
   });
 
-  it ("should not let anyone other than the owner modify whitelist", async function () {
-    const fakeOwner = accounts[1];
-    const auditor = accounts[2];
-
-    Util.assertTxFail(quantstamp_audit_data.addNodeToWhitelist(auditor, {from: fakeOwner}));
-    Util.assertTxFail(quantstamp_audit_data.removeNodeFromWhitelist(auditor, {from: fakeOwner}));
-  });
-
-  it ("should provide access to all whitelisted addresses from head", async function () {
-    const auditors = [accounts[1], accounts[2]];
+  it ("should provide access to all staked addresses from head", async function () {
+    const auditors = [accounts[3], accounts[4]];
 
     for (var i in auditors) {
-      await quantstamp_audit_data.addNodeToWhitelist(auditors[i]);
+      // transfer min_stake QSP tokens to the auditor
+      await quantstamp_token.transfer(auditors[i], minAuditStake, {from : owner});
+      // approve the audit contract to use up to min_stake for staking
+      await quantstamp_token.approve(quantstamp_audit.address, minAuditStake, {from : auditors[i]});
+      await quantstamp_audit.stake(minAuditStake, {from: auditors[i]});
     }
 
     for (var current = 0, i = 0;
-         await quantstamp_audit_data.getNextWhitelistedNode.call(current) != 0;
-         current = await quantstamp_audit_data.getNextWhitelistedNode.call(current), ++i) {
-      assert.equal(auditors[i], web3.toHex(await quantstamp_audit_data.getNextWhitelistedNode.call(current)));
-    }
-
-    // remove all auditors from the whitelist
-    for (var i in auditors) {
-      await quantstamp_audit_data.removeNodeFromWhitelist(auditors[i]);
+         await quantstamp_audit_token_escrow.getNextStakedNode.call(current) != 0;
+         current = await quantstamp_audit_token_escrow.getNextStakedNode.call(current), ++i) {
+      assert.equal(auditors[i], web3.toHex(await quantstamp_audit_token_escrow.getNextStakedNode.call(current)));
     }
   });
-
 });

@@ -141,28 +141,6 @@ contract QuantstampAuditTokenEscrow is ConditionalTokenEscrow {
   }
 
   /**
-   * @dev Adds an address to the stakedNodesList
-   * @param addr address
-   * @return true if the address was added to the list
-   */
-  function addNodeToStakedList(address addr) internal returns(bool success) {
-    if (stakedNodesList.insert(HEAD, uint256(addr), PREV)) {
-      emit StakedNodeAdded(addr);
-      success = true;
-    }
-  }
-   /**
-   * @dev Removes an address from the stakedNodesList
-   * @param addr address
-   * @return true if the address was removed from the list
-   */
-  function removeNodeFromStakedList(address addr) internal returns(bool success) {
-    if (stakedNodesList.remove(uint256(addr)) != 0) {
-      emit StakedNodeRemoved(addr);
-      success = true;
-    }
-  }
-   /**
    * @dev Given a staked address, returns the next address from the list that meets the minAuditStake
    * @param addr address
    * @return next address of the given param
@@ -176,5 +154,29 @@ contract QuantstampAuditTokenEscrow is ConditionalTokenEscrow {
       (exists, next) = stakedNodesList.getAdjacent(next, NEXT);
     }
     return address(next);
+  }
+  
+  /**
+   * @dev Adds an address to the stakedNodesList
+   * @param addr address
+   * @return true if the address was added to the list
+   */
+  function addNodeToStakedList(address addr) internal returns(bool success) {
+    if (stakedNodesList.insert(HEAD, uint256(addr), PREV)) {
+      emit StakedNodeAdded(addr);
+      success = true;
+    }
+  }
+
+  /**
+   * @dev Removes an address from the stakedNodesList
+   * @param addr address
+   * @return true if the address was removed from the list
+   */
+  function removeNodeFromStakedList(address addr) internal returns(bool success) {
+    if (stakedNodesList.remove(uint256(addr)) != 0) {
+      emit StakedNodeRemoved(addr);
+      success = true;
+    }
   }
 }
