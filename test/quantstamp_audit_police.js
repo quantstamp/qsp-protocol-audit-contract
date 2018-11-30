@@ -547,6 +547,7 @@ contract('QuantstampAuditPolice', function(accounts) {
     let current_slash;
     let current_police_balance;
     let current_auditor_balance;
+    let index;
 
     for(i = 0; i < num_reports; i++) {
       const result = await quantstamp_audit.submitPoliceReport(requestIds[i], Util.nonEmptyReport, false, {from: police1});
@@ -554,19 +555,20 @@ contract('QuantstampAuditPolice', function(accounts) {
       if (i != num_reports - 1) {
         current_slash = slash_amount.plus(expectedAuditorPayment);
         expected_total_slashed = current_slash.plus(expected_total_slashed);
+        index = 6;
       }
       else {
         current_slash = new BigNumber(extra_stake).plus(expectedAuditorPayment);
         expected_total_slashed = new BigNumber(current_slash).plus(expected_total_slashed);
+        index = 7;  // there's an extra event due to the node being removed from the staked list
       }
-
       Util.assertNestedEventAtIndex({
         result: result,
         name: "PoliceFeesClaimed",
         args: (args) => {
           assert.isTrue(current_slash.eq(args.fee));
         },
-        index: 6
+        index: index
       });
 
       current_auditor_balance = await quantstamp_audit_token_escrow.depositsOf(auditor);

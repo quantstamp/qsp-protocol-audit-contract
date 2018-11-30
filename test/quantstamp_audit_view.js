@@ -17,7 +17,7 @@ contract('QuantstampAuditView', function(accounts) {
   const auditor = accounts[3];
   const requestorBudget = Util.toQsp(100000);
   const uri = "http://www.quantstamp.com/contract1.sol";
-
+  let minAuditStake;
   let quantstamp_audit;
   let quantstamp_audit_data;
   let quantstamp_audit_multirequest_data;
@@ -26,16 +26,23 @@ contract('QuantstampAuditView', function(accounts) {
   let quantstamp_token;
   let quantstamp_audit_police;
   let quantstamp_audit_token_escrow;
+  let police_timeout = 5;
+  let audit_timeout = 10;
 
   // Helper function to empty the queue
   async function emptyQueue (n) {
     // remove requests
-    await quantstamp_audit_data.addNodeToWhitelist(auditor);
+    let requestId;
+    let result;
+    await Util.stakeAuditor(quantstamp_token, quantstamp_audit, auditor, minAuditStake, owner);
     await quantstamp_audit.setAuditNodePrice(0, {from: auditor});
     for (let i = 0; i < n; i++){
-      await quantstamp_audit.getNextAuditRequest({from: auditor});
+      result = await quantstamp_audit.getNextAuditRequest({from: auditor});
+      requestId = Util.extractRequestId(result);
+      await quantstamp_audit.submitReport(requestId, Util.AuditState.Completed, Util.emptyReport, {from: auditor});
     }
-    await quantstamp_audit_data.removeNodeFromWhitelist(auditor);
+    await Util.mineNBlocks(police_timeout + audit_timeout + 1);
+    await quantstamp_audit.unstake({from: auditor});
   }
 
   beforeEach(async function () {
@@ -60,13 +67,14 @@ contract('QuantstampAuditView', function(accounts) {
     // allow the audit contract use QSP for audits
     await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(1000), {from : requestor});
     // timeout requests
-    await quantstamp_audit_data.setAuditTimeout(10000);
+    await quantstamp_audit_data.setAuditTimeout(audit_timeout);
+    // lower the police timeout
+    await quantstamp_audit_police.setPoliceTimeoutInBlocks(police_timeout);
     // allow audit nodes to perform many audits at once
     await quantstamp_audit_data.setMaxAssignedRequests(1000);
     // add QuantstampAudit to the whitelist of the escrow
     await quantstamp_audit_token_escrow.addAddressToWhitelist(quantstamp_audit.address);
-    // set the minimum stake to zero
-    await quantstamp_audit_token_escrow.setMinAuditStake(0, {from : owner});
+    minAuditStake = await quantstamp_audit_token_escrow.minAuditStake();
   });
 
   it("lets the owner change the QuantstampAudit address", async function () {
@@ -106,24 +114,17 @@ contract('QuantstampAuditView', function(accounts) {
 
   it("returns proper stat for advertised minPrice", async function () {
     const prices = [8, 5, 6];
-    // adding accounts to the whitelist
     const auditors = [auditor, accounts[4], accounts[5]];
     for (i in auditors) {
-      // whitelisting auditor
-      await quantstamp_audit_data.addNodeToWhitelist(auditors[i]);
+      // stake auditor
+      await Util.stakeAuditor(quantstamp_token, quantstamp_audit, auditors[i], minAuditStake, owner);
       // advertise min price
       await quantstamp_audit.setAuditNodePrice(prices[i], {from: auditors[i]});
     }
-
     assert.equal(await quantstamp_audit_view.getMinAuditPriceSum(), prices.reduce((a, b) => a + b, 0));
     assert.equal(await quantstamp_audit_view.getMinAuditPriceCount(), prices.length);
     assert.equal(await quantstamp_audit_view.getMinAuditPriceMin(), Math.min(...prices));
     assert.equal(await quantstamp_audit_view.getMinAuditPriceMax(), Math.max(...prices));
-
-    // remove two auditors from the whitelist
-    for (i in auditors) {
-      await quantstamp_audit_data.removeNodeFromWhitelist(auditors[i]);
-    }
   });
 
   it("should exclude prices with max integer", async function () {
@@ -132,8 +133,8 @@ contract('QuantstampAuditView', function(accounts) {
     // adding accounts to the whitelist
     const auditors = [auditor, accounts[4], accounts[5]];
     for (i in auditors) {
-      // whitelisting auditor
-      await quantstamp_audit_data.addNodeToWhitelist(auditors[i]);
+      // stake auditor
+      await Util.stakeAuditor(quantstamp_token, quantstamp_audit, auditors[i], minAuditStake, owner);
       // advertise min price
       await quantstamp_audit.setAuditNodePrice(prices[i], {from: auditors[i]});
     }
@@ -143,9 +144,9 @@ contract('QuantstampAuditView', function(accounts) {
     assert.equal(await quantstamp_audit_view.getMinAuditPriceMin(), 1);
     assert.equal(await quantstamp_audit_view.getMinAuditPriceMax(), 1);
 
-    // remove two auditors from the whitelist
+    // remove auditors from the staked list
     for (i in auditors) {
-      await quantstamp_audit_data.removeNodeFromWhitelist(auditors[i]);
+      await quantstamp_audit.unstake({from: auditors[i]});
     }
   });
 
@@ -157,7 +158,6 @@ contract('QuantstampAuditView', function(accounts) {
     await quantstamp_audit.requestAudit(uri, prices[0], {from:requestor});
     await quantstamp_audit.requestAudit(uri, prices[1], {from:requestor});
     assert.equal(await quantstamp_audit_view.getQueueLength(), 3);
-
     // Empty the queue for the next test cases
     await emptyQueue(3);
     assert.equal(await quantstamp_audit_view.getQueueLength(), 0);
@@ -179,10 +179,9 @@ contract('QuantstampAuditView', function(accounts) {
     const hashOfNonExistedReport = await quantstamp_audit_view.getReportHash(notRequestedRequestId);
 
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
-    await quantstamp_audit_data.addNodeToWhitelist(auditor);
+      await Util.stakeAuditor(quantstamp_token, quantstamp_audit, auditor, minAuditStake, owner);
     const requestId = Util.extractRequestId(await quantstamp_audit.getNextAuditRequest({from: auditor}));
     await quantstamp_audit.submitReport(requestId, Util.AuditState.Completed, report, {from: auditor});
-    await quantstamp_audit_data.removeNodeFromWhitelist(auditor);
 
     const hashOfReport = await quantstamp_audit_view.getReportHash(requestId);
 

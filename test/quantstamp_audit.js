@@ -19,6 +19,7 @@ contract('QuantstampAudit', function(accounts) {
   const price = 123;
   const requestorBudget = Util.toQsp(100000);
   const maxAssignedRequests = 100;
+  let minAuditStake;
 
   let requestCounter = 1;
   let quantstamp_audit;
@@ -30,7 +31,7 @@ contract('QuantstampAudit', function(accounts) {
   let quantstamp_audit_police;
   let quantstamp_audit_token_escrow;
 
-  beforeEach(async function () {
+  before(async function () {
     quantstamp_audit = await QuantstampAudit.deployed();
     quantstamp_audit_data = await QuantstampAuditData.deployed();
     quantstamp_audit_multirequest_data = await QuantstampAuditMultiRequestData.deployed();
@@ -57,8 +58,10 @@ contract('QuantstampAudit', function(accounts) {
     await quantstamp_audit_data.setMaxAssignedRequests(maxAssignedRequests);
     // add QuantstampAudit to the whitelist of the escrow
     await quantstamp_audit_token_escrow.addAddressToWhitelist(quantstamp_audit.address);
-    // set the minimum stake to zero
-    await quantstamp_audit_token_escrow.setMinAuditStake(0, {from : owner});
+    // stake the auditor
+    minAuditStake = await quantstamp_audit_token_escrow.minAuditStake();
+    assert.isTrue(!(await quantstamp_audit.hasEnoughStake({from: auditor})));
+    await Util.stakeAuditor(quantstamp_token, quantstamp_audit, auditor, minAuditStake, owner);
   });
 
   it("queues new audits and assigns them in the right order", async function() {
@@ -235,7 +238,14 @@ contract('QuantstampAudit', function(accounts) {
   it("does not submit a report when already audited", async function() {
     const requestId = requestCounter++;
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
-    await quantstamp_audit.getNextAuditRequest({from: auditor});
+    Util.assertEvent({
+      result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
+      name: "LogAuditAssigned",
+      args: (args) => {
+        assert.equal(args.requestId.toNumber(), requestId);
+        assert.equal(args.auditor, auditor);
+      }
+    });
     await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.emptyReport, {from: auditor});
     const state = await quantstamp_audit_data.getAuditState(requestId);
     assert.equal(state, AuditState.Completed);
@@ -262,30 +272,27 @@ contract('QuantstampAudit', function(accounts) {
     assert.equal(length.toNumber(), 0); // queue should be empty by the end of each test
   });
 
-  it("should prevent not-whitelisted auditor to get next audit request", async function() {
+  it("should prevent non-staked auditor to get next audit request", async function() {
     const auditor = accounts[4];
     const requestId = requestCounter++;
+    await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
 
-    // for the sake of dependency, let's ensure the auditor is not in the whitelist
-    await quantstamp_audit_data.removeNodeFromWhitelist(auditor);
-
-    Util.assertTxFail(quantstamp_audit.getNextAuditRequest({from: auditor}));
+    await quantstamp_audit.unstake({from: auditor});
+    console.log(await quantstamp_audit.hasEnoughStake({from: auditor}));
+    assert.isTrue(!(await quantstamp_audit.hasEnoughStake({from: auditor})));
+    Util.assertEvent({
+      result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
+      name: "LogAuditAssignmentError_Understaked",
+      args: (args) => {
+      }
+    });
   });
 
-  it("should prevent not-whitelisted auditor to submit a report", async function() {
-    const auditor = accounts[4];
-    const requestId = requestCounter++;
-
-    // for the sake of dependency, let's ensure the auditor is not in the whitelist
-    await quantstamp_audit_data.removeNodeFromWhitelist(auditor);
-
-    Util.assertTxFail(quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.emptyReport, {from: auditor}));
-  });
-
-  it("should prevent a whitelisted user from submitting a report to an audit that they are not assigned", async function() {
+  it("should prevent a staked user from submitting a report to an audit that they are not assigned", async function() {
     const auditor2 = accounts[4];
-    await quantstamp_audit_data.addNodeToWhitelist(auditor);
-    await quantstamp_audit_data.addNodeToWhitelist(auditor2);
+
+    await Util.stakeAuditor(quantstamp_token, quantstamp_audit, auditor2, minAuditStake, owner);
+
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     const result = await quantstamp_audit.getNextAuditRequest({from: auditor});
     const requestId = Util.extractRequestId(result);
@@ -298,14 +305,10 @@ contract('QuantstampAudit', function(accounts) {
         assert.equal(args.auditor, auditor2);
       }
     });
-
     await quantstamp_audit.submitReport(requestId, AuditState.Completed,  Util.emptyReport, {from: auditor});
-    // for the sake of dependency, let's ensure the auditor is not in the whitelist
-    await quantstamp_audit_data.removeNodeFromWhitelist(auditor2);
   });
 
   it("should prevent an audit from being submitted with a bad state", async function() {
-    const auditor2 = accounts[4];
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     const result = await quantstamp_audit.getNextAuditRequest({from: auditor});
     const requestId = Util.extractRequestId(result);
@@ -367,7 +370,8 @@ contract('QuantstampAudit', function(accounts) {
     const pendingAuditsNum = (await quantstamp_audit.assignedRequestCount.call(auditor2)).toNumber();
 
     await quantstamp_audit_data.setMaxAssignedRequests(pendingAuditsNum + 1);
-    await quantstamp_audit_data.addNodeToWhitelist(auditor2);
+    await Util.stakeAuditor(quantstamp_token, quantstamp_audit, auditor2, minAuditStake, owner);
+
 
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
@@ -386,7 +390,6 @@ contract('QuantstampAudit', function(accounts) {
   it("should get a request after finishing the previous one", async function() {
     const auditor2 = accounts[4];
 
-    await quantstamp_audit_data.addNodeToWhitelist(auditor2);
     const pendingAuditsNum = (await quantstamp_audit.assignedRequestCount.call(auditor2)).toNumber();
     await quantstamp_audit_data.setMaxAssignedRequests(pendingAuditsNum + 1);
 
@@ -415,7 +418,6 @@ contract('QuantstampAudit', function(accounts) {
   it("does not get another request before finishing the previous one even if it submitted a report before", async function() {
     const auditor2 = accounts[4];
 
-    await quantstamp_audit_data.addNodeToWhitelist(auditor2);
     const pendingAuditsNum = (await quantstamp_audit.assignedRequestCount.call(auditor2)).toNumber();
     await quantstamp_audit_data.setMaxAssignedRequests(pendingAuditsNum + 1);
 
@@ -449,8 +451,9 @@ contract('QuantstampAudit', function(accounts) {
     await quantstamp_audit_data.setMaxAssignedRequests(maxAssignedRequests);
     const auditor2 = accounts[5];
     const auditor3 = accounts[6];
+    await Util.stakeAuditor(quantstamp_token, quantstamp_audit, auditor2, minAuditStake, owner);
 
-    await quantstamp_audit_data.addNodeToWhitelist(auditor2);
+
     // auditor2 does not have any pending assigned request
     assert.equal((await quantstamp_audit.assignedRequestCount.call(auditor2)).toNumber(), 0);
 
@@ -464,22 +467,18 @@ contract('QuantstampAudit', function(accounts) {
     // the queue is supposed to be empty for this test-case
     assert.equal(await quantstamp_audit_view.getQueueLength.call(), 0);
     assert.equal((await quantstamp_audit.anyRequestAvailable({from: auditor2})).toNumber(), 2);
-    assert.equal((await quantstamp_audit.anyRequestAvailable({from: auditor3})).toNumber(), 0);
-
+    assert.equal((await quantstamp_audit.anyRequestAvailable({from: auditor3})).toNumber(), 2);
     await quantstamp_audit_data.setMaxAssignedRequests(1);
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     assert.equal((await quantstamp_audit.anyRequestAvailable({from: auditor2})).toNumber(), 1);
-
     let requestId = Util.extractRequestId(await quantstamp_audit.getNextAuditRequest({from: auditor2}));
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     assert.equal((await quantstamp_audit.anyRequestAvailable({from: auditor2})).toNumber(), 3);
-
     await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.emptyReport, {from: auditor2});
 
     const currentMinPrice = (await quantstamp_audit_data.getMinAuditPrice(auditor2, {from: auditor2})).toNumber();
     await quantstamp_audit.setAuditNodePrice(price + 1, {from: auditor2});
     assert.equal((await quantstamp_audit.anyRequestAvailable({from: auditor2})).toNumber(), 4);
-
     // make sure there is not pending assigned or unassigned request
     await quantstamp_audit.setAuditNodePrice(currentMinPrice, {from: auditor2});
     await quantstamp_audit_data.setMaxAssignedRequests(maxAssignedRequests);
@@ -487,7 +486,6 @@ contract('QuantstampAudit', function(accounts) {
     await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.emptyReport, {from: auditor2});
     assert.equal(await quantstamp_audit_view.getQueueLength.call(), 0);
     assert.equal((await quantstamp_audit.assignedRequestCount.call(auditor2)).toNumber(), 0);
-    await quantstamp_audit_data.removeNodeFromWhitelist(auditor2);
   });
 
   it("should not let ask for request with zero price", async function() {

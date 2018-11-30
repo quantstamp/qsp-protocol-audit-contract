@@ -19,6 +19,7 @@ contract('QuantstampAudit_report', function(accounts) {
   const requestorBudget = Util.toQsp(100000);
   const maxAssignedRequests = 100;
   const approvalAmount = 1000;
+  let minAuditStake;
 
   let quantstamp_audit;
   let quantstamp_audit_data;
@@ -55,8 +56,8 @@ contract('QuantstampAudit_report', function(accounts) {
     await quantstamp_audit_data.setMaxAssignedRequests(maxAssignedRequests);
     // add QuantstampAudit to the whitelist of the escrow
     await quantstamp_audit_token_escrow.addAddressToWhitelist(quantstamp_audit.address);
-    // set the minimum stake to zero
-    await quantstamp_audit_token_escrow.setMinAuditStake(0, {from : owner});
+    minAuditStake = await quantstamp_audit_token_escrow.minAuditStake();
+    await Util.stakeAuditor(quantstamp_token, quantstamp_audit, auditor, minAuditStake, owner);
   }
 
   describe("when a an audit node submits report", async function () {

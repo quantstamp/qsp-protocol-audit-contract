@@ -127,7 +127,6 @@ contract QuantstampAuditView is Ownable {
 
   /**
    * @dev Returns stats of min audit prices
-   * TODO update to stakedList
    */
   function findMinAuditPricesStats() internal view returns (AuditPriceStat) {
     uint256 sum;

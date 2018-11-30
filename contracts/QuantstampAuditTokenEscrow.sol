@@ -65,9 +65,10 @@ contract QuantstampAuditTokenEscrow is ConditionalTokenEscrow {
 
   /**
    * @dev Sets the minimum stake to a new value.
-   * @param _value The new value.
+   * @param _value The new value. _value must be greater than zero in order for the linked list to be maintained correctly.
    */
   function setMinAuditStake(uint256 _value) public onlyOwner {
+    require(_value > 0);
     minAuditStake = _value;
   }
 

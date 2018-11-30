@@ -18,6 +18,7 @@ contract('QuantstampAudit_expires', function(accounts) {
   const requestorBudget = Util.toQsp(100000);
   const timeout = 2;
   const maxAssigned = 100;
+  let minAuditStake;
 
   let quantstamp_audit;
   let quantstamp_audit_data;
@@ -55,8 +56,8 @@ contract('QuantstampAudit_expires', function(accounts) {
     await quantstamp_audit_data.setAuditTimeout(timeout);
     // add QuantstampAudit to the whitelist of the escrow
     await quantstamp_audit_token_escrow.addAddressToWhitelist(quantstamp_audit.address);
-    // set the minimum stake to zero
-    await quantstamp_audit_token_escrow.setMinAuditStake(0, {from : owner});
+    minAuditStake = await quantstamp_audit_token_escrow.minAuditStake();
+    await Util.stakeAuditor(quantstamp_token, quantstamp_audit, auditor, minAuditStake, owner);
   });
 
   it("should adjust expired requests in each call for bidding request", async function () {
@@ -251,7 +252,8 @@ contract('QuantstampAudit_expires', function(accounts) {
   it("should decrease number of assigned requests after detecting an expired request in getNextAuditRequest", async function () {
     await quantstamp_audit_data.setMaxAssignedRequests(1);
     const auditor2 = accounts[4];
-    await quantstamp_audit_data.addNodeToWhitelist(auditor2);
+    await Util.stakeAuditor(quantstamp_token, quantstamp_audit, auditor2, minAuditStake, owner);
+
     const requestedId1 = Util.extractRequestId(await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor}));
     const requestedId2 = Util.extractRequestId(await quantstamp_audit.requestAudit(Util.uri, price, {from : requestor}));
     await quantstamp_audit.getNextAuditRequest({from:auditor});
@@ -285,7 +287,6 @@ contract('QuantstampAudit_expires', function(accounts) {
 
     // clean up
     await quantstamp_audit.submitReport(requestedId2, AuditState.Completed, Util.emptyReport, {from: auditor2});
-    await quantstamp_audit_data.removeNodeFromWhitelist(auditor2);
   });
 
   it("should decrease number of assigned requests after calling a refund for an assigned but expired request", async function () {

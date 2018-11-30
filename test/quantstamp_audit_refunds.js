@@ -17,6 +17,7 @@ contract('QuantstampAudit_refunds', function(accounts) {
   const auditor = accounts[3];
   const price = 123;
   const requestorBudget = Util.toQsp(100000);
+  let minAuditStake;
 
   let globalRequestId = 0;
   let quantstamp_audit;
@@ -55,8 +56,8 @@ contract('QuantstampAudit_refunds', function(accounts) {
     await quantstamp_audit_data.setAuditTimeout(10000);
     // add QuantstampAudit to the whitelist of the escrow
     await quantstamp_audit_token_escrow.addAddressToWhitelist(quantstamp_audit.address);
-    // set the minimum stake to zero
-    await quantstamp_audit_token_escrow.setMinAuditStake(0, {from : owner});
+    minAuditStake = await quantstamp_audit_token_escrow.minAuditStake();
+    await Util.stakeAuditor(quantstamp_token, quantstamp_audit, auditor, minAuditStake, owner);
   });
 
   it("should disallow refunds for bogus request IDs", async function () {
