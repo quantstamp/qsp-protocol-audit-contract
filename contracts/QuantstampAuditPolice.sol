@@ -42,6 +42,9 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
   // number from [0-100] that indicates the percentage of the minAuditStake that should be slashed
   uint256 public slashPercentage = 20;
 
+    // this is only deducted once per report, regardless of the number of police nodes assigned to it
+  uint256 public reportProcessingFeePercentage = 5;
+
   event PoliceNodeAdded(address addr);
   event PoliceNodeRemoved(address addr);
   // TODO: we may want these parameters indexed
@@ -49,6 +52,8 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
   event PoliceReportSubmitted(address policeNode, uint256 requestId, PoliceReportState reportState);
   event PoliceSubmissionPeriodExceeded(uint256 requestId, uint256 timeoutBlock, uint256 currentBlock);
   event PoliceSlash(uint256 requestId, address policeNode, address auditNode, uint256 amount);
+  event PoliceFeesClaimed(address policeNode, uint256 fee);
+  event PoliceFeesCollected(uint256 requestId, uint256 fee);
 
   // pointer to the police node that was last assigned to a report
   address private lastAssignedPoliceNode = address(HEAD);
@@ -76,6 +81,9 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
 
   // tracks the total number of reports ever checked by a police node
   mapping(address => uint256) public totalReportsChecked;
+
+  // the collected fees for each report
+  mapping(uint256 => uint256) public collectedFees;
 
   // contract that stores audit data (separate from the auditing logic)
   QuantstampAuditData public auditData;
@@ -112,10 +120,50 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
       if (lastAssignedPoliceNode != address(0)) {
         // push the request ID to the tail of the assignment list for the police node
         assignedReports[lastAssignedPoliceNode].push(requestId, PREV);
+
         emit PoliceNodeAssignedToReport(lastAssignedPoliceNode, requestId);
-        totalReportsAssigned[lastAssignedPoliceNode] = totalReportsAssigned[lastAssignedPoliceNode] + 1;
-        numToAssign = numToAssign - 1;
+        totalReportsAssigned[lastAssignedPoliceNode] = totalReportsAssigned[lastAssignedPoliceNode].add(1);
+        numToAssign = numToAssign.sub(1);
       }
+    }
+  }
+
+  /**
+   * @dev Collects the police fee for checking a report.
+   *      NOTE: this function assumes that the fee will be transferred by the calling contract.
+   * @param requestId The ID of the audit request.
+   * @return The amount collected.
+   */
+  function collectFee(uint256 requestId) public onlyWhitelisted returns (uint256) {
+    uint256 policeFee = getPoliceFee(auditData.getAuditPrice(requestId));
+    // the collected fee needs to be stored in a map since the owner could change the fee percentage
+    collectedFees[requestId] = policeFee;
+    emit PoliceFeesCollected(requestId, policeFee);
+    return policeFee;
+  }
+
+  /**
+   * @dev Split a payment, which may be for report checking or from slashing, amongst all police nodes
+   * @param amount The amount to be split, which should have been transferred to this contract earlier.
+   */
+  function splitPayment(uint256 amount) public onlyWhitelisted {
+    require(numPoliceNodes != 0);
+    address policeNode = getNextPoliceNode(address(HEAD));
+    uint256 amountPerNode = amount.div(numPoliceNodes);
+    // TODO: upgrade our openzeppelin version to use mod
+    uint256 largerAmount = amountPerNode.add(amount % numPoliceNodes);
+    while (policeNode != address(HEAD)) {
+      // give the largerAmount to the current lastAssignedPoliceNode
+      // this approach is only truly fair if numPoliceNodes and policeNodesPerReport are relatively prime
+      // but the remainder should be extremely small in any case
+      if (policeNode == lastAssignedPoliceNode) {
+        require(auditData.token().transfer(policeNode, largerAmount));
+        emit PoliceFeesClaimed(policeNode, largerAmount);
+      } else {
+        require(auditData.token().transfer(policeNode, amountPerNode));
+        emit PoliceFeesClaimed(policeNode, amountPerNode);
+      }
+      policeNode = getNextPoliceNode(address(policeNode));
     }
   }
 
@@ -136,20 +184,20 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
    * @param report The compressed bytecode representation of the report.
    * @param isVerified Whether the police node's report matches the submitted report.
    *                   If not, the auditor is slashed.
-   * @return a pair of bools: (true if the report was successfully submitted, true if a slash occurred).
+   * @return two bools and a uint256: (true if the report was successfully submitted, true if a slash occurred, the slash amount).
    */
   function submitPoliceReport(
     address policeNode,
     address auditNode,
     uint256 requestId,
     bytes report,
-    bool isVerified) public onlyWhitelisted returns (bool, bool) {
+    bool isVerified) public onlyWhitelisted returns (bool, bool, uint256) {
     // remove expired assignments
     bool hasRemovedCurrentId = removeExpiredAssignments(policeNode, requestId);
     // if the current request has timed out, return
     if (hasRemovedCurrentId) {
       emit PoliceSubmissionPeriodExceeded(requestId, policeTimeouts[requestId], block.number);
-      return (false, false);
+      return (false, false, 0);
     }
     // the police node is assigned to the report
     require(isAssigned(requestId, policeNode));
@@ -170,7 +218,7 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
     emit PoliceReportSubmitted(policeNode, requestId, state);
     // the report was already marked invalid by a different police node
     if (verifiedReports[requestId] == PoliceReportState.INVALID) {
-      return (true, false);
+      return (true, false, 0);
     } else {
       verifiedReports[requestId] = state;
     }
@@ -184,7 +232,7 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
       slashOccurred = true;
       emit PoliceSlash(requestId, policeNode, auditNode, slashAmount);
     }
-    return (true, slashOccurred);
+    return (true, slashOccurred, slashAmount);
   }
 
   /**
@@ -309,6 +357,15 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
   }
 
   /**
+   * @dev Sets the report processing fee percentage.
+   * @param percentage The percentage in the range of [0-100].
+   */
+  function setReportProcessingFeePercentage(uint256 percentage) public onlyOwner {
+    require(percentage <= 100);
+    reportProcessingFeePercentage = percentage;
+  }
+
+  /**
    * @dev Returns true if a node is whitelisted
    * @param node Node to check.
    */
@@ -364,6 +421,10 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
 
   function getPoliceReport(uint256 requestId, address policeAddr) public view returns (bytes) {
     return policeReports[requestId][policeAddr];
+  }
+
+  function getPoliceFee(uint256 auditPrice) public view returns (uint256) {
+    return auditPrice.mul(reportProcessingFeePercentage).div(100);
   }
 
   function isAssigned(uint256 requestId, address policeAddr) public view returns (bool) {

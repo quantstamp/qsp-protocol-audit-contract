@@ -59,10 +59,9 @@ contract('QuantstampAudit2', function(accounts) {
   });
 
   it("should audit the contract if the requestor pays", async function () {
-    assert.equal(await Util.balanceOf(quantstamp_token, requestor), requestorBudget);
+    assert.isTrue((await Util.balanceOf(quantstamp_token, requestor)).eq(requestorBudget));
     // initially the contract has empty budget
-    assert.equal(await Util.balanceOf(quantstamp_token, quantstamp_audit.address), 0);
-
+    assert.isTrue((await Util.balanceOf(quantstamp_token, quantstamp_audit.address)).eq(0));
     const price = Util.toQsp(35);
     const ownerBalance = await Util.getEthBalance(owner);
     // request an audit
@@ -74,7 +73,7 @@ contract('QuantstampAudit2', function(accounts) {
     assert.equal(result.logs.length, 1);
     assert.equal(result.logs[0].event, "LogAuditRequested");
     // the audit contract should have only one payment
-    assert.equal(await Util.balanceOf(quantstamp_token, quantstamp_audit.address), price);
+    assert.isTrue((await Util.balanceOf(quantstamp_token, quantstamp_audit.address)).eq(price));
     assert.equal(await quantstamp_audit.isAuditFinished(requestId), false);
   });
 

@@ -107,7 +107,7 @@ function assertNestedEventAtIndex({result, name, args, index}) {
 }
 
 async function balanceOf (token, user) {
-  return (await token.balanceOf(user)).toNumber();
+  return (await token.balanceOf(user));
 }
 
 async function allowance (token, owner, spender) {
