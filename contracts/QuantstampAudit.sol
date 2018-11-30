@@ -552,6 +552,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param price The minimum price.
    */
   function setAuditNodePrice(uint256 price) public {
+    require(hasEnoughStake());
     auditData.setMinAuditPrice(msg.sender, price);
     emit LogAuditNodePriceChanged(msg.sender, price);
   }

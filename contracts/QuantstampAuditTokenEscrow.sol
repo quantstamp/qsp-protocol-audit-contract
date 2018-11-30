@@ -155,7 +155,7 @@ contract QuantstampAuditTokenEscrow is ConditionalTokenEscrow {
     }
     return address(next);
   }
-  
+
   /**
    * @dev Adds an address to the stakedNodesList
    * @param addr address
