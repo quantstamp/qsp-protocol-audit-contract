@@ -122,16 +122,14 @@ contract('QuantstampAuditPolice', function(accounts) {
 
   // checks that the police balances are split correctly after payment
   async function checkPoliceBalances(previousBalances, payment) {
-    // integerValue() doesn't seem to work
+    // integerValue() and div() don't seem to work in BN, switching to BigNumber
     const paymentBigNum = new BigNumber(payment);
-    const expectedIncreaseBigNum = paymentBigNum.dividedBy(all_police.length).sub(paymentBigNum.dividedBy(all_police.length).mod(1))
-    // div seems broken in BN.
-    let expectedIncrease = new BN(expectedIncreaseBigNum.toString());
+    const expectedIncrease = paymentBigNum.dividedBy(all_police.length).sub(paymentBigNum.dividedBy(all_police.length).mod(1))
     let balance;
     for (var i = 0; i < all_police.length; i++) {
       balance = await Util.balanceOf(quantstamp_token, all_police[i]);
       // the true balance might be slightly higher due to the remainder
-      assert.isTrue(new BN(previousBalances[i]).add(expectedIncrease).lte(balance))
+      assert.isTrue(new BigNumber(previousBalances[i]).plus(expectedIncrease).lte(balance))
     }
 
   }
@@ -548,7 +546,7 @@ contract('QuantstampAuditPolice', function(accounts) {
 
     const police_balances_before = await getPoliceBalances();
 
-    let expected_total_slashed = 0;
+    let expected_total_slashed = new BN(0);
     let current_slash;
     let current_police_balance;
     let current_auditor_balance;
@@ -558,8 +556,8 @@ contract('QuantstampAuditPolice', function(accounts) {
       const result = await quantstamp_audit.submitPoliceReport(requestIds[i], Util.nonEmptyReport, false, {from: police1});
 
       if (i != num_reports - 1) {
-        current_slash = slash_amount.plus(expectedAuditorPayment);
-        expected_total_slashed = current_slash.plus(expected_total_slashed);
+        current_slash = slash_amount.add(expectedAuditorPayment);
+        expected_total_slashed = current_slash.add(expected_total_slashed);
         index = 6;
       }
       else {
@@ -571,7 +569,7 @@ contract('QuantstampAuditPolice', function(accounts) {
         result: result,
         name: "PoliceFeesClaimed",
         args: (args) => {
-          assert.isTrue(current_slash.eq(args.fee));
+          assert.isTrue(current_slash.eq(new BN(args.fee)));
         },
         index: index
       });

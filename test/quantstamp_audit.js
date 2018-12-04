@@ -278,7 +278,6 @@ contract('QuantstampAudit', function(accounts) {
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
 
     await quantstamp_audit.unstake({from: auditor});
-    console.log(await quantstamp_audit.hasEnoughStake({from: auditor}));
     assert.isTrue(!(await quantstamp_audit.hasEnoughStake({from: auditor})));
     Util.assertEvent({
       result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
