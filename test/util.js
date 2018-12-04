@@ -150,6 +150,16 @@ async function mineNBlocks (n) {
   }
 }
 
+async function stakeAuditor(quantstamp_token, quantstamp_audit, addr, amount, owner) {
+    // transfer min_stake QSP tokens to the auditor
+    await quantstamp_token.transfer(addr, amount, {from : owner});
+    // approve the audit contract to use up to min_stake for staking
+    await quantstamp_token.approve(quantstamp_audit.address, amount, {from : addr});
+    // the auditor stakes enough tokens
+    await quantstamp_audit.stake(amount, {from : addr});
+    assert.isTrue(await quantstamp_audit.hasEnoughStake({from: addr}));
+  }
+
 module.exports = {
   uri : uri,
   sha256emptyFile : sha256emptyFile,
@@ -180,6 +190,7 @@ module.exports = {
   extractRequestId : extractRequestId,
   extractMultirequestId: extractMultirequestId,
   mineOneBlock: mineOneBlock,
-  mineNBlocks: mineNBlocks
+  mineNBlocks: mineNBlocks,
+  stakeAuditor: stakeAuditor
 };
 

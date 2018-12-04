@@ -18,6 +18,7 @@ contract QuantstampAuditView is Ownable {
   QuantstampAuditData public auditData;
   QuantstampAuditReportData public reportData;
   QuantstampAuditMultiRequestData public multiRequestData;
+  QuantstampAuditTokenEscrow public tokenEscrow;
 
   struct AuditPriceStat {
     uint256 sum;
@@ -36,6 +37,7 @@ contract QuantstampAuditView is Ownable {
     auditData = audit.auditData();
     reportData = audit.reportData();
     multiRequestData = audit.multiRequestData();
+    tokenEscrow = audit.tokenEscrow();
   }
 
   /**
@@ -132,9 +134,9 @@ contract QuantstampAuditView is Ownable {
     uint256 min = MAX_INT;
     uint256 max;
 
-    address currentWhitelistedAddress = auditData.getNextWhitelistedNode(address(HEAD));
-    while (currentWhitelistedAddress != address(HEAD)) {
-      uint256 minPrice = auditData.minAuditPrice(currentWhitelistedAddress);
+    address currentStakedAddress = tokenEscrow.getNextStakedNode(address(HEAD));
+    while (currentStakedAddress != address(HEAD)) {
+      uint256 minPrice = auditData.minAuditPrice(currentStakedAddress);
       if (minPrice != MAX_INT) {
         n++;
         sum += minPrice;
@@ -145,7 +147,7 @@ contract QuantstampAuditView is Ownable {
           max = minPrice;
         }
       }
-      currentWhitelistedAddress = auditData.getNextWhitelistedNode(currentWhitelistedAddress);
+      currentStakedAddress = tokenEscrow.getNextStakedNode(currentStakedAddress);
     }
 
     if (n == 0) {

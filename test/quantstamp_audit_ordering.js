@@ -17,6 +17,7 @@ contract('QuantstampAudit_ordering', function(accounts) {
   const price = 123;
   const requestorBudget = Util.toQsp(100000);
   const auditorBudget = Util.toQsp(100000);
+  let minAuditStake;
 
   let requestCounter = 1;
   let quantstamp_audit;
@@ -98,16 +99,14 @@ contract('QuantstampAudit_ordering', function(accounts) {
     await quantstamp_token.transfer(requestor, requestorBudget, {from : owner});
     // allow the audit contract use up to 65QSP for audits
     await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(1000), {from : requestor});
-    // whitelisting auditor
-    await quantstamp_audit_data.addNodeToWhitelist(auditor);
     // allow audit nodes to perform many audits at once
     await quantstamp_audit_data.setMaxAssignedRequests(1000);
     // timeout requests
     await quantstamp_audit_data.setAuditTimeout(10000);
     // add QuantstampAudit to the whitelist of the escrow
     await quantstamp_audit_token_escrow.addAddressToWhitelist(quantstamp_audit.address);
-    // set the minimum stake to zero
-    await quantstamp_audit_token_escrow.setMinAuditStake(0, {from : owner});
+    minAuditStake = await quantstamp_audit_token_escrow.minAuditStake();
+    await Util.stakeAuditor(quantstamp_token, quantstamp_audit, auditor, minAuditStake, owner);
   });
 
   it("queues requests with different prices in the correct order", async function() {

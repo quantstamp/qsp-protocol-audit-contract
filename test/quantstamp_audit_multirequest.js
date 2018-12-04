@@ -19,6 +19,7 @@ contract('QuantstampAudit_multirequest', function(accounts) {
   const requestorBudget = Util.toQsp(100000);
   const maxAssignedRequests = 100;
   const approvalAmount = 1000;
+  let minAuditStake;
 
   let quantstamp_audit;
   let quantstamp_audit_data;
@@ -64,16 +65,14 @@ contract('QuantstampAudit_multirequest', function(accounts) {
     await quantstamp_token.transfer(requestor, requestorBudget, {from : owner});
     // allow the audit contract use up to 65QSP for audits
     await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(approvalAmount), {from : requestor});
-    // whitelisting auditor
-    await quantstamp_audit_data.addNodeToWhitelist(auditor);
     // timeout requests
     await quantstamp_audit_data.setAuditTimeout(10000);
     // relaxing the requirement for other tests
     await quantstamp_audit_data.setMaxAssignedRequests(maxAssignedRequests);
     // add QuantstampAudit to the whitelist of the escrow
     await quantstamp_audit_token_escrow.addAddressToWhitelist(quantstamp_audit.address);
-    // set the minimum stake to zero
-    await quantstamp_audit_token_escrow.setMinAuditStake(0, {from : owner});
+    minAuditStake = await quantstamp_audit_token_escrow.minAuditStake();
+    await Util.stakeAuditor(quantstamp_token, quantstamp_audit, auditor, minAuditStake, owner);
   }
 
   describe("offering multirequest feature", async function() {

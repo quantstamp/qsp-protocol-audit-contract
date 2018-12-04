@@ -52,8 +52,6 @@ contract('QuantstampAudit', function(accounts) {
     await quantstamp_token.transfer(requestor, requestorBudget, {from : owner});
     // allow the audit contract use up to 65QSP for audits
     await quantstamp_token.approve(quantstamp_audit.address, Util.toQsp(1000), {from : requestor});
-    // whitelisting auditor
-    await quantstamp_audit_data.addNodeToWhitelist(auditor);
     // relaxing the requirement for other tests
     await quantstamp_audit_data.setMaxAssignedRequests(maxAssignedRequests);
     // add QuantstampAudit to the whitelist of the escrow
