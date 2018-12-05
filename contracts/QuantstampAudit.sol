@@ -171,7 +171,7 @@ contract QuantstampAudit is Ownable, Pausable {
       emit LogRefundInvalidRequestor(requestId, msg.sender);
       return;
     }
-    uint256 refundBlockNumber = auditData.getAuditAssignBlockNumber(requestId) + auditData.auditTimeoutInBlocks();
+    uint256 refundBlockNumber = auditData.getAuditAssignBlockNumber(requestId).add(auditData.auditTimeoutInBlocks());
     // check that the auditor has not recently started the audit (locking the funds)
     if (state == QuantstampAuditData.AuditState.Assigned) {
       if (block.number <= refundBlockNumber) {
