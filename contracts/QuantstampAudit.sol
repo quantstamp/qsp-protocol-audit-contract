@@ -473,9 +473,9 @@ contract QuantstampAudit is Ownable, Pausable {
 
   /**
    * @dev returns the next assigned report in a police node's assignment queue.
-   * @return true if the list is non-empty, and the request ID of the report if exists.
+   * @return true if the list is non-empty, requestId, auditPrice, uri, and policeAssignmentBlockNumber
    */
-  function getNextPoliceAssignment() public view returns (bool, uint256) {
+  function getNextPoliceAssignment() public view returns (bool, uint256, uint256, string, uint256) {
     return police.getNextPoliceAssignment(msg.sender);
   }
 
@@ -564,6 +564,13 @@ contract QuantstampAudit is Ownable, Pausable {
   function isAuditFinished(uint256 requestId) public view returns(bool) {
     QuantstampAuditData.AuditState state = auditData.getAuditState(requestId);
     return state == QuantstampAuditData.AuditState.Completed || state == QuantstampAuditData.AuditState.Error;
+  }
+
+  /**
+   * @dev Checks if msg.sender is a police node.
+   */
+  function isPoliceNode() public view returns (bool) {
+    return police.isPoliceNode(msg.sender);
   }
 
   /**

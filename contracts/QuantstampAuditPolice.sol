@@ -316,7 +316,7 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
    * @dev Gets the next assigned report to the police node.
    * @param policeNode The address of the police node.
    */
-  function getNextPoliceAssignment(address policeNode) public view returns (bool, uint256) {
+  function getNextPoliceAssignment(address policeNode) public view returns (bool, uint256, uint256, string, uint256) {
     bool exists;
     uint256 requestId;
     (exists, requestId) = assignedReports[policeNode].getAdjacent(HEAD, NEXT);
@@ -325,10 +325,13 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
       if (policeTimeouts[requestId] < block.number) {
         (exists, requestId) = assignedReports[policeNode].getAdjacent(requestId, NEXT);
       } else {
-        return (exists, requestId);
+        uint256 price = auditData.getAuditPrice(requestId);
+        string memory uri = auditData.getAuditContractUri(requestId);
+        uint256 policeAssignmentBlockNumber = auditData.getAuditReportBlockNumber(requestId);
+        return (exists, requestId, price, uri, policeAssignmentBlockNumber);
       }
     }
-    return (false, 0);
+    return (false, 0, 0, "", 0);
   }
 
   /**
