@@ -5,10 +5,10 @@ const BN = require('web3').utils.BN;
 const Web3 = require('web3');
 
 module.exports = {
-  'whitelist': {
-    contractName: 'QuantstampAuditData',
-    methodName: 'addNodeToWhitelist',
-    gasLimit: 80000,
+  'whitelist-police-node': {
+    contractName: 'QuantstampAuditPolice',
+    methodName: 'addPoliceNode',
+    gasLimit: 90000,
     methodArgs: async(stage, argv) => {
       return argv.p;
     }
