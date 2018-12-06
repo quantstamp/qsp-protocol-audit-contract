@@ -159,7 +159,7 @@ This includes running Truffle tests and collecting coverage report for [Coverall
 
 **Note**: These commands are intenteded for the contract owner only. The description is left here as it relates to the code present in this repository. Before running a command, setup the credentials as described in the internal wiki.
 
-1. `npm run command -- -n=dev -a=whitelist --p 0x123456789` whitelists a node defined by a given address
+1. `npm run command -- -n=dev -a=whitelist-police-node --p 0x123456789` whitelists a node defined by a given address
 1. `npm run command -- -n=dev -a=whitelist-owner-in-data-contract` whitelists the owner of the QuantstampAuditData contract (required for updating nodes' min audit price)
 1. `npm run command -- -n=dev -a=reset-min-price --p 0x123456789` resets the min price of the given node address to max-uint256
 1. `npm run command -- -n=dev -a=set-min-price-to-accept-any-request --p 0x123456789` sets the min price of the given whitelisted node to 0 enabling the [cleanup process](https://quantstamp.atlassian.net/wiki/spaces/QUAN/pages/95354881/Monitoring+Resources#MonitoringResources-Cleaningupauditrequests)
