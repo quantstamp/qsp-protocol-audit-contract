@@ -699,5 +699,18 @@ contract('QuantstampAuditPolice', function(accounts) {
     const balance_after = await Util.balanceOf(quantstamp_token, auditor);
     assert.isTrue(new BigNumber(balance_before).plus(expectedAuditorPayment).eq(balance_after));
   });
+
+
+  it("should allow a user to get the compressed report from QuantstampAudit", async function() {
+    currentId = await submitNewReport();
+    assert.equal(await quantstamp_audit.getReport(currentId), Util.emptyReportStr);
+
+    // check for non-empty report
+    await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
+    const result = await quantstamp_audit.getNextAuditRequest({from: auditor});
+    currentId = Util.extractRequestId(result);
+    await quantstamp_audit.submitReport(currentId, AuditState.Completed, Util.nonEmptyReport, {from : auditor});
+    assert.equal(await quantstamp_audit.getReport(currentId), Util.nonEmptyReport);
+  });
 });
 
