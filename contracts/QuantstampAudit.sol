@@ -306,6 +306,14 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
+   * @dev Returns the compressed report submitted by the audit node.
+   * @param requestId The ID of the audit request.
+   */
+  function getReport(uint256 requestId) public view returns (bytes) {
+    return reportData.getReport(requestId);
+  }
+
+  /**
    * @dev Submits verification of a report by a police node.
    * @param requestId The ID of the audit request.
    * @param report The compressed bytecode representation of the report.
