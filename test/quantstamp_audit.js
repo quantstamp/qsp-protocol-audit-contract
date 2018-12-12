@@ -221,8 +221,8 @@ contract('QuantstampAudit', function(accounts) {
     const requestId = requestCounter++;
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     await quantstamp_audit.getNextAuditRequest({from: auditor});
-
     const result = await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.emptyReport, {from: auditor});
+
     Util.assertEventAtIndex({
       result: result,
       name: "LogAuditFinished",
@@ -278,7 +278,6 @@ contract('QuantstampAudit', function(accounts) {
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
 
     await quantstamp_audit.unstake({from: auditor});
-    console.log(await quantstamp_audit.hasEnoughStake({from: auditor}));
     assert.isTrue(!(await quantstamp_audit.hasEnoughStake({from: auditor})));
     Util.assertEvent({
       result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
@@ -290,7 +289,6 @@ contract('QuantstampAudit', function(accounts) {
 
   it("should prevent a staked user from submitting a report to an audit that they are not assigned", async function() {
     const auditor2 = accounts[4];
-
     await Util.stakeAuditor(quantstamp_token, quantstamp_audit, auditor2, minAuditStake, owner);
 
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
@@ -489,7 +487,7 @@ contract('QuantstampAudit', function(accounts) {
   });
 
   it("should not let ask for request with zero price", async function() {
-    Util.assertTxFail(quantstamp_audit.requestAudit(Util.uri, 0, {from: requestor}));
+    await Util.assertTxFail(quantstamp_audit.requestAudit(Util.uri, 0, {from: requestor}));
   });
 
   it("should record the requests's registrar", async function() {
