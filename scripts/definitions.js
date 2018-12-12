@@ -5,10 +5,10 @@ const BN = require('web3').utils.BN;
 const Web3 = require('web3');
 
 module.exports = {
-  'whitelist': {
-    contractName: 'QuantstampAuditData',
-    methodName: 'addNodeToWhitelist',
-    gasLimit: 80000,
+  'whitelist-police-node': {
+    contractName: 'QuantstampAuditPolice',
+    methodName: 'addPoliceNode',
+    gasLimit: 90000,
     methodArgs: async(stage, argv) => {
       return argv.p;
     }
@@ -73,6 +73,14 @@ module.exports = {
     gasLimit: 80000,
     methodArgs: async(stage, argv) => {
       return [await utils.readAddressFromMetadata(stage, 'QuantstampAuditPolice')];
+    }
+  },
+  'whitelist-audit-contract-in-escrow': {
+    contractName: 'QuantstampAuditTokenEscrow',
+    methodName: 'addAddressToWhitelist',
+    gasLimit: 80000,
+    methodArgs: async(stage, argv) => {
+      return [await utils.readAddressFromMetadata(stage, 'QuantstampAudit')];
     }
   },
   'whitelist-audit-contract-in-police': {

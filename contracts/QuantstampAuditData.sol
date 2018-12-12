@@ -104,8 +104,12 @@ contract QuantstampAuditData is Whitelist {
     audits[requestId].auditor = auditor;
   }
 
-  function getAuditAssignBlockNumber (uint256 requestId) public view returns(uint) {
+  function getAuditAssignBlockNumber (uint256 requestId) public view returns(uint256) {
     return audits[requestId].assignBlockNumber;
+  }
+
+  function getAuditReportBlockNumber (uint256 requestId) public view returns (uint256) {
+    return audits[requestId].reportBlockNumber;
   }
 
   function setAuditAssignBlockNumber (uint256 requestId, uint256 assignBlockNumber) public onlyWhitelisted {

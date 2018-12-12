@@ -149,6 +149,11 @@ contract('QuantstampAuditPolice', function(accounts) {
     await Util.assertTxFail(QuantstampAuditPolice.new(non_zero_addr, Util.zeroAddress));
   });
 
+  it("should correctly check whether the caller is in the police", async function() {
+    assert.isTrue(!(await quantstamp_audit.isPoliceNode({from: auditor})));
+    assert.isTrue(await quantstamp_audit.isPoliceNode({from: police1}));
+  });
+
   it("should not allow an auditor to claim the reward before the policing period finishes", async function() {
     currentId = await submitNewReport();
     await Util.assertTxFail(quantstamp_audit.claimRewards({from: auditor}));
@@ -430,12 +435,15 @@ contract('QuantstampAuditPolice', function(accounts) {
     await Util.assertTxFail(quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, true, {from: police1}));
   });
 
-  it("getNextPoliceAssignment should remove expired assignments and return (false, 0) if no assignments are available", async function() {
+  it("getNextPoliceAssignment should remove expired assignments and return (false, 0, 0, '', 0) if no assignments are available", async function() {
     const num_blocks = police_timeout + 1;
     await Util.mineNBlocks(num_blocks);
     const result = await quantstamp_audit.getNextPoliceAssignment({from: police1});
     assert.isTrue(!result[0]);
     assert.equal(result[1], 0);
+    assert.equal(result[2], 0);
+    assert.equal(result[3], "");
+    assert.equal(result[4], 0);
   });
 
   it("should remove submitted assignments", async function() {
@@ -446,18 +454,30 @@ contract('QuantstampAuditPolice', function(accounts) {
     currentId = await submitNewReport();
     let currentId2 = await submitNewReport();
     let result = await quantstamp_audit.getNextPoliceAssignment({from: police1});
+    let expectedPoliceAssignmentBlockNumber = await quantstamp_audit_data.getAuditReportBlockNumber(currentId);
+    let expectedPoliceAssignmentBlockNumber2 = await quantstamp_audit_data.getAuditReportBlockNumber(currentId2);
+
     assert.isTrue(result[0]);
     assert.equal(result[1], currentId);
+    assert.equal(result[2], price);
+    assert.equal(result[3], Util.uri);
+    assert.isTrue(result[4].eq(expectedPoliceAssignmentBlockNumber));
     await quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, true, {from: police1});
 
     result = await quantstamp_audit.getNextPoliceAssignment({from: police1});
     assert.isTrue(result[0]);
     assert.equal(result[1], currentId2);
+    assert.equal(result[2], price);
+    assert.equal(result[3], Util.uri);
+    assert.isTrue(result[4].eq(expectedPoliceAssignmentBlockNumber2));
     await quantstamp_audit.submitPoliceReport(currentId2, Util.nonEmptyReport, true, {from: police1});
 
     result = await quantstamp_audit.getNextPoliceAssignment({from: police1});
     assert.isTrue(!result[0]);
     assert.equal(result[1], 0);
+    assert.equal(result[2], 0);
+    assert.equal(result[3], "");
+    assert.equal(result[4], 0);
   });
 
   it("attempting to remove a non-police node should not decrement the police count", async function() {
@@ -681,6 +701,19 @@ contract('QuantstampAuditPolice', function(accounts) {
     await quantstamp_audit.claimRewards({from: auditor});
     const balance_after = await Util.balanceOf(quantstamp_token, auditor);
     assert.isTrue(new BN(balance_before).add(expectedAuditorPayment).eq(balance_after));
+  });
+
+
+  it("should allow a user to get the compressed report from QuantstampAudit", async function() {
+    currentId = await submitNewReport();
+    assert.equal(await quantstamp_audit.getReport(currentId), Util.emptyReportStr);
+
+    // check for non-empty report
+    await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
+    const result = await quantstamp_audit.getNextAuditRequest({from: auditor});
+    currentId = Util.extractRequestId(result);
+    await quantstamp_audit.submitReport(currentId, AuditState.Completed, Util.nonEmptyReport, {from : auditor});
+    assert.equal(await quantstamp_audit.getReport(currentId), Util.nonEmptyReport);
   });
 });
 
