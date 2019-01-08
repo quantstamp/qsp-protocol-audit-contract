@@ -582,7 +582,7 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Given a price, returns the next price from the priceList
+   * @dev Given a price, returns the next price from the priceList.
    * @param price A price indicated by a node in priceList.
    * @return The next price in the linked list.
    */
