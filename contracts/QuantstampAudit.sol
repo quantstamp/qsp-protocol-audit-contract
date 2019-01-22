@@ -313,6 +313,15 @@ contract QuantstampAudit is Ownable, Pausable {
     return reportData.getReport(requestId);
   }
 
+   /**
+   * @dev Checks whether a given node is a police.
+   * @param addr The address of the node to be checked.
+   * @return true if the target address is a police node.
+   */
+   function isPolice(address addr) public view returns(bool) {
+     return police.isPoliceNode(addr);
+   }
+
   /**
    * @dev Submits verification of a report by a police node.
    * @param requestId The ID of the audit request.
