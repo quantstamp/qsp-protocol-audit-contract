@@ -42,7 +42,7 @@ contract QuantstampAuditData is Whitelist {
   // After that, the report is verified by the police.
   uint256 public auditTimeoutInBlocks = 25;
 
-  // maximum number of assigned audits per each auditor
+  // maximum number of assigned audits per each audit node
   uint256 public maxAssignedRequests = 10;
 
   // map audit nodes to their minimum prices. Defaults to zero: the node accepts all requests.
@@ -53,7 +53,7 @@ contract QuantstampAuditData is Whitelist {
 
   /**
    * @dev The constructor creates an audit contract.
-   * @param tokenAddress The address of a StandardToken that will be used to pay auditor nodes.
+   * @param tokenAddress The address of a StandardToken that will be used to pay audit nodes.
    */
   constructor (address tokenAddress) public {
     require(tokenAddress != address(0));
@@ -133,8 +133,8 @@ contract QuantstampAuditData is Whitelist {
   }
 
   /**
-   * @dev set the maximum number of audits any audit node can handle at any time.
-   * @param maxAssignments maximum number of audit requests for each auditor
+   * @dev Set the maximum number of audits any audit node can handle at any time.
+   * @param maxAssignments Maximum number of audit requests for each audit node.
    */
   function setMaxAssignedRequests (uint256 maxAssignments) public onlyOwner {
     maxAssignedRequests = maxAssignments;
@@ -145,7 +145,7 @@ contract QuantstampAuditData is Whitelist {
   }
 
   /**
-   * @dev Allows the audit node to set its minimum price per audit in wei-QSP
+   * @dev Allows the audit node to set its minimum price per audit in wei-QSP.
    * @param price The minimum price.
    */
   function setMinAuditPrice(address auditor, uint256 price) public onlyWhitelisted {

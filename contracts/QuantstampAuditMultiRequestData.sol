@@ -5,7 +5,7 @@ import "openzeppelin-solidity/contracts/ownership/Whitelist.sol";
 
 contract QuantstampAuditMultiRequestData is Whitelist {
 
-  // As a multirequest consists of requests. The first and last requestId are inclusive.
+  // The first and last requestId are inclusive.
   struct MultiRequest {
     address requestor;
     uint256 firstRequestId;
@@ -19,7 +19,7 @@ contract QuantstampAuditMultiRequestData is Whitelist {
   mapping(uint256 => uint256) public requestIdToMultiRequestId;
   // MultiRequestId starts from 1
   uint256 private multiRequestIdCounter;
-  // A map from multiRequestIDs to auditors assigned an audit.
+  // A map from multiRequestIDs to audit nodes assigned an audit.
   mapping(uint256 => mapping(address => bool)) internal multiRequestsAssignedToAuditor;
 
   function addMultiRequest(address requestor, uint256 firstRequestId, uint256 lastRequestId, address registrar) external onlyWhitelisted returns(uint256) {

@@ -41,7 +41,7 @@ contract QuantstampAuditTokenEscrow is ConditionalTokenEscrow {
 
   /**
   * @dev Puts in escrow a certain amount of tokens as credit to be withdrawn.
-  *      Overrides the function in TokenEscrow.sol to add the payee to the staked list
+  *      Overrides the function in TokenEscrow.sol to add the payee to the staked list.
   * @param _payee The destination address of the tokens.
   * @param _amount The amount of tokens to deposit in escrow.
   */
@@ -55,7 +55,7 @@ contract QuantstampAuditTokenEscrow is ConditionalTokenEscrow {
 
  /**
   * @dev Withdraw accumulated tokens for a payee.
-  *      Overrides the function in TokenEscrow.sol to remove the payee from the staked list
+  *      Overrides the function in TokenEscrow.sol to remove the payee from the staked list.
   * @param _payee The address whose tokens will be withdrawn and transferred to.
   */
   function withdraw(address _payee) public onlyWhitelisted {
@@ -141,9 +141,9 @@ contract QuantstampAuditTokenEscrow is ConditionalTokenEscrow {
   }
 
   /**
-   * @dev Given a staked address, returns the next address from the list that meets the minAuditStake
-   * @param addr address
-   * @return next address of the given param
+   * @dev Given a staked address, returns the next address from the list that meets the minAuditStake.
+   * @param addr The staked address.
+   * @return The next address in the list.
    */
   function getNextStakedNode(address addr) public view returns(address) {
     bool exists;
@@ -157,9 +157,9 @@ contract QuantstampAuditTokenEscrow is ConditionalTokenEscrow {
   }
 
   /**
-   * @dev Adds an address to the stakedNodesList
-   * @param addr address
-   * @return true if the address was added to the list
+   * @dev Adds an address to the stakedNodesList.
+   * @param addr The address to be added to the list.
+   * @return true if the address was added to the list.
    */
   function addNodeToStakedList(address addr) internal returns(bool success) {
     if (stakedNodesList.insert(HEAD, uint256(addr), PREV)) {
@@ -169,9 +169,9 @@ contract QuantstampAuditTokenEscrow is ConditionalTokenEscrow {
   }
 
   /**
-   * @dev Removes an address from the stakedNodesList
-   * @param addr address
-   * @return true if the address was removed from the list
+   * @dev Removes an address from the stakedNodesList.
+   * @param addr The address to be removed from the list.
+   * @return true if the address was removed from the list.
    */
   function removeNodeFromStakedList(address addr) internal returns(bool success) {
     if (stakedNodesList.remove(uint256(addr)) != 0) {
