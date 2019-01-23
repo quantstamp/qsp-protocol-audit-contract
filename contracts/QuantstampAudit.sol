@@ -315,11 +315,11 @@ contract QuantstampAudit is Ownable, Pausable {
 
    /**
    * @dev Checks whether a given node is a police.
-   * @param addr The address of the node to be checked.
+   * @param node The address of the node to be checked.
    * @return true if the target address is a police node.
    */
-   function isPolice(address addr) public view returns(bool) {
-     return police.isPoliceNode(addr);
+   function isPoliceNode(address node) public view returns(bool) {
+     return police.isPoliceNode(node);
    }
 
   /**
@@ -581,13 +581,6 @@ contract QuantstampAudit is Ownable, Pausable {
   function isAuditFinished(uint256 requestId) public view returns(bool) {
     QuantstampAuditData.AuditState state = auditData.getAuditState(requestId);
     return state == QuantstampAuditData.AuditState.Completed || state == QuantstampAuditData.AuditState.Error;
-  }
-
-  /**
-   * @dev Checks if msg.sender is a police node.
-   */
-  function isPoliceNode() public view returns (bool) {
-    return police.isPoliceNode(msg.sender);
   }
 
   /**

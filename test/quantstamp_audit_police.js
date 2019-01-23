@@ -150,8 +150,8 @@ contract('QuantstampAuditPolice', function(accounts) {
   });
 
   it("should correctly check whether the caller is in the police", async function() {
-    assert.isTrue(!(await quantstamp_audit.isPoliceNode({from: auditor})));
-    assert.isTrue(await quantstamp_audit.isPoliceNode({from: police1}));
+    assert.isTrue(!(await quantstamp_audit.isPoliceNode(auditor, {from: auditor})));
+    assert.isTrue(await quantstamp_audit.isPoliceNode(police1, {from: police1}));
   });
 
   it("should not allow an auditor to claim the reward before the policing period finishes", async function() {
