@@ -22,7 +22,7 @@ contract QuantstampAudit is Ownable, Pausable {
   bool constant internal PREV = false;
   bool constant internal NEXT = true;
 
-  // mapping from an auditor address to the number of requests that it currently processes
+  // mapping from an audit node address to the number of requests that it currently processes
   mapping(address => uint256) public assignedRequestCount;
 
   // increasingly sorted linked list of prices
@@ -33,7 +33,7 @@ contract QuantstampAudit is Ownable, Pausable {
   // list of request IDs of assigned audits (the list preserves temporal order of assignments)
   LinkedListLib.LinkedList internal assignedAudits;
 
-  // stores request ids of the most recently assigned audits for each auditor
+  // stores request ids of the most recently assigned audits for each audit node
   mapping(address => uint256) public mostRecentAssignedRequestIdsPerAuditor;
 
   // contract that stores audit data (separate from the auditing logic)
@@ -92,7 +92,7 @@ contract QuantstampAudit is Ownable, Pausable {
   event LogRefundInvalidFundsLocked(uint256 requestId, uint256 currentBlock, uint256 fundLockEndBlock);
 
   // the audit queue has elements, but none satisfy the minPrice of the audit node
-  // amount corresponds to the current minPrice of the auditor
+  // amount corresponds to the current minPrice of the audit node
   event LogAuditNodePriceHigherThanRequests(address auditor, uint256 amount);
 
   event LogInvalidResolutionCall(uint256 requestId);
@@ -107,7 +107,7 @@ contract QuantstampAudit is Ownable, Pausable {
     Empty,      // there is no audit request in the queue
     Exceeded,   // number of incomplete audit requests is reached the cap
     Underpriced, // all queued audit requests are less than the expected price
-    Understaked // the auditor's stake is not large enough to request its min price
+    Understaked // the audit node's stake is not large enough to request its min price
   }
 
   /**
@@ -135,7 +135,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param amount The amount of wei-QSP to deposit.
    */
   function stake(uint256 amount) external returns(bool) {
-    // first acquire the tokens approved by the auditor
+    // first acquire the tokens approved by the audit node
     require(auditData.token().transferFrom(msg.sender, address(this), amount));
     // use those tokens to approve a transfer in the escrow
     auditData.token().approve(address(tokenEscrow), amount);
@@ -172,7 +172,7 @@ contract QuantstampAudit is Ownable, Pausable {
       return;
     }
     uint256 refundBlockNumber = auditData.getAuditAssignBlockNumber(requestId).add(auditData.auditTimeoutInBlocks());
-    // check that the auditor has not recently started the audit (locking the funds)
+    // check that the audit node has not recently started the audit (locking the funds)
     if (state == QuantstampAuditData.AuditState.Assigned) {
       if (block.number <= refundBlockNumber) {
         emit LogRefundInvalidFundsLocked(requestId, block.number, refundBlockNumber);
@@ -189,18 +189,18 @@ contract QuantstampAudit is Ownable, Pausable {
     // set the audit state to refunded
     auditData.setAuditState(requestId, QuantstampAuditData.AuditState.Refunded);
 
-    // return the funds to the user
+    // return the funds to the requestor
     uint256 price = auditData.getAuditPrice(requestId);
     emit LogRefund(requestId, requestor, price);
     return auditData.token().transfer(requestor, price);
   }
 
   /**
-   * @dev Submits a request to be audited multiple times
+   * @dev Submits a request to be audited multiple times.
    * @param contractUri Identifier of the resource to audit.
    * @param price The total amount of tokens that will be paid per audit. The requester should
    * eventually pay price * count qsp.
-   * @param count Number of audits by different Auditors
+   * @param count Number of audits by different audit nodes.
    */
   function multiRequestAudit(string contractUri, uint256 price, uint256 count) public whenNotPaused returns(uint256[]) { // solhint-disable-line no-unused-vars
     require(false, "Invalid Feature");
@@ -244,7 +244,7 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Submits the report and pays the auditor node for their work if the audit is completed.
+   * @dev Submits the report and pays the audit node for their work if the audit is completed.
    * @param requestId Unique identifier of the audit request.
    * @param auditResult Result of an audit.
    * @param report a compressed report. TODO, let's document the report format.
@@ -261,7 +261,7 @@ contract QuantstampAudit is Ownable, Pausable {
       return;
     }
 
-    // the sender must be the auditor
+    // the sender must be the audit node
     if (msg.sender != auditData.getAuditAuditor(requestId)) {
       emit LogReportSubmissionError_InvalidAuditor(requestId, msg.sender);
       return;
@@ -270,7 +270,7 @@ contract QuantstampAudit is Ownable, Pausable {
     // remove the requestId from assigned queue
     updateAssignedAudits(requestId);
 
-    // auditor should not send a report after its allowed period
+    // the audit node should not send a report after its allowed period
     uint256 allowanceBlockNumber = auditData.getAuditAssignBlockNumber(requestId) + auditData.auditTimeoutInBlocks();
     if (allowanceBlockNumber < block.number) {
       // update assigned to expired state
@@ -294,7 +294,7 @@ contract QuantstampAudit is Ownable, Pausable {
     if (auditResult == QuantstampAuditData.AuditState.Completed) {
       // alert the police to verify the report
       police.assignPoliceToReport(requestId);
-      // add the requestId to the pending payments that should be paid to the auditor after policing
+      // add the requestId to the pending payments that should be paid to the audit node after policing
       police.addPendingPayment(msg.sender, requestId);
       // pay fee to the police
       if (police.reportProcessingFeePercentage() > 0 && police.numPoliceNodes() > 0) {
@@ -327,7 +327,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param requestId The ID of the audit request.
    * @param report The compressed bytecode representation of the report.
    * @param isVerified Whether the police node's report matches the submitted report.
-   *                   If not, the auditor is slashed.
+   *                   If not, the audit node is slashed.
    * @return true if the report was submitted successfully.
    */
   function submitPoliceReport(
@@ -362,7 +362,7 @@ contract QuantstampAudit is Ownable, Pausable {
 
   /**
    * @dev If the policing period has ended without the report being marked invalid,
-   *      allow the auditor to claim the audit's reward.
+   *      allow the audit node to claim the audit's reward.
    * @param requestId The ID of the audit request.
    * NOTE: We need this function if claimRewards always fails due to gas limits.
    *       I think this can only happen if the audit node receives many (i.e., hundreds) of audits,
@@ -377,7 +377,7 @@ contract QuantstampAudit is Ownable, Pausable {
 
   /**
    * @dev Claim all pending rewards for the audit node.
-   * @return the total amount of rewards paid
+   * @return The total amount of rewards paid.
    */
   function claimRewards () public returns (uint256) {
     // Yet another list iteration. Could ignore this check, but makes testing painful.
@@ -399,7 +399,7 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Determines who has to be paid for a given requestId recorded with an error status
+   * @dev Determines who has to be paid for a given requestId recorded with an error status.
    * @param requestId Unique identifier of the audit request.
    * @param toRequester The audit price goes to the requester or the audit node.
    */
@@ -433,7 +433,7 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Returns the minimum stake required to be an auditor.
+   * @dev Returns the minimum stake required to be an audit node.
    */
   function getMinAuditStake() public view returns(uint256) {
     return tokenEscrow.minAuditStake();
@@ -447,21 +447,21 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   *  @dev Returns the minimum price for a specific auditor.
+   *  @dev Returns the minimum price for a specific audit node.
    */
   function getMinAuditPrice (address auditor) public view returns(uint256) {
     return auditData.getMinAuditPrice(auditor);
   }
 
   /**
-   * @dev Returns the maximum number of assigned audits for any given auditor.
+   * @dev Returns the maximum number of assigned audits for any given audit node.
    */
   function getMaxAssignedRequests() public view returns(uint256) {
     return auditData.maxAssignedRequests();
   }
 
   /**
-   * @dev Determines if there is an audit request available to be picked up by the caller
+   * @dev Determines if there is an audit request available to be picked up by the caller.
    */
   function anyRequestAvailable() public view returns(AuditAvailabilityState) {
     uint256 requestId;
@@ -471,12 +471,12 @@ contract QuantstampAudit is Ownable, Pausable {
       return AuditAvailabilityState.Empty;
     }
 
-    // check if the auditor's assignment is not exceeded.
+    // check if the audit node's assignment count is not exceeded
     if (assignedRequestCount[msg.sender] >= auditData.maxAssignedRequests()) {
       return AuditAvailabilityState.Exceeded;
     }
 
-    // check that the auditor's stake is large enough
+    // check that the audit node's stake is large enough
     if (!hasEnoughStake()) {
       return AuditAvailabilityState.Understaked;
     }
@@ -489,15 +489,15 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev returns the next assigned report in a police node's assignment queue.
-   * @return true if the list is non-empty, requestId, auditPrice, uri, and policeAssignmentBlockNumber
+   * @dev Returns the next assigned report in a police node's assignment queue.
+   * @return true if the list is non-empty, requestId, auditPrice, uri, and policeAssignmentBlockNumber.
    */
   function getNextPoliceAssignment() public view returns (bool, uint256, uint256, string, uint256) {
     return police.getNextPoliceAssignment(msg.sender);
   }
 
   /**
-   * @dev Finds a list of most expensive audits and assigns the oldest one to the auditor node.
+   * @dev Finds a list of most expensive audits and assigns the oldest one to the audit node.
    */
   /* solhint-disable function-max-lines */
   function getNextAuditRequest() public {
@@ -521,7 +521,7 @@ contract QuantstampAudit is Ownable, Pausable {
       return;
     }
 
-    // check if the auditor's assignment is not exceeded.
+    // check if the audit node's assignment is not exceeded
     if (isRequestAvailable == AuditAvailabilityState.Exceeded) {
       emit LogAuditAssignmentError_ExceededMaxAssignedRequests(msg.sender);
       return;
@@ -529,7 +529,7 @@ contract QuantstampAudit is Ownable, Pausable {
 
     uint256 minPrice = auditData.getMinAuditPrice(msg.sender);
 
-    // check that the auditor has staked enough QSP.
+    // check that the audit node has staked enough QSP
     if (isRequestAvailable == AuditAvailabilityState.Understaked) {
       emit LogAuditAssignmentError_Understaked(msg.sender, totalStakedFor(msg.sender));
       return;
@@ -565,7 +565,7 @@ contract QuantstampAudit is Ownable, Pausable {
   /* solhint-enable function-max-lines */
 
   /**
-   * @dev Allows the audit node to set its minimum price per audit in wei-QSP
+   * @dev Allows the audit node to set its minimum price per audit in wei-QSP.
    * @param price The minimum price.
    */
   function setAuditNodePrice(uint256 price) public {
@@ -584,9 +584,9 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Given a price, returns the next price from the priceList
-   * @param price of the current node
-   * @return next price in the linked list
+   * @dev Given a price, returns the next price from the priceList.
+   * @param price A price indicated by a node in priceList.
+   * @return The next price in the linked list.
    */
   function getNextPrice(uint256 price) public view returns(uint256) {
     bool exists;
@@ -596,8 +596,8 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Given a requestId, returns the next one from assignedAudits
-   * @param requestId of the current node
+   * @dev Given a requestId, returns the next one from assignedAudits.
+   * @param requestId The ID of the current linked list node
    * @return next requestId in the linked list
    */
   function getNextAssignedRequest(uint256 requestId) public view returns(uint256) {
@@ -608,8 +608,8 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Returns the audit request most recently assigned to msg.sender
-   * @return a tuple [requestId, audit_uri, audit_price, request_block_number]
+   * @dev Returns the audit request most recently assigned to msg.sender.
+   * @return A tuple (requestId, audit_uri, audit_price, request_block_number).
    */
   function myMostRecentAssignedAudit() public view returns(
     uint256, // requestId
@@ -629,11 +629,11 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Given a price and a requestId, then function returns the next requestId with the same price
-   * return 0, provided the given price does not exist in auditsByPrice
-   * @param price of the current bucket
-   * @param requestId unique Id of an requested audit
-   * @return next requestId with the same price
+   * @dev Given a price and a requestId, the function returns the next requestId with the same price.
+   * Return 0, provided the given price does not exist in auditsByPrice.
+   * @param price The price value of the current bucket.
+   * @param requestId Unique Id of a requested audit.
+   * @return The next requestId with the same price.
    */
   function getNextAuditByPrice(uint256 price, uint256 requestId) public view returns(uint256) {
     bool exists;
@@ -644,8 +644,8 @@ contract QuantstampAudit is Ownable, Pausable {
 
   /**
    * @dev Given a requestId, the function removes it from the list of audits and decreases the number of assigned
-   * audits of the associated auditor
-   * @param requestId unique Id of an requested audit
+   * audits of the associated audit node.
+   * @param requestId Unique ID of a requested audit.
    */
   function updateAssignedAudits(uint256 requestId) internal {
     assignedAudits.remove(requestId);
@@ -654,16 +654,16 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Checks if the list of audits has any elements
+   * @dev Checks if the list of audits has any elements.
    */
   function auditQueueExists() internal view returns(bool) {
     return priceList.listExists();
   }
 
   /**
-   * @dev Adds an audit request to the queue
+   * @dev Adds an audit request to the queue.
    * @param requestId Request ID.
-   * @param existingPrice price of an existing audit in the queue (makes insertion O(1))
+   * @param existingPrice The price of an existing audit in the queue (makes insertion O(1)).
    */
   function queueAuditRequest(uint256 requestId, uint256 existingPrice) internal {
     uint256 price = auditData.getAuditPrice(requestId);
@@ -677,7 +677,7 @@ contract QuantstampAudit is Ownable, Pausable {
 
   /**
    * @dev Evaluates if there is an audit price >= minPrice. Returns (false, 0) if there no audit with the desired price.
-   * Note that there should not be any audit with price as 0. Also, this function evaluates if the given auditor has not
+   * Note that there should not be any audit with price as 0. Also, this function evaluates if the given audit node has not
    * yet assigned to any individual audit of a multiRequest.
    * @param minPrice The minimum audit price.
    */
@@ -695,13 +695,13 @@ contract QuantstampAudit is Ownable, Pausable {
       // iterating over requests in each price bucket. the iteration starts from older requests to younger ones.
       while (requestId != HEAD) {
         multirequestId = multiRequestData.getMultiRequestIdGivenRequestId(requestId);
-        // if this request belongs to a multirequest, find out whether an auditor calling this function has been
+        // if this request belongs to a multirequest, find out whether an audit node calling this function has been
         // already assigned to another request from the same multirequest.
         // true condition means that this request is not associated to a multirequest.
         if (multirequestId == 0 || !multiRequestData.existsAuditorFromMultiRequestAssignment(multirequestId, msg.sender)) {
           return requestId;
         } else {
-          // the given auditor already audited an individual audit from this multi audit request. Let's
+          // the given audit node already audited an individual audit from this multi audit request. Let's
           // jump to the last individual associated requestId.
           requestId = multiRequestData.getMultiRequestLastRequestId(multirequestId);
         }
@@ -714,7 +714,7 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Finds a list of most expensive audits and returns the oldest one that has a price >= minPrice
+   * @dev Finds a list of most expensive audits and returns the oldest one that has a price >= minPrice.
    * @param minPrice The minimum audit price.
    */
   function dequeueAuditRequest(uint256 minPrice) internal returns(uint256) {
@@ -725,7 +725,7 @@ contract QuantstampAudit is Ownable, Pausable {
     // picks the tail of price buckets
     // TODO seems the following statement is redundantly called from getNextAuditRequest. If this is the only place
     // to call dequeueAuditRequest, then removing the following line saves gas, but leaves dequeueAuditRequest
-    // unsafe for further extension by noobies.
+    // unsafe for further extension.
     requestId = anyAuditRequestMatchesPrice(minPrice);
 
     if (requestId > 0) {
@@ -741,8 +741,8 @@ contract QuantstampAudit is Ownable, Pausable {
   }
 
   /**
-   * @dev Removes an element from the list
-   * @param requestId The Id of the request to be removed
+   * @dev Removes an element from the list.
+   * @param requestId The Id of the request to be removed.
    */
   function removeQueueElement(uint256 requestId) internal {
     uint256 price = auditData.getAuditPrice(requestId);
@@ -767,9 +767,9 @@ contract QuantstampAudit is Ownable, Pausable {
     auditData.token().transfer(msg.sender, auditorPayment);
     emit LogPayAuditor(requestId, msg.sender, auditorPayment);
   }
-  
+
   /**
-   * @dev Manages request if it is from a multirequest
+   * @dev Manages request if it is from a multirequest.
    * @param requestId Unique ID of the audit request.
    */
   function assignMultirequest(uint256 requestId) internal {

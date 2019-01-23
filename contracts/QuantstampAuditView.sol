@@ -41,8 +41,8 @@ contract QuantstampAuditView is Ownable {
   }
 
   /**
-   * @dev The setter for changing the reference to QuantstampAudit
-   * @param auditAddress address of a QuantstampAudit instance
+   * @dev The setter for changing the reference to QuantstampAudit.
+   * @param auditAddress Address of a QuantstampAudit instance.
    */
   function setQuantstampAudit(address auditAddress) public onlyOwner {
     require(auditAddress != address(0));
@@ -51,36 +51,36 @@ contract QuantstampAuditView is Ownable {
   }
 
   /**
-   * @dev computing hash of the report stored on-chain
-   * @param requestId corresponding requestId
+   * @dev Computes the hash of the report stored on-chain.
+   * @param requestId The corresponding requestId.
    */
   function getReportHash(uint256 requestId) public view returns (bytes32) {
     return keccak256(reportData.getReport(requestId));
   }
   
   /**
-   * @dev Returns sum of min audit prices
+   * @dev Returns the sum of min audit prices.
    */
   function getMinAuditPriceSum() public view returns (uint256) {
     return findMinAuditPricesStats().sum;
   }
 
   /**
-   * @dev Returns the number of min audit prices
+   * @dev Returns the number of min audit prices.
    */
   function getMinAuditPriceCount() public view returns (uint256) {
     return findMinAuditPricesStats().n;
   }
 
   /**
-   * @dev Returns max of min audit prices
+   * @dev Returns max of min audit prices.
    */
   function getMinAuditPriceMax() public view returns (uint256) {
     return findMinAuditPricesStats().max;
   }
 
   /**
-   * @dev Returns min of min audit prices
+   * @dev Returns min of min audit prices.
    */
   function getMinAuditPriceMin() public view returns (uint256) {
     return findMinAuditPricesStats().min;
@@ -108,8 +108,8 @@ contract QuantstampAuditView is Ownable {
   }
 
   /**
-   * @dev Retrieves requestIds given a multiRequestId
-   * @param multiRequestId multiRequestId that will be mapped to associated requestIds
+   * @dev Retrieves requestIds given a multiRequestId.
+   * @param multiRequestId The ID that will be mapped to associated requestIds.
    */
   function multiRequestIdToRequestIds(uint256 multiRequestId) public view returns(uint256[]) {
     uint256 firstRequestId = multiRequestData.getMultiRequestFirstRequestId(multiRequestId);
@@ -126,7 +126,7 @@ contract QuantstampAuditView is Ownable {
   }
 
   /**
-   * @dev Returns stats of min audit prices
+   * @dev Returns stats of min audit prices.
    */
   function findMinAuditPricesStats() internal view returns (AuditPriceStat) {
     uint256 sum;

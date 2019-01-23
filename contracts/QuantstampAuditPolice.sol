@@ -168,7 +168,7 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
   }
 
   /**
-   * @dev Assigns police nodes to a submitted report
+   * @dev Assigns police nodes to a submitted report.
    * @param auditor The audit node that submitted the report.
    * @param requestId The ID of the audit request.
    */
@@ -183,7 +183,7 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
    * @param requestId The ID of the audit request.
    * @param report The compressed bytecode representation of the report.
    * @param isVerified Whether the police node's report matches the submitted report.
-   *                   If not, the auditor is slashed.
+   *                   If not, the audit node is slashed.
    * @return two bools and a uint256: (true if the report was successfully submitted, true if a slash occurred, the slash amount).
    */
   function submitPoliceReport(
@@ -243,7 +243,7 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
   function canClaimAuditReward (address auditNode, uint256 requestId) public view returns (bool) {
     // NOTE: can't use requires here, as claimNextReward needs to iterate the full list
     return
-      // the report is in the pending payments list for the auditor
+      // the report is in the pending payments list for the audit node
       pendingPayments[auditNode].nodeExists(requestId) &&
       // the policing period has ended for the report
       policeTimeouts[requestId] < block.number &&
@@ -369,17 +369,17 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
   }
 
   /**
-   * @dev Returns true if a node is whitelisted
-   * @param node Node to check.
+   * @dev Returns true if a node is whitelisted.
+   * @param node The node to check.
    */
   function isPoliceNode(address node) public view returns (bool) {
     return policeList.nodeExists(uint256(node));
   }
 
   /**
-   * @dev Adds an address to the police
-   * @param addr address
-   * @return true if the address was added to the whitelist
+   * @dev Adds an address to the police.
+   * @param addr The address to be added.
+   * @return true if the address was added to the whitelist.
    */
   function addPoliceNode(address addr) public onlyOwner returns (bool success) {
     if (policeList.insert(HEAD, uint256(addr), PREV)) {
@@ -390,9 +390,9 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
   }
 
   /**
-   * @dev Removes an address from the whitelist linked-list
-   * @param addr address
-   * @return true if the address was removed from the whitelist
+   * @dev Removes an address from the whitelist linked-list.
+   * @param addr The address to be removed.
+   * @return true if the address was removed from the whitelist.
    */
   function removePoliceNode(address addr) public onlyOwner returns (bool success) {
     // if lastAssignedPoliceNode is addr, need to move the pointer
@@ -411,9 +411,9 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
   }
 
   /**
-   * @dev Given a whitelisted address, returns the next address from the whitelist
-   * @param addr address
-   * @return next address of the given param
+   * @dev Given a whitelisted address, returns the next address from the whitelist.
+   * @param addr The address in the whitelist.
+   * @return The next address in the whitelist.
    */
   function getNextPoliceNode(address addr) public view returns (address) {
     bool exists;
