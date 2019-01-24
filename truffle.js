@@ -7,9 +7,11 @@ module.exports = {
   compilers: {
     solc: {
       version: "0.4.25",
-      optimizer: {
-	      enabled: true,
-	      runs: 200
+      settings: {
+        optimizer: {
+	        enabled: true,
+	        runs: 200
+        }
       }
     }
   },
@@ -34,7 +36,7 @@ module.exports = {
         return new HDWalletProvider(credentials.mnemonic, `https://ropsten.infura.io/${credentials.infura_apikey}`);
       },
       network_id: 3,
-      gas: 6512388,
+      gas: 6712388,
       gasPrice: 110000000000,
       account: '0x0283c049ed4705e2d98c807dbafdaf725f34b8d2'
     },
