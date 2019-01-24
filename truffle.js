@@ -21,7 +21,7 @@ module.exports = {
     QuantstampAuditReportData: false,
     QuantstampAuditTokenEscrow: false,
     QuantstampAuditPolice: false,
-    QuantstampAudit: true,
+    QuantstampAudit: false,
     QuantstampAuditView: false
   },
   networks: {
