@@ -100,7 +100,7 @@ contract('QuantstampAuditPolice', function(accounts) {
     // the auditor stakes enough tokens
     await quantstamp_audit.stake(amount, {from : auditor});
     const result = await quantstamp_audit.anyRequestAvailable({from: auditor});
-    assert.isTrue(await quantstamp_audit.hasEnoughStake({from: auditor}));
+    assert.isTrue(await quantstamp_audit.hasEnoughStake(auditor, {from: auditor}));
   }
 
   // an audit is requested and a report is submitted

@@ -60,7 +60,7 @@ contract('QuantstampAudit', function(accounts) {
     await quantstamp_audit_token_escrow.addAddressToWhitelist(quantstamp_audit.address);
     // stake the auditor
     minAuditStake = await quantstamp_audit_token_escrow.minAuditStake();
-    assert.isTrue(!(await quantstamp_audit.hasEnoughStake({from: auditor})));
+    assert.isTrue(!(await quantstamp_audit.hasEnoughStake(auditor, {from: auditor})));
     await Util.stakeAuditor(quantstamp_token, quantstamp_audit, auditor, minAuditStake, owner);
   });
 
@@ -278,7 +278,7 @@ contract('QuantstampAudit', function(accounts) {
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
 
     await quantstamp_audit.unstake({from: auditor});
-    assert.isTrue(!(await quantstamp_audit.hasEnoughStake({from: auditor})));
+    assert.isTrue(!(await quantstamp_audit.hasEnoughStake(auditor, {from: auditor})));
     Util.assertEvent({
       result: await quantstamp_audit.getNextAuditRequest({from: auditor}),
       name: "LogAuditAssignmentError_Understaked",
