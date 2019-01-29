@@ -17,9 +17,12 @@ try {
 
 function updateVersion(config) {
     let packageJson = editJsonFile('package.json')
-    packageJson.set("version", config.deploy.version)
-    packageJson.save()
-    console.log("Version updated to " + config.deploy.version)
+    let version = packageJson.get("version")
+    if (!(version >= config.deploy.version)) {
+        packageJson.set("version", config.deploy.version)
+        packageJson.save()
+        console.log("Version updated to " + config.deploy.version)
+    } else throw Error("New version number should be greater than current version")
 }
 
 function getCommitHash() {
@@ -67,12 +70,12 @@ function updateTruffle(contractNames) {
     });
 }
 
-function writeTruffleCommands(config, deployScript) {
-    content= "#!/bin/bash\ntruffle migrate --network " + config.deploy.network + " --reset\n"
+function writeTruffleCommands(network, deployScript) {
+    content= "#!/bin/bash\ntruffle migrate --network " + network + " --reset\n"
     //console.log(deployScript)
     try {
         fs.writeFileSync(deployScript, content, {mode: '744', flag: 'w'})
-        console.log("Wrote truffle migrate command to deploy.sh")
+        console.log("Wrote truffle migrate command to " +  deployScript)
     } catch(err) {
         // undoAllChanges()
         throw err
@@ -98,12 +101,12 @@ function findWhiteListCommands(contractNames) {
     return whitelistDefs
 }
 
-function writeWhiteListcommands(config, whitelistDefs, deployScript) {
+function writeWhiteListcommands(network, whitelistDefs, deployScript) {
     whitelistDefs.forEach(whitelistDef => {
-        content = "npm run command -- -n="  + config.deploy.network + " -a=" + whitelistDef + "\n"
+        content = "npm run command -- -n="  + network+ " -a=" + whitelistDef + "\n"
         try {
             fs.writeFileSync(deployScript, content, {mode: '744', flag: 'a'})
-            console.log("Wrote whitelist command for " + whitelistDef + " to deploy.sh")
+            console.log("Wrote whitelist command for " + whitelistDef + " to "+  deployScript)
         } catch(err) {
             // undoAllChanges()
             throw err
@@ -115,16 +118,23 @@ let config = getConfig()
 if (!config) {
     process.exit()
 }
-let deployScript = "deploy.sh"
+
 let fileNames = getDiffFiles()
 let contractNames = getupdatedContractNames(fileNames)
 // console.log(contractNames)
 updateVersion(config)
 updateTruffle(contractNames)
-writeTruffleCommands(config, deployScript)
-let whitelistDefs = findWhiteListCommands(contractNames)
+console.log(config.deploy.network)
+config.deploy.network.forEach(network => {
 
-if (whitelistDefs.length > 0) {
-    console.log("Found following matching whitelisting definitions: " + whitelistDefs)
-}
-writeWhiteListcommands(config, whitelistDefs, deployScript) 
+    console.log(network.name)
+    let deployScript = "deploy-" + network.name + ".sh"
+    writeTruffleCommands(network.name, deployScript)
+    let whitelistDefs = findWhiteListCommands(contractNames)
+    if (whitelistDefs.length > 0) {
+        console.log("Found following matching whitelisting definitions: " + whitelistDefs)
+    }
+    writeWhiteListcommands(network.name, whitelistDefs, deployScript) 
+})
+
+
