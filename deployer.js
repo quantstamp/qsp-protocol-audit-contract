@@ -30,8 +30,6 @@ function getCommitHash() {
 
 function getDiffFiles() {
     let commitHash = getCommitHash()
-    commitHash = "1ba9f93dacd2575f95b23e091f21da1c764b9fd3"
-    commitHash = "41c5804c1d94f259a6481289ab78cff847556936"
     files = shell.exec('git diff-tree --name-only --no-commit-id -r ' + commitHash, {silent:true}).stdout.split("\n");
     // console.log(files)
     return files
