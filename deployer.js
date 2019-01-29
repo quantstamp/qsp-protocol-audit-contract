@@ -86,13 +86,16 @@ function findWhiteListCommands(contractNames) {
     let definitions = fs.readFileSync('scripts/definitions.js', 'utf8')
     // console.log(definitions)
     contractNames.forEach(contract => {
-        r = '\'(whitelist.*)\':\\s*{\\s*contractName:\\s*\'' + contract + '\''
+        r = '\'(whitelist.*)\':\\s*{\\s*contractName:\\s*\'' + contract + '\',\\s*methodName:\\s*\'addAddressToWhitelist\''
         f = new RegExp(r, 'g')  
         // console.log(f)
-        matches = f.exec(definitions)
-        if (matches !== null && matches.length == 2) {
-            whitelistDefs.push(matches[1])
-        }
+        do {
+            matches = f.exec(definitions)
+            //console.log(matches)
+            if (matches !== null && matches.length == 2) {
+                whitelistDefs.push(matches[1])
+            }
+        } while (matches);
     })
     return whitelistDefs
 }
