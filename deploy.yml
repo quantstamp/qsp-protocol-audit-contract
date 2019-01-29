@@ -1,0 +1,4 @@
+deploy:
+  version: 2.3.0
+  network:
+    - dev
