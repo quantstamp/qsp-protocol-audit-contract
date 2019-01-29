@@ -38,7 +38,7 @@ function getDiffFiles() {
     return files
 }
 
-function getupdatedContractNames(fileNames) {
+function getUpdatedContractNames(fileNames) {
     let sol = new RegExp('.sol$')
     let files = fileNames.filter(fileName => fileName.match(sol))
     let contractNames = files.map(file => path.parse(file).base.split(".")[0])
@@ -120,7 +120,7 @@ if (!config) {
 }
 
 let fileNames = getDiffFiles()
-let contractNames = getupdatedContractNames(fileNames)
+let contractNames = getUpdatedContractNames(fileNames)
 // console.log(contractNames)
 updateVersion(config)
 updateTruffle(contractNames)
