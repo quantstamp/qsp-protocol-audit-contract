@@ -2,8 +2,6 @@ deploy:
   version: 2.1.0
   network:
   - name: dev
-  - name: development
-  - name: production
 
     
 
