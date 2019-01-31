@@ -208,7 +208,7 @@ contract('QuantstampAuditPolice', function(accounts) {
 
   it("should allow the police to submit a positive report", async function() {
     currentId = await submitNewReport();
-
+    assert.equal(await quantstamp_audit_police.getPoliceReportResult(currentId, police1), Util.PoliceReportState.Unverified);
     const result = await quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, true, {from: police1});
 
     Util.assertNestedEvent({
@@ -224,6 +224,7 @@ contract('QuantstampAuditPolice', function(accounts) {
     // the police report state has been updated
     const police_report_state = await quantstamp_audit_police.verifiedReports(currentId);
     assert.equal(police_report_state, Util.PoliceReportState.Valid);
+    assert.equal(await quantstamp_audit_police.getPoliceReportResult(currentId, police1), Util.PoliceReportState.Valid);
 
     // check that the report is added to the map
     const report = await quantstamp_audit_police.getPoliceReport(currentId, police1);
@@ -257,6 +258,8 @@ contract('QuantstampAuditPolice', function(accounts) {
 
     const auditor_deposits_before = await quantstamp_audit_token_escrow.depositsOf(auditor);
     const police_balances_before = await getPoliceBalances();
+
+    assert.equal(await quantstamp_audit_police.getPoliceReportResult(currentId, police1), Util.PoliceReportState.Unverified);
 
     const result = await quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, false, {from: police1});
 
@@ -292,6 +295,8 @@ contract('QuantstampAuditPolice', function(accounts) {
       },
       index: 3
     });
+
+    assert.equal(await quantstamp_audit_police.getPoliceReportResult(currentId, police1), Util.PoliceReportState.Invalid);
 
     const auditor_deposits_after = await quantstamp_audit_token_escrow.depositsOf(auditor);
     const police_balance_after = await Util.balanceOf(quantstamp_token, quantstamp_audit_police.address);
