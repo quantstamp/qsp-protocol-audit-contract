@@ -363,6 +363,18 @@ contract('QuantstampAuditPolice', function(accounts) {
     }
   });
 
+  it("should be able to get all police assigned to a report", async function() {
+    let result;
+    result = await quantstamp_audit_police.getNextAssignedPolice(currentId, Util.zeroAddress);
+    for(var i = 0; i < all_police.length; i++) {
+      assert.isTrue(result[0]);
+      assert.equal(result[1], all_police[i]);
+      result = await quantstamp_audit_police.getNextAssignedPolice(currentId, all_police[i]);
+    }
+    assert.isTrue(!result[0]);
+    assert.equal(result[1], 0);
+  });
+
   it("should only assign some police to a report if policeNodesPerReport < numPoliceNodes", async function() {
     policeNodesPerReport = 2;
     await quantstamp_audit_police.setPoliceNodesPerReport(policeNodesPerReport, {from: owner});
