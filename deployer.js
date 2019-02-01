@@ -85,7 +85,9 @@ function getUpdatedContractNames(fileNames) {
     let sol = new RegExp('.sol$')
     let files = fileNames.filter(fileName => fileName.match(sol))
     let contractNames = files.map(file => path.parse(file).base.split(".")[0])
-    console.log("Found updated contracts")
+    if (contractNames.length > 0) {
+        console.log("Found updated contracts")
+    }
     return contractNames
 }
 
@@ -115,14 +117,7 @@ function updateTruffle(contractNames) {
 
 function writeTruffleCommands(network, deployScript) {
     content= "#!/bin/bash\ntruffle migrate --network " + network + " --reset\n"
-    //console.log(deployScript)
-    try {
-        fs.writeFileSync(deployScript, content, {mode: '744', flag: 'w'})
-        console.log("Wrote truffle migrate command to " +  deployScript)
-    } catch(err) {
-        // undoAllChanges()
-        throw err
-    }
+    return content
 }
 
 function findWhiteListCommands(updatedContractNames) {
@@ -148,17 +143,18 @@ function findWhiteListCommands(updatedContractNames) {
     return whitelistDefs
 }
 
-function writeWhiteListcommands(network, whitelistDefs, deployScript) {
-    whitelistDefs.forEach(whitelistDef => {
-        content = "npm run command -- -n="  + network+ " -a=" + whitelistDef + "\n"
-        try {
-            fs.writeFileSync(deployScript, content, {mode: '744', flag: 'a'})
-            console.log("=======\nWrote whitelist command for " + whitelistDef + " to "+  deployScript)
-        } catch(err) {
-            // undoAllChanges()
-            throw err
-        }
+
+function writeWhiteListcommands(network, whiteListDefs) {
+    commands = []
+    whiteListDefs.forEach(whitelistDef => {
+        commands.push("npm run command -- -n="  + network+ " -a=" + whitelistDef)
     })
+    return commands.join("\n")
+}
+
+function writeGitDiscardCommands() {
+    content = "\ngit checkout -- truffle.js\n"
+    return content
 }
 
 function main() {
@@ -168,11 +164,12 @@ function main() {
     }
 
     let allContracts = getAllContractNames()
+    var deployRequired = false
 
     config.deploy.network.forEach(async (network) => {
         var updatedContractNames = []
         var currentVersion = getCurrentVersion()
-        var deployScript = "deploy-" + network.name + ".sh"
+        var deployScript = fs.createWriteStream("deploy-" + network.name + ".sh",{mode: '744', flag: 'w'})
 
         writeTruffleCommands(network.name, deployScript)
 
@@ -188,17 +185,34 @@ function main() {
                 console.log("Could not find a commit hash for current major version")
             }
         }
-    
-        updatedContractNames = [...new Set(updatedContractNames)]
-        console.log("=======\nUpdated contracts are: " + updatedContractNames)
-        updateTruffle(updatedContractNames)
-        var whitelistDefs = findWhiteListCommands(updatedContractNames)
-        if (whitelistDefs.length > 0) {
-            console.log("=======\nFound following matching whitelisting definitions: " + whitelistDefs)
+        if (updatedContractNames.length > 0) {
+            deployRequired = true
+            updatedContractNames = [...new Set(updatedContractNames)]
+            console.log("=======\nUpdated contracts are: " + updatedContractNames)
+            updateTruffle(updatedContractNames)
+            var whitelistDefs = findWhiteListCommands(updatedContractNames)
+            if (whitelistDefs.length > 0) {
+                console.log("=======\nFound following matching whitelisting definitions: " + whitelistDefs)
+            }
+
+            try {
+                deployScript.write(writeTruffleCommands(network.name))
+                console.log("Wrote truffle migrate command to " +  deployScript.path)
+                deployScript.write(writeWhiteListcommands(network.name, whitelistDefs))
+                console.log("=======\nWrote whitelist commands to "+  deployScript.path)
+                deployScript.write(writeGitDiscardCommands())
+            } catch(err) {
+                // undoAllChanges()
+                throw(err)
+            }
         }
-        writeWhiteListcommands(network.name, whitelistDefs, deployScript) 
+        else console.log("No contract updated since last deploy")
     })
-    updateVersion(config)
+
+    if (deployRequired) {
+        updateVersion(config)
+    }
+
 }
 
 main()

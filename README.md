@@ -181,6 +181,13 @@ This includes running Truffle tests and collecting coverage report for [Coverall
 1. `truffle test --network development`
 1. `truffle migrate --network development`
 
+## Deploy to other networks
+1. Specify the network names( as defined in truffle.js ) and the version that you want to deploy in deploy.yml
+1. Run `npm run deploy`
+1. If successful, you should now have a `deployer-<network-name>.sh` file
+for each network.
+1. Execute the files 
+
 ## Calculating Minimum Audit Price
 
 Audit nodes need to be profitable to have incentives to operate. They receive payments in QSP tokens, but need to pay for gas (to cover the cost of Ethereum transactions) to interact with the Audit smart contract.

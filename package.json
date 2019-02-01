@@ -11,7 +11,8 @@
     "test-cov": "./node_modules/.bin/solidity-coverage",
     "coveralls-collect": "cat coverage/lcov.info | ./node_modules/.bin/coveralls",
     "command": "node ./scripts/command.js",
-    "lint": "./node_modules/.bin/solhint contracts/Quantstamp*.sol"
+    "lint": "./node_modules/.bin/solhint contracts/Quantstamp*.sol",
+    "deploy": "node deployer.js"
   },
   "author": "",
   "license": "ISC",
