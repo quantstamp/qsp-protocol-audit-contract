@@ -92,11 +92,9 @@ function getUpdatedContractNames(fileNames) {
 }
 
 function updateTruffle(contractNames) {
-    //let truffle = fs.readFileSync('truffle.js', 'utf8')
     contractNames.forEach(contract => {
         r = '\\s' + contract + '\\s?:\\s?false'
         f = new RegExp(r, 'g')
-        // console.log(f)
         const options = {
             files: 'truffle.js', 
             from: f,
@@ -106,7 +104,7 @@ function updateTruffle(contractNames) {
             const changes = replace.sync(options);
             //console.log('Modified files:', changes.join(', '));
             if (changes.length > 0) {
-                console.log("Truffle.js modfied for " + contract )
+                console.log("Truffle.js modified for " + contract )
             }
           }
           catch (error) {
@@ -125,13 +123,10 @@ function findWhiteListCommands(updatedContractNames) {
     defKeys = Object.keys(definitions)
     updatedContractNames.forEach(updatedContractName => {
         defKeys.forEach(key => {
-            // console.log(key)
             method = definitions[key]["methodName"]
             if (method === 'addAddressToWhitelist') { 
                 Contract = definitions[key]["contractName"]
                 asynDef = definitions[key]["methodArgs"].toString()
-                // console.log(contract)
-                // console.log(asynDef)
                 if (contract === updatedContractName || asynDef.includes(updatedContractName)) {
                     whitelistDefs.push(key)
                 }
@@ -139,7 +134,6 @@ function findWhiteListCommands(updatedContractNames) {
         })
     })
     whitelistDefs = [...new Set(whitelistDefs)]
-    // console.log(whitelistDefs)
     return whitelistDefs
 }
 
@@ -164,7 +158,6 @@ function main() {
     }
 
     let allContracts = getAllContractNames()
-    var deployRequired = false
 
     config.deploy.network.forEach(async (network) => {
         var updatedContractNames = []
@@ -186,7 +179,6 @@ function main() {
             }
         }
         if (updatedContractNames.length > 0) {
-            deployRequired = true
             updatedContractNames = [...new Set(updatedContractNames)]
             console.log("=======\nUpdated contracts are: " + updatedContractNames)
             updateTruffle(updatedContractNames)
@@ -201,6 +193,7 @@ function main() {
                 deployScript.write(writeWhiteListcommands(network.name, whitelistDefs))
                 console.log("=======\nWrote whitelist commands to "+  deployScript.path)
                 deployScript.write(writeGitDiscardCommands())
+                updateVersion(config)
             } catch(err) {
                 // undoAllChanges()
                 throw(err)
@@ -208,11 +201,6 @@ function main() {
         }
         else console.log("No contract updated since last deploy")
     })
-
-    if (deployRequired) {
-        updateVersion(config)
-    }
-
 }
 
 main()
