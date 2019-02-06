@@ -427,9 +427,10 @@ contract QuantstampAudit is Ownable, Pausable {
 
   /**
    * @dev Returns true if the sender staked enough.
+   * @param addr The address to check.
    */
-  function hasEnoughStake() public view returns(bool) {
-    return tokenEscrow.hasEnoughStake(msg.sender);
+  function hasEnoughStake(address addr) public view returns(bool) {
+    return tokenEscrow.hasEnoughStake(addr);
   }
 
   /**
@@ -477,7 +478,7 @@ contract QuantstampAudit is Ownable, Pausable {
     }
 
     // check that the audit node's stake is large enough
-    if (!hasEnoughStake()) {
+    if (!hasEnoughStake(msg.sender)) {
       return AuditAvailabilityState.Understaked;
     }
 
@@ -569,7 +570,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param price The minimum price.
    */
   function setAuditNodePrice(uint256 price) public {
-    require(hasEnoughStake());
+    require(hasEnoughStake(msg.sender));
     auditData.setMinAuditPrice(msg.sender, price);
     emit LogAuditNodePriceChanged(msg.sender, price);
   }

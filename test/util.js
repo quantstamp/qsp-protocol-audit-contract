@@ -161,7 +161,7 @@ async function stakeAuditor(quantstamp_token, quantstamp_audit, addr, amount, ow
     await quantstamp_token.approve(quantstamp_audit.address, amount, {from : addr});
     // the auditor stakes enough tokens
     await quantstamp_audit.stake(amount, {from : addr});
-    assert.isTrue(await quantstamp_audit.hasEnoughStake({from: addr}));
+    assert.isTrue(await quantstamp_audit.hasEnoughStake(addr, {from: addr}));
   }
 
 module.exports = {

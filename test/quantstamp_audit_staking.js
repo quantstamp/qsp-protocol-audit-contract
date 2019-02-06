@@ -87,7 +87,7 @@ contract('QuantstampAudit', function(accounts) {
     // the auditor stakes enough tokens
     await quantstamp_audit.stake(min_stake, {from : auditor});
     const result = await quantstamp_audit.anyRequestAvailable({from: auditor});
-    assert.isTrue(await quantstamp_audit.hasEnoughStake({from: auditor}));
+    assert.isTrue(await quantstamp_audit.hasEnoughStake(auditor, {from: auditor}));
     assert.equal(result.toNumber(), Util.AuditAvailabilityState.Ready);
     assert.isTrue((await quantstamp_audit.totalStakedFor(auditor)).eq(min_stake));
   });
