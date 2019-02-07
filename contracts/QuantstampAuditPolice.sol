@@ -37,7 +37,7 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
   uint256 public policeNodesPerReport = 3;
 
   // the number of blocks the police have to verify a report
-  uint256 public policeTimeoutInBlocks = 75;
+  uint256 public policeTimeoutInBlocks = 100;
 
   // number from [0-100] that indicates the percentage of the minAuditStake that should be slashed
   uint256 public slashPercentage = 20;
