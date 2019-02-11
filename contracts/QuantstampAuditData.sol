@@ -40,7 +40,7 @@ contract QuantstampAuditData is Whitelist {
 
   // Once an audit node gets an audit request, they must submit a report within this many blocks.
   // After that, the report is verified by the police.
-  uint256 public auditTimeoutInBlocks = 25;
+  uint256 public auditTimeoutInBlocks = 50;
 
   // maximum number of assigned audits per each audit node
   uint256 public maxAssignedRequests = 10;
