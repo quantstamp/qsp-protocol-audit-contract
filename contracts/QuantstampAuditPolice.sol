@@ -61,6 +61,9 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
   // maps each police node to the IDs of reports it should check
   mapping(address => LinkedListLib.LinkedList) internal assignedReports;
 
+  // maps request IDs to the police nodes that are expected to check the report
+  mapping(uint256 => LinkedListLib.LinkedList) internal assignedPolice;
+
   // maps each audit node to the IDs of reports that are pending police approval for payment
   mapping(address => LinkedListLib.LinkedList) internal pendingPayments;
 
@@ -69,6 +72,9 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
 
   // maps request IDs to reports submitted by police nodes
   mapping(uint256 => mapping(address => bytes)) public policeReports;
+
+  // maps request IDs to the result reported by each police node
+  mapping(uint256 => mapping(address => PoliceReportState)) public policeReportResults;
 
   // maps request IDs to whether they have been verified by the police
   mapping(uint256 => PoliceReportState) public verifiedReports;
@@ -120,7 +126,8 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
       if (lastAssignedPoliceNode != address(0)) {
         // push the request ID to the tail of the assignment list for the police node
         assignedReports[lastAssignedPoliceNode].push(requestId, PREV);
-
+        // push the police node to the list of nodes assigned to check the report
+        assignedPolice[requestId].push(uint256(lastAssignedPoliceNode), PREV);
         emit PoliceNodeAssignedToReport(lastAssignedPoliceNode, requestId);
         totalReportsAssigned[lastAssignedPoliceNode] = totalReportsAssigned[lastAssignedPoliceNode].add(1);
         numToAssign = numToAssign.sub(1);
@@ -215,6 +222,8 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
     } else {
       state = PoliceReportState.INVALID;
     }
+    policeReportResults[requestId][policeNode] = state;
+
     emit PoliceReportSubmitted(policeNode, requestId, state);
     // the report was already marked invalid by a different police node
     if (verifiedReports[requestId] == PoliceReportState.INVALID) {
@@ -335,6 +344,22 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
   }
 
   /**
+   * @dev Gets the next assigned police node to an audit request.
+   * @param requestId The ID of the audit request.
+   * @param policeNode The previous claimed requestId (initially set to HEAD).
+   * @return true if the next police node exists, and the address of the police node.
+   */
+  function getNextAssignedPolice(uint256 requestId, address policeNode) public view returns (bool, address) {
+    bool exists;
+    uint256 nextPoliceNode;
+    (exists, nextPoliceNode) = assignedPolice[requestId].getAdjacent(uint256(policeNode), NEXT);
+    if (nextPoliceNode == HEAD) {
+      return (false, address(0));
+    }
+    return (exists, address(nextPoliceNode));
+  }
+
+  /**
    * @dev Sets the number of police nodes that should check each report.
    * @param numPolice The number of police.
    */
@@ -420,6 +445,16 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
     uint256 next;
     (exists, next) = policeList.getAdjacent(uint256(addr), NEXT);
     return address(next);
+  }
+
+  /**
+   * @dev Returns the resulting state of a police report for a given audit request.
+   * @param requestId The ID of the audit request.
+   * @param policeAddr The address of the police node.
+   * @return the PoliceReportState of the (requestId, policeNode) pair.
+   */
+  function getPoliceReportResult(uint256 requestId, address policeAddr) public view returns (PoliceReportState) {
+    return policeReportResults[requestId][policeAddr];
   }
 
   function getPoliceReport(uint256 requestId, address policeAddr) public view returns (bytes) {
