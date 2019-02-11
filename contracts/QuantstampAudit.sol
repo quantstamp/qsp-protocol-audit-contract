@@ -192,7 +192,8 @@ contract QuantstampAudit is Ownable, Pausable {
     // return the funds to the requestor
     uint256 price = auditData.getAuditPrice(requestId);
     emit LogRefund(requestId, requestor, price);
-    return auditData.token().transfer(requestor, price);
+    safeTransferFromDataContract(requestor, price);
+    return true;
   }
 
   /**
@@ -230,8 +231,8 @@ contract QuantstampAudit is Ownable, Pausable {
    */
   function requestAudit(string contractUri, uint256 price) public whenNotPaused returns(uint256) {
     require(price > 0);
-    // transfer tokens to this contract
-    require(auditData.token().transferFrom(msg.sender, address(this), price));
+    // transfer tokens to the data contract
+    require(auditData.token().transferFrom(msg.sender, address(auditData), price));
     // store the audit
     uint256 requestId = auditData.addAuditRequest(msg.sender, contractUri, price);
 
@@ -299,7 +300,7 @@ contract QuantstampAudit is Ownable, Pausable {
       // pay fee to the police
       if (police.reportProcessingFeePercentage() > 0 && police.numPoliceNodes() > 0) {
         uint256 policeFee = police.collectFee(requestId);
-        auditData.token().transfer(address(police), policeFee);
+        safeTransferFromDataContract(address(police), policeFee);
         police.splitPayment(policeFee);
       }
     }
@@ -346,7 +347,8 @@ contract QuantstampAudit is Ownable, Pausable {
       // transfer the audit request price to the police
       uint256 auditPoliceFee = police.collectedFees(requestId);
       uint256 adjustedPrice = auditData.getAuditPrice(requestId).sub(auditPoliceFee);
-      require(auditData.token().transfer(address(police), adjustedPrice));
+      safeTransferFromDataContract(address(police), adjustedPrice);
+
       // divide the adjusted price + slash among police assigned to report
       police.splitPayment(adjustedPrice.add(slashAmount));
     }
@@ -379,10 +381,9 @@ contract QuantstampAudit is Ownable, Pausable {
    * @dev Claim all pending rewards for the audit node.
    * @return The total amount of rewards paid.
    */
-  function claimRewards () public returns (uint256) {
+  function claimRewards () public returns (bool) {
     // Yet another list iteration. Could ignore this check, but makes testing painful.
     require(hasAvailableRewards());
-    uint256 totalPrice;
     bool exists;
     uint256 requestId = HEAD;
     // This loop occurs here (not in QuantstampAuditPolice) due to requiring the audit price,
@@ -394,8 +395,7 @@ contract QuantstampAudit is Ownable, Pausable {
       }
       transferReward(requestId);
     }
-    auditData.token().transfer(msg.sender, totalPrice);
-    return totalPrice;
+    return true;
   }
 
   /**
@@ -412,7 +412,7 @@ contract QuantstampAudit is Ownable, Pausable {
 
     uint256 auditPrice = auditData.getAuditPrice(requestId);
     address receiver = toRequester ? auditData.getAuditRequestor(requestId) : auditData.getAuditAuditor(requestId);
-    auditData.token().transfer(receiver, auditPrice);
+    safeTransferFromDataContract(receiver, auditPrice);
     auditData.setAuditState(requestId, QuantstampAuditData.AuditState.Resolved);
     emit LogErrorReportResolved(requestId, receiver, auditPrice);
   }
@@ -765,9 +765,20 @@ contract QuantstampAudit is Ownable, Pausable {
   function transferReward (uint256 requestId) internal {
     uint256 auditPoliceFee = police.collectedFees(requestId);
     uint256 auditorPayment = auditData.getAuditPrice(requestId).sub(auditPoliceFee);
-    auditData.token().transfer(msg.sender, auditorPayment);
+    safeTransferFromDataContract(msg.sender, auditorPayment);
     emit LogPayAuditor(requestId, msg.sender, auditorPayment);
   }
+
+  /**
+   * @dev Used to transfer funds stored in the data contract to a given address.
+   * @param _to The address to transfer funds.
+   * @param amount The amount of wei-QSP to be transferred.
+   */
+  function safeTransferFromDataContract(address _to, uint256 amount) internal {
+    auditData.approveWhitelisted(amount);
+    require(auditData.token().transferFrom(address(auditData), _to, amount));
+  }
+
 
   /**
    * @dev Manages request if it is from a multirequest.

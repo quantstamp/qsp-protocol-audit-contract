@@ -68,6 +68,14 @@ contract QuantstampAuditData is Whitelist {
     return requestId;
   }
 
+  /**
+   * @dev Allows a whitelisted logic contract (QuantstampAudit) to spend stored tokens.
+   * @param amount The number of wei-QSP that will be approved.
+   */
+  function approveWhitelisted(uint256 amount) public onlyWhitelisted {
+    token.approve(msg.sender, amount);
+  }
+
   function getAuditContractUri(uint256 requestId) public view returns(string) {
     return audits[requestId].contractUri;
   }
