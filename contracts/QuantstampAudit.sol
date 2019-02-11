@@ -779,7 +779,6 @@ contract QuantstampAudit is Ownable, Pausable {
     require(auditData.token().transferFrom(address(auditData), _to, amount));
   }
 
-
   /**
    * @dev Manages request if it is from a multirequest.
    * @param requestId Unique ID of the audit request.
