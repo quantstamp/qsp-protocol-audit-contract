@@ -73,7 +73,7 @@ contract('QuantstampAudit2', function(accounts) {
     assert.equal(result.logs.length, 1);
     assert.equal(result.logs[0].event, "LogAuditRequested");
     // the audit contract should have only one payment
-    assert.isTrue((await Util.balanceOf(quantstamp_token, quantstamp_audit.address)).eq(price));
+    assert.isTrue((await Util.balanceOf(quantstamp_token, quantstamp_audit_data.address)).eq(price));
     assert.equal(await quantstamp_audit.isAuditFinished(requestId), false);
   });
 

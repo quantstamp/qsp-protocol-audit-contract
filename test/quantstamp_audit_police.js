@@ -578,12 +578,12 @@ contract('QuantstampAuditPolice', function(accounts) {
       if (i != num_reports - 1) {
         current_slash = slash_amount.add(expectedAuditorPayment);
         expected_total_slashed = current_slash.add(expected_total_slashed);
-        index = 6;
+        index = 7;
       }
       else {
         current_slash = new BigNumber(extra_stake).plus(expectedAuditorPayment);
         expected_total_slashed = new BigNumber(current_slash).plus(expected_total_slashed);
-        index = 7;  // there's an extra event due to the node being removed from the staked list
+        index = 8;  // there's an extra event due to the node being removed from the staked list
       }
       Util.assertNestedEventAtIndex({
         result: result,
