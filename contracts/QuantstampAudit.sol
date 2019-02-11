@@ -772,7 +772,7 @@ contract QuantstampAudit is Ownable, Pausable {
   /**
    * @dev Used to transfer funds stored in the data contract to a given address.
    * @param _to The address to transfer funds.
-   * @param amount The amount of wei-QSP to be transferred.
+   * @param amount The number of wei-QSP to be transferred.
    */
   function safeTransferFromDataContract(address _to, uint256 amount) internal {
     auditData.approveWhitelisted(amount);
