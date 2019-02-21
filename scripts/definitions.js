@@ -13,6 +13,14 @@ module.exports = {
       return argv.p;
     }
   },
+  'unwhitelist-police-node': {
+    contractName: 'QuantstampAuditPolice',
+    methodName: 'removePoliceNode',
+    gasLimit: 90000,
+    methodArgs: async(stage, argv) => {
+      return argv.p;
+    }
+  },
   'whitelist-owner-in-data-contract': {
     contractName: 'QuantstampAuditData',
     methodName: 'addAddressToWhitelist',
