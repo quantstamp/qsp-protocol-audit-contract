@@ -114,6 +114,8 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
    * @param requestId The ID of the audit request.
    */
   function assignPoliceToReport(uint256 requestId) public onlyWhitelisted {
+    // ensure that the requestId has not already been assigned to police already
+    require(policeTimeouts[requestId] == 0);
     // set the timeout for police reports
     policeTimeouts[requestId] = block.number + policeTimeoutInBlocks;
     // if there are not enough police nodes, this avoids assigning the same node twice
@@ -237,7 +239,6 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
     bool slashOccurred;
     uint256 slashAmount;
     if (!isVerified) {
-      verifiedReports[requestId] = PoliceReportState.INVALID;
       pendingPayments[auditNode].remove(requestId);
       // an audit node can only be slashed once for each report,
       // even if multiple police mark the report as invalid
@@ -262,8 +263,6 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
       policeTimeouts[requestId] < block.number &&
       // the police did not invalidate the report
       verifiedReports[requestId] != PoliceReportState.INVALID &&
-      // the policing period has ended for the report
-      policeTimeouts[requestId] < block.number &&
       // the reward has not already been claimed
       !rewardHasBeenClaimed[requestId];
   }
