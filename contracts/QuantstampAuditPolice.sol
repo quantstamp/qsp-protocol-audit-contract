@@ -163,7 +163,7 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
     uint256 largerAmount = amountPerNode.add(amount % numPoliceNodes);
     bool largerAmountClaimed = false;
     while (policeNode != address(HEAD)) {
-      // give the largerAmount to the current lastAssignedPoliceNode
+      // give the largerAmount to the current lastAssignedPoliceNode if it is not equal to HEAD
       // this approach is only truly fair if numPoliceNodes and policeNodesPerReport are relatively prime
       // but the remainder should be extremely small in any case
       // the last conditional handles the edge case where all police nodes were removed and then re-added
