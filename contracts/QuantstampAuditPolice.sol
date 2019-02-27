@@ -178,7 +178,7 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
   }
 
   /**
-   * @dev Assigns police nodes to a submitted report.
+   * @dev Associates a pending payment with an auditor that can be claimed after the policing period.
    * @param auditor The audit node that submitted the report.
    * @param requestId The ID of the audit request.
    */
@@ -328,6 +328,7 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
   /**
    * @dev Gets the next assigned report to the police node.
    * @param policeNode The address of the police node.
+   * @return true if the list is non-empty, requestId, auditPrice, uri, and policeAssignmentBlockNumber.
    */
   function getNextPoliceAssignment(address policeNode) public view returns (bool, uint256, uint256, string, uint256) {
     bool exists;
