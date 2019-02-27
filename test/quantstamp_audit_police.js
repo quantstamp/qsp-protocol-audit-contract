@@ -300,7 +300,7 @@ contract('QuantstampAuditPolice', function(accounts) {
         assert.equal(args.addr, auditor.toLowerCase());
         assert.equal(args.amount, slash_amount);
       },
-      index: 2
+      index: 1
     });
 
     Util.assertNestedEventAtIndex({
