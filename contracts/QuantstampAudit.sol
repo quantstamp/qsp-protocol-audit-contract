@@ -277,14 +277,14 @@ contract QuantstampAudit is Pausable {
     return reportData.getReport(requestId);
   }
 
-   /**
+  /**
    * @dev Checks whether a given node is a police.
    * @param node The address of the node to be checked.
    * @return true if the target address is a police node.
    */
-   function isPoliceNode(address node) public view returns(bool) {
-     return police.isPoliceNode(node);
-   }
+  function isPoliceNode(address node) public view returns(bool) {
+    return police.isPoliceNode(node);
+  }
 
   /**
    * @dev Submits verification of a report by a police node.
@@ -650,7 +650,7 @@ contract QuantstampAudit is Pausable {
 
     // picks the tail of price buckets
     (priceExists, price) = priceList.getAdjacent(HEAD, PREV);
-    if(price < minPrice) {
+    if (price < minPrice) {
       return 0;
     }
     requestId = getNextAuditByPrice(price, HEAD);
