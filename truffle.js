@@ -17,7 +17,6 @@ module.exports = {
   },
   deploy: {
     QuantstampAuditData: false,
-    QuantstampAuditMultiRequestData: false,
     QuantstampAuditReportData: false,
     QuantstampAuditTokenEscrow: false,
     QuantstampAuditPolice: false,
