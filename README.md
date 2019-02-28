@@ -146,6 +146,8 @@ Below we describe each step in more details. We assume that you are using JS Web
 
 Note that the address and ABI for each contract depends on whether you are on Ropsten or Mainnet. You can find the relevant information in one of the previous sections.
 
+Let us briefly discuss staking before elaborating each step. Staking a deposit is a mechanism that incentivizes audit nodes to perform correct computations . Each node must stake at least the amount returned by `await quantstamp_audit.getMinAuditStake()`. If an audit node submits an incorrect report, part of the stake deposit (defined by `slashPercentage` in the contract `QuantstampAuditPolice`) will be lost by the audit node. The more you stake, the more mistakes you are allowed to make before getting denied any audit. If you provide only correct reports, your stake deposit is never lost and you can get it back.
+
 ### Step 1: Authorize Quantstamp Protocol to collect your QSP as a stake deposit
 
 You can authorize Quantstamp Protocol to collect your QSP as payment as follows:
@@ -156,8 +158,6 @@ where:
 * `_value` is the total amount of QSP which you are giving permission to withdraw. Please note that this amount needs to be multiplied by 10^18 (similarly to how ETH gets converted into Wei). One way of doing the conversion is via `web3.toWei(n, "ether")`, where `n` is the amount of QSP tokens.
 
 ### Step 2: Stake the given deposit.
-
-Staking a deposit is a mechanism that incentivizes audit nodes to perform correct computations . Each node must stake at least the amount returned by `await quantstamp_audit.getMinAuditStake()`. If an audit node submits an incorrect report, part of the stake deposit (defined by `slashPercentage` in the contract `QuantstampAuditPolice`) will be lost by the audit node. The more you stake, the more mistakes you are allowed to make before getting denied any audit. If you provide only correct reports, your stake deposit is never lost and you can get it back.
 
 You can stake a given, previously approved, amount as follows:
 
@@ -204,7 +204,7 @@ where:
   * `Empty` - there is no audit request in the queue,
   * `Exceeded` - number of incomplete audit requests assigned to your node has reached the cap,
   * `Underpriced` - all queued audit requests are less than the expected price,
-  * `Understaked ` - the audit node's stake is not large enough to get an audit.
+  * `Understaked` - the audit node's stake is not large enough to get an audit.
   
 ### Step 5: Submit a request to perform an audit.
   
@@ -216,7 +216,7 @@ The function finds the most expensive audit and tries to assign it to your node.
 
 `LogAuditAssigned(requestId, auditor, requestor, uri, price, requestBlockNumber)`
 
-where
+where:
 
 * `requestId` is an audit request Id.
 * `auditor` is a wallet address of the audit node that got the request.
@@ -225,7 +225,7 @@ where
 * `price` audit price as provided by the requestor.
 * `requestBlockNumber` Ethereum block number at which the audit was requested.
 
-Upon failure, the function will emit one of the events:
+Upon failure, the function `getNextAuditRequest()` will emit one of the events:
 
 * `LogAuditAssignmentUpdate_Expired()` - the timeout for assigning the request has expired, 
 * `LogAuditQueueIsEmpty()` - there are no audit requests to assign,
@@ -234,6 +234,12 @@ Upon failure, the function will emit one of the events:
 * `LogAuditNodePriceHigherThanRequests()` - your minimum price is too high for any of the audit requests. 
   
 Note that regardless of whether the call succeeds or not, you'll need to pay the gas.
+
+If instead of waiting for the event `LogAuditAssigned()` you prefer polling, you can use the following function
+
+`await quantstamp_audit.myMostRecentAssignedAudit();`
+
+which returns the same data as `LogAuditAssigned()` but skips the field `auditor`.
   
 ### Step 6: Perform an audit and submit the report.
 
@@ -256,7 +262,9 @@ Upon failure, the function will emit one of the events:
 
 ### Step 7: Wait for the police to accept your report.
 
-Police nodes have a certain time to check your report. Otherwise a timeout occurs and you can claim the reward regardless of whether the report is correct or not. You can get the timeout value as follows: 
+Police nodes have a certain time to check your report. Otherwise a timeout occurs and you can claim the reward regardless of whether the report is correct or not. Regardless of whether the police checks your report before the timeout or not, you need to wait the given number of blocks before claiming the reward.
+
+You can get the timeout value as follows: 
  
 `const timeout = await quantstamp_audit.getPolice().getPoliceTimeoutInBlocks();`
  
@@ -316,7 +324,7 @@ If there are multiple rewards, you can collect all of them as follows:
   
 ## Interaction with the protocol (for police node)
 
-Police nodes are trusted entities that verify if the reports submitted by audit nodes are correct.
+Police nodes are trusted entities that verify if the reports submitted by audit nodes are correct. Any police node payments are handled automatically by the protocol.
 
 From police node perspective, interaction with the protocol involves the following steps:
 1) Get whitelisted by the protocol owner,
