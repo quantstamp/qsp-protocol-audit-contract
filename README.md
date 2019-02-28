@@ -54,7 +54,7 @@ For querying, go to: https://ropsten.etherscan.io/address/{address}#readContract
 
 For querying, go to: https://etherscan.io/address/{address}#readContract , where `{address}` is `contractAddress` copied from the corresponding metadata file.
 
-## Interaction with the protocol
+## Interaction with the protocol (for audit requestor)
 
 From our target user perspective, interaction with the protocol involves the following steps:
 1) Give permission allowing Quantstamp protocol to withdraw QSP tokens from your wallet to pay for one or more audits,
@@ -64,7 +64,6 @@ From our target user perspective, interaction with the protocol involves the fol
 Below we describe each step in more details. We assume that you are using JS Web3 API and that the following variables are used in your code:
 * `quantstamp_token` is the instantiated QSP Token contract,
 * `quantstamp_audit` is the instantiated QSP Audit contract,
-* `quantstamp_report_data` is the instantiated QSP Audit Report Data contract,
 * `requestor` is your address that holds the QSP tokens and that you will use to submit an audit request. You need some ETH to pay for the gas fees, like with any other transaction on Ethereum.
 
 Note that the address and ABI for each contract depends on whether you are on Ropsten or Mainnet. You can find the relevant information in the previous section.
@@ -110,13 +109,12 @@ where:
 * `requestId` is the Id of your request.
 * `isFinished` is a boolean variable with value `true` when the audit is finished, and `false` otherwise.
 
-
 Once the report is ready, you can obtain it as follows: 
 
-`const report  = await quantstamp_report_data.getReport(requestId);`
+`const report  = await quantstamp_audit.getReport(requestId);`
 
 where:
-* `report` is the audit report submitted by an audit node. The report format is currently documented in the [qsp-protocol-node](https://github.com/quantstamp/qsp-protocol-node) repository. Specifically, see the file [`report_processing.py`](https://github.com/quantstamp/qsp-protocol-node/blob/develop/qsp_protocol_node/audit/report_processing.py);
+* `report` is the audit report submitted by an audit node. The report format is currently documented in the [qsp-protocol-node](https://github.com/quantstamp/qsp-protocol-node) repository. Specifically, see the file [`report_processing.py`](https://github.com/quantstamp/qsp-protocol-node/blob/develop/qsp_protocol_node/audit/report_processing.py).
 
 ### Refunds
 
@@ -128,6 +126,234 @@ where:
 
 * `requestId` is the Id of your request.
 * `isOk` is a boolean status of your refund. `true` indicates that it was processes correctly, `false` otherwise.
+
+## Interaction with the protocol (for audit node)
+
+From audit node perspective, interaction with the protocol involves the following steps:
+1) Give permission allowing Quantstamp protocol to withdraw QSP tokens from your wallet to enable staking,
+2) Stake a given deposit,
+3) Set your minimum audit price,
+4) Wait for any incoming audit requests,
+5) Submit a request to perform an audit,
+6) Perform an audit and submit the report,
+7) Wait for the police to accept your report, and
+8) Claim your reward.
+
+Below we describe each step in more details. We assume that you are using JS Web3 API and that the following variables are used in your code:
+* `quantstamp_token` is the instantiated QSP Token contract,
+* `quantstamp_audit` is the instantiated QSP Audit contract,
+* `auditor` is your address that holds the QSP tokens that you will stake. You need some ETH to pay for the gas fees, like with any other transaction on Ethereum.
+
+Note that the address and ABI for each contract depends on whether you are on Ropsten or Mainnet. You can find the relevant information in one of the previous sections.
+
+### Step 1: Authorize Quantstamp Protocol to collect your QSP as a stake deposit
+
+You can authorize Quantstamp Protocol to collect your QSP as payment as follows:
+
+`await quantstamp_token.approve(quantstamp_audit.address, _value, {from : auditor});`
+
+where:
+* `_value` is the total amount of QSP which you are giving permission to withdraw. Please note that this amount needs to be multiplied by 10^18 (similarly to how ETH gets converted into Wei). One way of doing the conversion is via `web3.toWei(n, "ether")`, where `n` is the amount of QSP tokens.
+
+### Step 2: Stake the given deposit.
+
+Staking a deposit is a mechanism that incentivizes audit nodes to perform correct computations . Each node must stake at least the amount returned by `await quantstamp_audit.getMinAuditStake()`. If an audit node submits an incorrect report, part of the stake deposit (defined by `slashPercentage` in the contract `QuantstampAuditPolice`) will be lost by the audit node. The more you stake, the more mistakes you are allowed to make before getting denied any audit. If you provide only correct reports, your stake deposit is never lost and you can get it back.
+
+You can stake a given, previously approved, amount as follows:
+
+`await quantstamp_audit.stake(amount, {from: auditor});`
+
+where
+* `amount` is the amount of QSP you want to stake. Please note that this amount needs to be multiplied by 10^18 (similarly to how ETH gets converted into Wei). One way of doing the conversion is via `web3.toWei(n, "ether")`, where `n` is the amount of QSP tokens.
+
+You can get back the total stake deposit as follows: 
+
+`await quantstamp_audit.unstake({from: auditor});`
+
+### Step 3: Set your minimum audit price.
+
+Each audit node operator may choose their own minimum acceptable prices per audit as follows:
+
+`await quantstamp_audit.setAuditNodePrice(price, {from: auditor});`
+
+where
+* `price` is the minimum amount of QSP you want to charge per audit. Please note that this amount needs to be multiplied by 10^18 (similarly to how ETH gets converted into Wei). One way of doing the conversion is via `web3.toWei(n, "ether")`, where `n` is the amount of QSP tokens.
+
+### Step 4: Wait for any incoming audit requests.
+
+Upon an audit request, the QSP Audit contract will emit the following event:
+
+`LogAuditRequested(requestId, requestor, uri, price)`
+
+where:
+
+* `requestId` is an audit request Id.
+* `requestor` is the address that requested the audit.
+* `uri` uri of the contract to audit.
+* `price` audit price as provided by the requestor.
+
+Alternatively, you can poll the QSP Audit contract to learn about whether there are any audit requests that could be picked up by your node:
+
+`const availabilityState = await quantstamp_audit.anyRequestAvailable();`
+
+where:
+
+* `availabilityState` is an enumeration and takes one of the values:
+  * `Error` - unexpected error,
+  * `Ready` - an audit is available to be picked up,
+  * `Empty` - there is no audit request in the queue,
+  * `Exceeded` - number of incomplete audit requests assigned to your node has reached the cap,
+  * `Underpriced` - all queued audit requests are less than the expected price,
+  * `Understaked ` - the audit node's stake is not large enough to get an audit.
+  
+### Step 5: Submit a request to perform an audit.
+  
+Although it cannot be guaranteed that you will get an audit, you can submit a request to perform the audit as follows:
+
+`await quantstamp_audit.getNextAuditRequest();`
+
+The function finds the most expensive audit and tries to assign it to your node. Upon successful completion: 1) it will lock your deposit for a number of blocks that is a sum of the timeout for the audit node to submit a report and the timeout for the police node to check your report (you will not be able to unstake the funds till then or till the police checks your report), and 2) the function will emit the event:
+
+`LogAuditAssigned(requestId, auditor, requestor, uri, price, requestBlockNumber)`
+
+where
+
+* `requestId` is an audit request Id.
+* `auditor` is a wallet address of the audit node that got the request.
+* `requestor` is the address that requested the audit.
+* `uri` uri of the contract to audit.
+* `price` audit price as provided by the requestor.
+* `requestBlockNumber` Ethereum block number at which the audit was requested.
+
+Upon failure, the function will emit one of the events:
+
+* `LogAuditAssignmentUpdate_Expired()` - the timeout for assigning the request has expired, 
+* `LogAuditQueueIsEmpty()` - there are no audit requests to assign,
+* `LogAuditAssignmentError_ExceededMaxAssignedRequests()` - your node has assigned too many requests that need to be finished before requesting a new audit,
+* `LogAuditAssignmentError_Understaked()` - your stake deposit is too low,
+* `LogAuditNodePriceHigherThanRequests()` - your minimum price is too high for any of the audit requests. 
+  
+Note that regardless of whether the call succeeds or not, you'll need to pay the gas.
+  
+### Step 6: Perform an audit and submit the report.
+
+If you previous step succeeded and you performed an audit, you can submit the report as follows:
+
+`await quantstamp_audit.submitReport(requestId, auditResult, report);`
+
+where:
+
+* `requestId` is an audit request Id.
+* `auditResult` is an enumeration that describes the status of the audit and should take one of the two values: 1) `Completed` - automated audit finished successfully and the report is available, or 2) `Error` - automated audit failed to finish; the report contains detailed information about the error.
+* `report` - audit report that must follow the predefined format.
+
+Upon failure, the function will emit one of the events:
+
+* `LogReportSubmissionError_InvalidResult` - when `auditResult` has an incorrect value,
+* `LogReportSubmissionError_InvalidState` - when the audit request is not ready yet to receive the report,
+* `LogReportSubmissionError_InvalidAuditor` - when you try to submit a report for audit that was not assigned to you,
+* `LogReportSubmissionError_ExpiredAudit` - when you try to submit a report after the audit request expired.
+
+### Step 7: Wait for the police to accept your report.
+
+Police nodes have a certain time to check your report. Otherwise a timeout occurs and you can claim the reward regardless of whether the report is correct or not. You can get the timeout value as follows: 
+ 
+`const timeout = await quantstamp_audit.getPolice().getPoliceTimeoutInBlocks();`
+ 
+where:
+
+* `timeout` is the timeout value expressed as the number of blocks.
+
+If you prefer to poll the police contract to check if you can claim the reward, you can do it as follows:
+
+`const canClaim = await quantstamp_audit.getPolice().canClaimAuditReward(auditNode, requestId);`
+
+where:
+
+* `auditNode` is your node's wallet address,
+* `requestId` is the request Id you audited,
+* `canClaim` is a boolean value indicating whether you can claim a reward.
+
+When the police checks your report, they will emit the event:
+
+`PoliceReportSubmitted(policeNode, requestId, state)`
+
+where:
+* `policeNode` is the wallet address of the police node that checked your report,
+* `requestId` is the request Id,
+* `state` is an enumeration with either of the values: `VALID` (when your report was accepted as valid) or `INVALID` (when your report was marked as invalid). In the latter case, the police will also slash a part of your deposit and will emit the following event: 
+
+`PoliceSlash(requestId, policeNode, auditNode, slashAmount)`
+
+where:
+
+* `requestId` is the audit request Id,
+* `policeNode` is the police node which checked your report,
+* `auditNode` is your address,
+* `slashAmount` is the deposit amount that got slashed. 
+
+### Step 8: Claim your reward.
+
+You can check if there are any rewards available to you as follows:
+
+`const hasRewards = await quantstamp_audit.hasAvailableRewards();`
+
+where:
+
+* `hasRewards` is a boolean value indicating whether you have any rewards.
+
+You can then claim the reward as follows:
+
+`await quantstamp_audit.claimReward(requestId, {from: auditor});`
+
+where:
+
+* `requestId` is the audit request Id for which you want to claim a reward.
+
+If there are multiple rewards, you can collect all of them as follows:
+
+`await quantstamp_audit.claimRewards({from: auditor});`
+  
+## Interaction with the protocol (for police node)
+
+Police nodes are trusted entities that verify if the reports submitted by audit nodes are correct.
+
+From police node perspective, interaction with the protocol involves the following steps:
+1) Get whitelisted by the protocol owner,
+2) Wait for any incoming audit reports, and
+3) Submit police report.
+
+Below we describe each step in more details. We assume that you are using JS Web3 API and that the following variables are used in your code:
+* `quantstamp_audit` is the instantiated QSP Audit contract,
+* `police` is your wallet address where you will receive rewards. You need some ETH to pay for the gas fees, like with any other transaction on Ethereum.
+
+Note that the address and ABI for each contract depends on whether you are on Ropsten or Mainnet. You can find the relevant information in one of the previous sections.
+
+### Step 1: Get whitelisted by the protocol owner.
+
+You need to contact the protocol owner (e.g., by email) and ask them to whitelist your address so that you can play the role of the police. 
+
+### Step 2: Wait for any incoming audit reports and get paid.
+
+Upon report submission by the audit node, the following event gets emitted:
+
+`PoliceNodeAssignedToReport(policeNode, requestId)`
+
+where:
+
+* `policeNode` is the police node chosen to check the report, 
+* `requestId` is the audit request Id.
+
+### Step 3: Submit police report.
+
+If your node was chosen, check the report, and submit your result as follows:
+
+`await quantstamp_audit.submitPoliceReport(requestId, report, isVerified, {from : police});`
+
+where:
+* `requestId` is the checked request Id, 
+* `report` is the police report that follows an established format,
+* `isVerified` is a boolean value indicating whether the police report matches the report submitted by the audit node. If the reports do not match, part of the audit node's deposit gets slashed and is distributed to the police nodes.
 
 ## Run locally
 ### Requirements
