@@ -12,7 +12,7 @@ import "./QuantstampAuditPolice.sol";
 import "./QuantstampAuditTokenEscrow.sol";
 
 
-contract QuantstampAudit is Ownable, Pausable {
+contract QuantstampAudit is Pausable {
   using SafeMath for uint256;
   using LinkedListLib for LinkedListLib.LinkedList;
 
@@ -204,7 +204,7 @@ contract QuantstampAudit is Ownable, Pausable {
    * @param count Number of audits by different audit nodes.
    */
   function multiRequestAudit(string contractUri, uint256 price, uint256 count) public whenNotPaused returns(uint256[]) { // solhint-disable-line no-unused-vars
-    require(false, "Invalid Feature");
+    revert();
     /*
     require(count > 1, "multiRequest must be more than one");
     require(price.mul(count) <= auditData.token().allowance(msg.sender, address(this)),
@@ -412,8 +412,8 @@ contract QuantstampAudit is Ownable, Pausable {
 
     uint256 auditPrice = auditData.getAuditPrice(requestId);
     address receiver = toRequester ? auditData.getAuditRequestor(requestId) : auditData.getAuditAuditor(requestId);
-    safeTransferFromDataContract(receiver, auditPrice);
     auditData.setAuditState(requestId, QuantstampAuditData.AuditState.Resolved);
+    safeTransferFromDataContract(receiver, auditPrice);
     emit LogErrorReportResolved(requestId, receiver, auditPrice);
   }
 

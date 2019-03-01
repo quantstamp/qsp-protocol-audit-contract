@@ -139,7 +139,7 @@ contract QuantstampAuditView is Ownable {
       uint256 minPrice = auditData.minAuditPrice(currentStakedAddress);
       if (minPrice != MAX_INT) {
         n++;
-        sum += minPrice;
+        sum = sum.add(minPrice);
         if (minPrice < min) {
           min = minPrice;
         }

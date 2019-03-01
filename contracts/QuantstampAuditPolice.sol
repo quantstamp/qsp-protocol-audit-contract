@@ -114,6 +114,8 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
    * @param requestId The ID of the audit request.
    */
   function assignPoliceToReport(uint256 requestId) public onlyWhitelisted {
+    // ensure that the requestId has not already been assigned to police already
+    require(policeTimeouts[requestId] == 0);
     // set the timeout for police reports
     policeTimeouts[requestId] = block.number + policeTimeoutInBlocks;
     // if there are not enough police nodes, this avoids assigning the same node twice
@@ -159,13 +161,16 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
     uint256 amountPerNode = amount.div(numPoliceNodes);
     // TODO: upgrade our openzeppelin version to use mod
     uint256 largerAmount = amountPerNode.add(amount % numPoliceNodes);
+    bool largerAmountClaimed = false;
     while (policeNode != address(HEAD)) {
-      // give the largerAmount to the current lastAssignedPoliceNode
+      // give the largerAmount to the current lastAssignedPoliceNode if it is not equal to HEAD
       // this approach is only truly fair if numPoliceNodes and policeNodesPerReport are relatively prime
       // but the remainder should be extremely small in any case
-      if (policeNode == lastAssignedPoliceNode) {
+      // the last conditional handles the edge case where all police nodes were removed and then re-added
+      if (!largerAmountClaimed && (policeNode == lastAssignedPoliceNode || lastAssignedPoliceNode == address(HEAD))) {
         require(auditData.token().transfer(policeNode, largerAmount));
         emit PoliceFeesClaimed(policeNode, largerAmount);
+        largerAmountClaimed = true;
       } else {
         require(auditData.token().transfer(policeNode, amountPerNode));
         emit PoliceFeesClaimed(policeNode, amountPerNode);
@@ -175,7 +180,7 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
   }
 
   /**
-   * @dev Assigns police nodes to a submitted report.
+   * @dev Associates a pending payment with an auditor that can be claimed after the policing period.
    * @param auditor The audit node that submitted the report.
    * @param requestId The ID of the audit request.
    */
@@ -232,12 +237,12 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
       verifiedReports[requestId] = state;
     }
     bool slashOccurred;
+    uint256 slashAmount;
     if (!isVerified) {
-      verifiedReports[requestId] = PoliceReportState.INVALID;
       pendingPayments[auditNode].remove(requestId);
       // an audit node can only be slashed once for each report,
       // even if multiple police mark the report as invalid
-      uint256 slashAmount = tokenEscrow.slash(auditNode, slashPercentage);
+      slashAmount = tokenEscrow.slash(auditNode, slashPercentage);
       slashOccurred = true;
       emit PoliceSlash(requestId, policeNode, auditNode, slashAmount);
     }
@@ -258,8 +263,6 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
       policeTimeouts[requestId] < block.number &&
       // the police did not invalidate the report
       verifiedReports[requestId] != PoliceReportState.INVALID &&
-      // the policing period has ended for the report
-      policeTimeouts[requestId] < block.number &&
       // the reward has not already been claimed
       !rewardHasBeenClaimed[requestId];
   }
@@ -324,6 +327,7 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
   /**
    * @dev Gets the next assigned report to the police node.
    * @param policeNode The address of the police node.
+   * @return true if the list is non-empty, requestId, auditPrice, uri, and policeAssignmentBlockNumber.
    */
   function getNextPoliceAssignment(address policeNode) public view returns (bool, uint256, uint256, string, uint256) {
     bool exists;
@@ -479,17 +483,19 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
     bool hasRemovedCurrentId = false;
     bool exists;
     uint256 potentialExpiredRequestId;
-    (exists, potentialExpiredRequestId) = assignedReports[policeNode].getAdjacent(HEAD, NEXT);
+    uint256 nextExpiredRequestId;
+    (exists, nextExpiredRequestId) = assignedReports[policeNode].getAdjacent(HEAD, NEXT);
     // NOTE: Do NOT short circuit this list based on timeouts.
     // The ordering may be broken if the owner changes the timeouts.
-    while (exists && potentialExpiredRequestId != HEAD) {
+    while (exists && nextExpiredRequestId != HEAD) {
+      potentialExpiredRequestId = nextExpiredRequestId;
+      (exists, nextExpiredRequestId) = assignedReports[policeNode].getAdjacent(nextExpiredRequestId, NEXT);
       if (policeTimeouts[potentialExpiredRequestId] < block.number) {
         assignedReports[policeNode].remove(potentialExpiredRequestId);
         if (potentialExpiredRequestId == requestId) {
           hasRemovedCurrentId = true;
         }
       }
-      (exists, potentialExpiredRequestId) = assignedReports[policeNode].getAdjacent(potentialExpiredRequestId, NEXT);
     }
     return hasRemovedCurrentId;
   }

@@ -202,6 +202,25 @@ contract('QuantstampAuditPolice', function(accounts) {
     assert.equal(await quantstamp_audit_police.verifiedReports(currentId), Util.PoliceReportState.Expired);
   });
 
+  it("should not allow the police to submit a report after the police timeout with a larger assignment queue", async function() {
+    let currentId1 = await submitNewReport();
+    let currentId2 = await submitNewReport();
+    const num_blocks = police_timeout + 1;
+    await Util.mineNBlocks(num_blocks);
+
+    const result = await quantstamp_audit.submitPoliceReport(currentId2, Util.nonEmptyReport, true, {from: police1});
+    Util.assertNestedEvent({
+      result: result,
+      name: "PoliceSubmissionPeriodExceeded",
+      args: (args) => {
+        assert.equal(args.requestId, currentId2);
+      }
+    });
+    await quantstamp_audit.claimRewards({from: auditor});
+  });
+
+
+
   it("should not allow an auditor to claim a reward twice", async function() {
     await Util.assertTxFail(quantstamp_audit.claimRewards({from: auditor}));
   });
@@ -281,7 +300,7 @@ contract('QuantstampAuditPolice', function(accounts) {
         assert.equal(args.addr, auditor.toLowerCase());
         assert.equal(args.amount, slash_amount);
       },
-      index: 2
+      index: 1
     });
 
     Util.assertNestedEventAtIndex({
@@ -563,6 +582,9 @@ contract('QuantstampAuditPolice', function(accounts) {
   });
 
   it("should allow the police to slash auditors for multiple pending audits", async function() {
+    police_timeout = 50;
+    await quantstamp_audit_police.setPoliceTimeoutInBlocks(police_timeout);
+
     // add police node
     await quantstamp_audit_police.addPoliceNode(police1);
     all_police = [police1];
@@ -623,6 +645,9 @@ contract('QuantstampAuditPolice', function(accounts) {
 
     // top up the auditors stake
     await stakeAuditor(min_stake);
+
+    police_timeout = 15;
+    await quantstamp_audit_police.setPoliceTimeoutInBlocks(police_timeout);
   });
 
   it("should allow auditors to claim rewards when the owner changes timeouts", async function() {

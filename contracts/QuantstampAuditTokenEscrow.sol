@@ -116,9 +116,6 @@ contract QuantstampAuditTokenEscrow is ConditionalTokenEscrow {
       slashAmount = balance;
     }
 
-    // transfer the slashAmount to the police contract
-    token.safeTransfer(msg.sender, slashAmount);
-
     // subtract from the deposits amount of the addr
     deposits[addr] = deposits[addr].sub(slashAmount);
 
@@ -128,6 +125,9 @@ contract QuantstampAuditTokenEscrow is ConditionalTokenEscrow {
     if (depositsOf(addr) == 0) {
       removeNodeFromStakedList(addr);
     }
+
+    // transfer the slashAmount to the police contract
+    token.safeTransfer(msg.sender, slashAmount);
 
     return slashAmount;
   }
