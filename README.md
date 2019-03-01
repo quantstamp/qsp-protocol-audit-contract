@@ -114,7 +114,7 @@ Once the report is ready, you can obtain it as follows:
 `const report  = await quantstamp_audit.getReport(requestId);`
 
 where:
-* `report` is the audit report submitted by an audit node. The report format is currently documented in the [qsp-protocol-node](https://github.com/quantstamp/qsp-protocol-node) repository. Specifically, see the file [`report_processing.py`](https://github.com/quantstamp/qsp-protocol-node/blob/develop/qsp_protocol_node/audit/report_processing.py).
+* `report` is the audit report submitted by an audit node. The report format is currently documented in the [qsp-protocol-node](https://github.com/quantstamp/qsp-protocol-node) repository. Specifically, see the file [`report_processing.py`](https://github.com/quantstamp/qsp-protocol-node/blob/develop/src/qsp_protocol_node/audit/report_processing.py).
 
 ### Refunds
 
@@ -136,12 +136,13 @@ From audit node perspective, interaction with the protocol involves the followin
 4) Wait for any incoming audit requests,
 5) Submit a request to perform an audit,
 6) Perform an audit and submit the report,
-7) Wait for the police to accept your report, and
+7) Wait for the police challenge period, and
 8) Claim your reward.
 
 Below we describe each step in more details. We assume that you are using JS Web3 API and that the following variables are used in your code:
 * `quantstamp_token` is the instantiated QSP Token contract,
 * `quantstamp_audit` is the instantiated QSP Audit contract,
+* `quantstamp_police` is the instantiated QSP Police contract,
 * `auditor` is your address that holds the QSP tokens that you will stake. You need some ETH to pay for the gas fees, like with any other transaction on Ethereum.
 
 Note that the address and ABI for each contract depends on whether you are on Ropsten or Mainnet. You can find the relevant information in one of the previous sections.
@@ -203,7 +204,7 @@ where:
   * `Ready` - an audit is available to be picked up,
   * `Empty` - there is no audit request in the queue,
   * `Exceeded` - number of incomplete audit requests assigned to your node has reached the cap,
-  * `Underpriced` - all queued audit requests are less than the expected price,
+  * `Underpriced` - all queued audit requests are less than the price set using `setAuditNodePrice()`,
   * `Understaked` - the audit node's stake is not large enough to get an audit.
   
 ### Step 5: Submit a request to perform an audit.
@@ -212,7 +213,9 @@ Although it cannot be guaranteed that you will get an audit, you can submit a re
 
 `await quantstamp_audit.getNextAuditRequest();`
 
-The function finds the most expensive audit and tries to assign it to your node. Upon successful completion: 1) it will lock your deposit for a number of blocks that is a sum of the timeout for the audit node to submit a report and the timeout for the police node to check your report (you will not be able to unstake the funds till then or till the police checks your report), and 2) the function will emit the event:
+The function finds the most expensive audit and tries to assign it to your node. Although the most expensive, the audit must also match your minimum price criteria set previously using `setAuditNodePrice()`. For example, if the most expensive audit is 10 QSP but your minimum price is 20 QSP, you will get no assignments.
+
+Upon successful completion, the function will: 1) lock your deposit for a number of blocks that is a sum of the timeout for the audit node to submit a report and the timeout for the police node to check your report (you will not be able to unstake the funds till then or till the police checks your report), and 2) emit the event:
 
 `LogAuditAssigned(requestId, auditor, requestor, uri, price, requestBlockNumber)`
 
@@ -260,13 +263,13 @@ Upon failure, the function will emit one of the events:
 * `LogReportSubmissionError_InvalidAuditor` - when you try to submit a report for audit that was not assigned to you,
 * `LogReportSubmissionError_ExpiredAudit` - when you try to submit a report after the audit request expired.
 
-### Step 7: Wait for the police to accept your report.
+### Step 7: Wait for the police challenge period.
 
-Police nodes have a certain time to check your report. Otherwise a timeout occurs and you can claim the reward regardless of whether the report is correct or not. Regardless of whether the police checks your report before the timeout or not, you need to wait the given number of blocks before claiming the reward.
+Police nodes have a certain time to check your report. Otherwise a timeout occurs and you can claim the reward regardless of whether the report is considered correct or not. Regardless of whether the police checks your report before the timeout or not, you need to wait the given number of blocks before claiming the reward.
 
 You can get the timeout value as follows: 
  
-`const timeout = await quantstamp_audit.getPolice().getPoliceTimeoutInBlocks();`
+`const timeout = await quantstamp_police.getPoliceTimeoutInBlocks();`
  
 where:
 
@@ -274,7 +277,7 @@ where:
 
 If you prefer to poll the police contract to check if you can claim the reward, you can do it as follows:
 
-`const canClaim = await quantstamp_audit.getPolice().canClaimAuditReward(auditNode, requestId);`
+`const canClaim = await quantstamp_police.canClaimAuditReward(auditNode, requestId);`
 
 where:
 
