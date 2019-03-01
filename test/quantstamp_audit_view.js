@@ -5,7 +5,6 @@ const QuantstampAudit = artifacts.require('QuantstampAudit');
 const QuantstampAuditData = artifacts.require('QuantstampAuditData');
 const QuantstampAuditView = artifacts.require('QuantstampAuditView');
 const QuantstampToken = artifacts.require('QuantstampToken');
-const QuantstampAuditMultiRequestData = artifacts.require('QuantstampAuditMultiRequestData');
 const QuantstampAuditReportData = artifacts.require('QuantstampAuditReportData');
 const QuantstampAuditPolice = artifacts.require('QuantstampAuditPolice');
 const QuantstampAuditTokenEscrow = artifacts.require('QuantstampAuditTokenEscrow');
@@ -20,7 +19,6 @@ contract('QuantstampAuditView', function(accounts) {
   let minAuditStake;
   let quantstamp_audit;
   let quantstamp_audit_data;
-  let quantstamp_audit_multirequest_data;
   let quantstamp_audit_report_data;
   let quantstamp_audit_view;
   let quantstamp_token;
@@ -48,7 +46,6 @@ contract('QuantstampAuditView', function(accounts) {
   beforeEach(async function () {
     quantstamp_token = await QuantstampToken.deployed();
     quantstamp_audit_data = await QuantstampAuditData.deployed();
-    quantstamp_audit_multirequest_data = await QuantstampAuditMultiRequestData.deployed();
     quantstamp_audit_report_data = await QuantstampAuditReportData.deployed();
     quantstamp_audit = await QuantstampAudit.deployed();
     quantstamp_audit_view = await QuantstampAuditView.deployed();
@@ -56,7 +53,6 @@ contract('QuantstampAuditView', function(accounts) {
     quantstamp_audit_token_escrow = await QuantstampAuditTokenEscrow.deployed();
 
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
-    await quantstamp_audit_multirequest_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_report_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_police.addAddressToWhitelist(quantstamp_audit.address);
 
@@ -80,13 +76,11 @@ contract('QuantstampAuditView', function(accounts) {
   it("lets the owner change the QuantstampAudit address", async function () {
     const audit = await quantstamp_audit_view.audit.call();
     const another_quantstamp_audit_data = (await QuantstampAuditData.new(quantstamp_token.address)).address;
-    const another_quantstamp_audit_multirequest_data = (await QuantstampAuditMultiRequestData.new()).address;
     const another_quantstamp_audit_report_data = (await QuantstampAuditReportData.new()).address;
     const another_quantstamp_audit_token_escrow = (await QuantstampAuditTokenEscrow.new(quantstamp_token.address)).address;
     const another_quantstamp_audit_police = (await QuantstampAuditPolice.new(another_quantstamp_audit_data, another_quantstamp_audit_token_escrow)).address;
 
     const another_quantstamp_audit = (await QuantstampAudit.new(another_quantstamp_audit_data,
-                                                                another_quantstamp_audit_multirequest_data,
                                                                 another_quantstamp_audit_report_data,
                                                                 another_quantstamp_audit_token_escrow,
                                                                 another_quantstamp_audit_police)).address;

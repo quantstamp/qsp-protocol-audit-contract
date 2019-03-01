@@ -1,6 +1,5 @@
 const QuantstampToken = artifacts.require('QuantstampToken');
 const QuantstampAuditData = artifacts.require('QuantstampAuditData');
-const QuantstampAuditMultiRequestData = artifacts.require('QuantstampAuditMultiRequestData');
 const QuantstampAuditReportData = artifacts.require('QuantstampAuditReportData');
 const QuantstampAudit = artifacts.require('QuantstampAudit');
 const QuantstampAuditPolice = artifacts.require('QuantstampAuditPolice');
@@ -22,7 +21,6 @@ contract('QuantstampAudit2', function(accounts) {
   let minAuditStake;
 
   let quantstamp_audit_data;
-  let quantstamp_audit_multirequest_data;
   let quantstamp_audit_report_data;
   let quantstamp_audit_police;
   let quantstamp_audit;
@@ -32,14 +30,12 @@ contract('QuantstampAudit2', function(accounts) {
   beforeEach(async function () {
     quantstamp_token = await QuantstampToken.deployed();
     quantstamp_audit_data = await QuantstampAuditData.deployed();
-    quantstamp_audit_multirequest_data = await QuantstampAuditMultiRequestData.deployed();
     quantstamp_audit_report_data = await QuantstampAuditReportData.deployed();
     quantstamp_audit = await QuantstampAudit.deployed();
     quantstamp_audit_police = await QuantstampAuditPolice.deployed();
     quantstamp_audit_token_escrow = await QuantstampAuditTokenEscrow.deployed();
 
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
-    await quantstamp_audit_multirequest_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_report_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_police.addAddressToWhitelist(quantstamp_audit.address);
 

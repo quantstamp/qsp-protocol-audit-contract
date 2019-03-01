@@ -59,14 +59,6 @@ module.exports = {
       return [await utils.readAddressFromMetadata(stage, 'QuantstampAudit')];
     }
   },
-  'whitelist-audit-contract-in-multirequest-data': {
-    contractName: 'QuantstampAuditMultiRequestData',
-    methodName: 'addAddressToWhitelist',
-    gasLimit: 80000,
-    methodArgs: async(stage, argv) => {
-      return [await utils.readAddressFromMetadata(stage, 'QuantstampAudit')];
-    }
-  },
   'whitelist-audit-contract-in-report-data': {
     contractName: 'QuantstampAuditReportData',
     methodName: 'addAddressToWhitelist',

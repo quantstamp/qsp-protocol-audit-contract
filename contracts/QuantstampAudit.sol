@@ -6,7 +6,6 @@ import "openzeppelin-solidity/contracts/lifecycle/Pausable.sol";
 
 import "./LinkedListLib.sol";
 import "./QuantstampAuditData.sol";
-import "./QuantstampAuditMultiRequestData.sol";
 import "./QuantstampAuditReportData.sol";
 import "./QuantstampAuditPolice.sol";
 import "./QuantstampAuditTokenEscrow.sol";
@@ -38,9 +37,6 @@ contract QuantstampAudit is Pausable {
 
   // contract that stores audit data (separate from the auditing logic)
   QuantstampAuditData public auditData;
-
-  // contract that stores multirequest audit data
-  QuantstampAuditMultiRequestData public multiRequestData;
 
   // contract that stores audit reports on-chain
   QuantstampAuditReportData public reportData;
@@ -98,9 +94,6 @@ contract QuantstampAudit is Pausable {
   event LogInvalidResolutionCall(uint256 requestId);
   event LogErrorReportResolved(uint256 requestId, address receiver, uint256 auditPrice);
 
-  event LogMultiRequestRequested(uint256 multiRequestId, uint256 requestIdStart, uint256 requestIdEnd);
-  event LogRequestAssignedFromMultiRequest(uint256 requestId, uint256 multiRequestId, address auditor);
-
   enum AuditAvailabilityState {
     Error,
     Ready,      // an audit is available to be picked up
@@ -117,14 +110,12 @@ contract QuantstampAudit is Pausable {
    * @param escrowAddress The address of a QuantstampTokenEscrow contract that holds staked deposits of nodes.
    * @param policeAddress The address of a QuantstampAuditPolice that performs report checking.
    */
-  constructor (address auditDataAddress, address multiRequestDataAddress, address reportDataAddress, address escrowAddress, address policeAddress) public {
+  constructor (address auditDataAddress, address reportDataAddress, address escrowAddress, address policeAddress) public {
     require(auditDataAddress != address(0));
-    require(multiRequestDataAddress != address(0));
     require(reportDataAddress != address(0));
     require(escrowAddress != address(0));
     require(policeAddress != address(0));
     auditData = QuantstampAuditData(auditDataAddress);
-    multiRequestData = QuantstampAuditMultiRequestData(multiRequestDataAddress);
     reportData = QuantstampAuditReportData(reportDataAddress);
     tokenEscrow = QuantstampAuditTokenEscrow(escrowAddress);
     police = QuantstampAuditPolice(policeAddress);
@@ -194,34 +185,6 @@ contract QuantstampAudit is Pausable {
     emit LogRefund(requestId, requestor, price);
     safeTransferFromDataContract(requestor, price);
     return true;
-  }
-
-  /**
-   * @dev Submits a request to be audited multiple times.
-   * @param contractUri Identifier of the resource to audit.
-   * @param price The total amount of tokens that will be paid per audit. The requester should
-   * eventually pay price * count qsp.
-   * @param count Number of audits by different audit nodes.
-   */
-  function multiRequestAudit(string contractUri, uint256 price, uint256 count) public whenNotPaused returns(uint256[]) { // solhint-disable-line no-unused-vars
-    revert();
-    /*
-    require(count > 1, "multiRequest must be more than one");
-    require(price.mul(count) <= auditData.token().allowance(msg.sender, address(this)),
-      "token transfer must be approved more than price*count");
-    uint256[] memory result = new uint256[](count);
-    uint256 newMultiRequestId = multiRequestData.addMultiRequest(address(msg.sender), 0, 0, address(this));
-    for (uint256 i = 0; i < count; ++i) {
-      result[i] = requestAudit(contractUri, price);
-      multiRequestData.setRequestIdToMultiRequestId(result[i], newMultiRequestId);
-    }
-    multiRequestData.setMultiRequestFirstRequestId(newMultiRequestId, result[0]);
-    multiRequestData.setMultiRequestLastRequestId(newMultiRequestId, result[result.length-1]);
-    emit LogMultiRequestRequested(newMultiRequestId,
-      multiRequestData.getMultiRequestFirstRequestId(newMultiRequestId),
-      multiRequestData.getMultiRequestLastRequestId(newMultiRequestId));
-    return result;
-    */
   }
 
   /**
@@ -314,14 +277,14 @@ contract QuantstampAudit is Pausable {
     return reportData.getReport(requestId);
   }
 
-   /**
+  /**
    * @dev Checks whether a given node is a police.
    * @param node The address of the node to be checked.
    * @return true if the target address is a police node.
    */
-   function isPoliceNode(address node) public view returns(bool) {
-     return police.isPoliceNode(node);
-   }
+  function isPoliceNode(address node) public view returns(bool) {
+    return police.isPoliceNode(node);
+  }
 
   /**
    * @dev Submits verification of a report by a police node.
@@ -550,8 +513,6 @@ contract QuantstampAudit is Pausable {
     // push to the tail
     assignedAudits.push(requestId, PREV);
 
-    assignMultirequest(requestId);
-
     // lock stake when assigned
     tokenEscrow.lockFunds(msg.sender, block.number.add(auditData.auditTimeoutInBlocks()).add(police.policeTimeoutInBlocks()));
 
@@ -677,41 +638,23 @@ contract QuantstampAudit is Pausable {
   }
 
   /**
-   * @dev Evaluates if there is an audit price >= minPrice. Returns (false, 0) if there no audit with the desired price.
-   * Note that there should not be any audit with price as 0. Also, this function evaluates if the given audit node has not
-   * yet assigned to any individual audit of a multiRequest.
+   * @dev Evaluates if there is an audit price >= minPrice.
+   * Note that there should not be any audit with price as 0.
    * @param minPrice The minimum audit price.
+   * @return The requestId of an audit adhering to the minPrice, or 0 if no such audit exists.
    */
   function anyAuditRequestMatchesPrice(uint256 minPrice) internal view returns(uint256) {
     bool priceExists;
     uint256 price;
     uint256 requestId;
-    uint256 multirequestId;
 
     // picks the tail of price buckets
     (priceExists, price) = priceList.getAdjacent(HEAD, PREV);
-    // iterating in reverse order over price buckets for finding an appropriated request
-    while (price != HEAD && price >= minPrice) {
-      requestId = getNextAuditByPrice(price, HEAD);
-      // iterating over requests in each price bucket. the iteration starts from older requests to younger ones.
-      while (requestId != HEAD) {
-        multirequestId = multiRequestData.getMultiRequestIdGivenRequestId(requestId);
-        // if this request belongs to a multirequest, find out whether an audit node calling this function has been
-        // already assigned to another request from the same multirequest.
-        // true condition means that this request is not associated to a multirequest.
-        if (multirequestId == 0 || !multiRequestData.existsAuditorFromMultiRequestAssignment(multirequestId, msg.sender)) {
-          return requestId;
-        } else {
-          // the given audit node already audited an individual audit from this multi audit request. Let's
-          // jump to the last individual associated requestId.
-          requestId = multiRequestData.getMultiRequestLastRequestId(multirequestId);
-        }
-        requestId = getNextAuditByPrice(price, requestId);
-      }
-      (priceExists, price) = priceList.getAdjacent(price, PREV);
+    if (price < minPrice) {
+      return 0;
     }
-
-    return 0;
+    requestId = getNextAuditByPrice(price, HEAD);
+    return requestId;
   }
 
   /**
@@ -777,18 +720,5 @@ contract QuantstampAudit is Pausable {
   function safeTransferFromDataContract(address _to, uint256 amount) internal {
     auditData.approveWhitelisted(amount);
     require(auditData.token().transferFrom(address(auditData), _to, amount));
-  }
-
-  /**
-   * @dev Manages request if it is from a multirequest.
-   * @param requestId Unique ID of the audit request.
-   */
-  function assignMultirequest(uint256 requestId) internal {
-    uint256 multirequestId = multiRequestData.getMultiRequestIdGivenRequestId(requestId);
-    // record, if the requestId belongs to a multiRequestId
-    if (multirequestId > 0) {
-      multiRequestData.addAuditorToMultiRequestAssignment(multirequestId, msg.sender);
-      emit LogRequestAssignedFromMultiRequest(requestId, multirequestId, msg.sender);
-    }
   }
 }
