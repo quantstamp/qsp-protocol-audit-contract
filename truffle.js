@@ -16,12 +16,12 @@ module.exports = {
     }
   },
   deploy: {
-  QuantstampAuditData: false,
-  QuantstampAuditReportData: false,
-  QuantstampAuditTokenEscrow: false,
-  QuantstampAuditPolice: false,
-  QuantstampAudit: false,
-  QuantstampAuditView: false
+    QuantstampAuditData: false,
+    QuantstampAuditReportData: false,
+    QuantstampAuditTokenEscrow: false,
+    QuantstampAuditPolice: false,
+    QuantstampAudit: false,
+    QuantstampAuditView: false
   },
   networks: {
     development: {
