@@ -8,7 +8,7 @@ module.exports = {
   'whitelist-police-node': {
     contractName: 'QuantstampAuditPolice',
     methodName: 'addPoliceNode',
-    gasLimit: 90000,
+    gasLimit: 100000,
     methodArgs: async(stage, argv) => {
       return argv.p;
     }
