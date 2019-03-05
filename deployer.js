@@ -69,8 +69,21 @@ async function getCommitHash(currentVersion, network, contract) {
         Bucket: 'qsp-protocol-contract',
         Key: network + '/' + contract + '-v-' + majorVersion + "-meta.json"
     }
-    //console.log(getParams)
+
+    var fileExists = await s3.headObject(getParams).promise().catch(err => {
+        if (err.code === 'NotFound') {
+            return false
+        } else {
+            console.log(err)
+        }
+    })
+
+    if (fileExists === false) {
+        commitHash = shell.exec('git log --pretty=format:%H | tail -1', {silent:true}).stdout;
+        return commitHash
+    }
     var response = await s3.getObject(getParams).promise().catch(err => console.log(err))
+
     var data = response.Body.toString()
     commitHash = JSON.parse(data).commitHash
     return commitHash
