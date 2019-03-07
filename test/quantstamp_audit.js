@@ -226,6 +226,7 @@ contract('QuantstampAudit', function(accounts) {
         assert.equal(args.requestId.toNumber(), requestId);
         assert.equal(args.auditor, auditor);
         assert.equal(args.auditResult, AuditState.Completed);
+        assert.equal(args.report, null);  // NOTE: for empty reports, the returned value is null, not "0x"
       },
       index: 0
     });

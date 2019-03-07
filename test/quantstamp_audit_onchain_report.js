@@ -79,7 +79,9 @@ contract('QuantstampAudit_report', function(accounts) {
       Util.assertEventAtIndex({
         result: await quantstamp_audit.submitReport(requestId, AuditState.Completed, submittedReport, {from: auditor}),
         name: "LogAuditFinished",
-        args: (args) => {},
+        args: (args) => {
+          assert.equal(args.report, submittedReport.toLowerCase());
+        },
         index: 0
       });
     });

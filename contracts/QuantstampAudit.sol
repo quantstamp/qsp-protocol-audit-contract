@@ -50,7 +50,15 @@ contract QuantstampAudit is Pausable {
   event LogAuditFinished(
     uint256 requestId,
     address auditor,
-    QuantstampAuditData.AuditState auditResult
+    QuantstampAuditData.AuditState auditResult,
+    bytes report
+  );
+
+  event LogPoliceAuditFinished(
+    uint256 requestId,
+    address policeNode,
+    bytes report,
+    bool isVerified
   );
 
   event LogAuditRequested(uint256 requestId,
@@ -253,7 +261,9 @@ contract QuantstampAudit is Pausable {
     // store reports on-chain
     reportData.setReport(requestId, report);
 
-    emit LogAuditFinished(requestId, msg.sender, auditResult); // solhint-disable-line not-rely-on-time
+    emit LogAuditFinished(requestId, msg.sender, auditResult, report);
+
+
 
     if (auditResult == QuantstampAuditData.AuditState.Completed) {
       // alert the police to verify the report
@@ -306,6 +316,9 @@ contract QuantstampAudit is Pausable {
     uint256 slashAmount;
     // hasBeenSubmitted may be false if the police submission period has ended
     (hasBeenSubmitted, slashOccurred, slashAmount) = police.submitPoliceReport(msg.sender, auditNode, requestId, report, isVerified);
+    if (hasBeenSubmitted) {
+      emit LogPoliceAuditFinished(requestId, msg.sender, report, isVerified);
+    }
     if (slashOccurred) {
       // transfer the audit request price to the police
       uint256 auditPoliceFee = police.collectedFees(requestId);
