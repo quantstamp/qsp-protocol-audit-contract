@@ -49,7 +49,6 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
   event PoliceNodeRemoved(address addr);
   // TODO: we may want these parameters indexed
   event PoliceNodeAssignedToReport(address policeNode, uint256 requestId);
-  event PoliceReportSubmitted(address policeNode, uint256 requestId, PoliceReportState reportState);
   event PoliceSubmissionPeriodExceeded(uint256 requestId, uint256 timeoutBlock, uint256 currentBlock);
   event PoliceSlash(uint256 requestId, address policeNode, address auditNode, uint256 amount);
   event PoliceFeesClaimed(address policeNode, uint256 fee);
@@ -229,7 +228,6 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
     }
     policeReportResults[requestId][policeNode] = state;
 
-    emit PoliceReportSubmitted(policeNode, requestId, state);
     // the report was already marked invalid by a different police node
     if (verifiedReports[requestId] == PoliceReportState.INVALID) {
       return (true, false, 0);

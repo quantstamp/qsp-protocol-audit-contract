@@ -226,13 +226,14 @@ contract('QuantstampAuditPolice', function(accounts) {
     assert.equal(await quantstamp_audit_police.getPoliceReportResult(currentId, police1), Util.PoliceReportState.Unverified);
     const result = await quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, true, {from: police1});
 
-    Util.assertNestedEvent({
+    Util.assertEvent({
       result: result,
-      name: "PoliceReportSubmitted",
+      name: "LogPoliceAuditFinished",
       args: (args) => {
-        assert.equal(args.policeNode, police1.toLowerCase());
+        assert.equal(args.policeNode, police1);
         assert.equal(args.requestId, currentId);
-        assert.equal(args.reportState, Util.PoliceReportState.Valid);
+        assert.isTrue(args.isVerified);
+        assert.equal(args.report, Util.nonEmptyReport);
       }
     });
 
@@ -280,23 +281,12 @@ contract('QuantstampAuditPolice', function(accounts) {
 
     Util.assertNestedEventAtIndex({
       result: result,
-      name: "PoliceReportSubmitted",
-      args: (args) => {
-        assert.equal(args.policeNode, police1.toLowerCase());
-        assert.equal(args.requestId, currentId);
-        assert.equal(args.reportState, Util.PoliceReportState.Invalid);
-      },
-      index: 0
-    });
-
-    Util.assertNestedEventAtIndex({
-      result: result,
       name: "Slashed",
       args: (args) => {
         assert.equal(args.addr, auditor.toLowerCase());
         assert.equal(args.amount, slash_amount);
       },
-      index: 1
+      index: 0
     });
 
     Util.assertNestedEventAtIndex({
@@ -308,7 +298,19 @@ contract('QuantstampAuditPolice', function(accounts) {
         assert.equal(args.auditNode, auditor.toLowerCase());
         assert.equal(args.amount, slash_amount);
       },
-      index: 3
+      index: 2
+    });
+
+    Util.assertEventAtIndex({
+      result: result,
+      name: "LogPoliceAuditFinished",
+      args: (args) => {
+        assert.equal(args.policeNode, police1);
+        assert.equal(args.requestId, currentId);
+        assert.isTrue(!args.isVerified);
+        assert.equal(args.report, Util.nonEmptyReport);
+      },
+      index: 0
     });
 
     assert.equal(await quantstamp_audit_police.getPoliceReportResult(currentId, police1), Util.PoliceReportState.Invalid);
