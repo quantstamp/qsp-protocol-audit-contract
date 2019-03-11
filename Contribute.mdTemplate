@@ -1,0 +1,14 @@
+# Contributing
+!INCLUDEURL "https://raw.githubusercontent.com/quantstamp/opensource-doc-gen/master/github_template/Contribute.md/ContribHeader.md"
+
+## Bug Report
+!INCLUDEURL "https://raw.githubusercontent.com/quantstamp/opensource-doc-gen/master/github_template/Contribute.md/BugReport.md"
+
+## Feature suggestion
+!INCLUDEURL "https://raw.githubusercontent.com/quantstamp/opensource-doc-gen/master/github_template/Contribute.md/FeatureSuggestion.md"
+
+## Pull Request Guideline
+!INCLUDEURL "https://raw.githubusercontent.com/quantstamp/opensource-doc-gen/master/github_template/Contribute.md/PullRequest.md"
+
+## Code of Conduct
+!INCLUDEURL "https://raw.githubusercontent.com/quantstamp/opensource-doc-gen/master/github_template/Contribute.md/CodeOfConduct.md"
