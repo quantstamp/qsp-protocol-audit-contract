@@ -3,13 +3,23 @@
 ![Build status](https://codebuild.us-east-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiZmNQeU81OEExcy8zZS9vdkpWU3NNQUJDNnVYYTRTbHQvaGE4TExaZXhVcnFFWXY3VjdJRGxyU3IrTk9UNTQzMWJJNk5rdThNZEE4SVUxS3h0QkNPZG0wPSIsIml2UGFyYW1ldGVyU3BlYyI6IkhmZUo3c005aHZRdUdjTloiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=develop)
 [![Coverage Status](https://coveralls.io/repos/github/quantstamp/qsp-protocol-audit-contract/badge.svg?branch=develop&t=kDg4aW)](https://coveralls.io/github/quantstamp/qsp-protocol-audit-contract)
 
+## Coding Guidelines
+- For Solidity smart contracts, please follow the official Solidity [Style Guide](https://solidity.readthedocs.io/en/v0.4.24/style-guide.html).
+- For JavaScript code, please follow [Google JavaScript Style Guide](https://google.github.io/styleguide/javascriptguide.xml).
+- The project uses JavaScript for unit tests. We strive to have 100% Solidity code coverage. You can check the code coverage by generating a report via the command `npm run test-cov`.
+
+## Overview of the QSP Audit Protocol
+
 This repository contains contracts for interfacing with the QSP audit protocol.
 
 - `QuantstampAudit.sol` is the main contract used for interfacing with the protocol. It allows, among other things, the users to request audits and query their state, the node operators to stake funds and bid on audits, and handle refunds. It also governs the assignment of audits.
 - `QuantstampAuditData.sol` stores information about the audits.
+- `QuantstampAuditPolice.sol` is used to police the audit protocol. Police nodes are trusted nodes that verify reports produced by Audit nodes. 
 - `QuantstampAuditReportData.sol` stores compressed reports on-chain.
 - `QuantstampAuditTokenEscrow.sol` holds tokens staked by audit nodes in an escrow.
 - `QuantstampAuditView.sol` provides view functionality for the state of the protocol.
+
+### Interactions among Contracts and Nodes
 
 ## Access deployed contracts
 
