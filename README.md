@@ -17,9 +17,12 @@ This repository contains contracts for interfacing with the QSP audit protocol.
 - `QuantstampAuditPolice.sol` is used to police the audit protocol. Police nodes are trusted nodes that verify reports produced by Audit nodes. 
 - `QuantstampAuditReportData.sol` stores compressed reports on-chain.
 - `QuantstampAuditTokenEscrow.sol` holds tokens staked by audit nodes in an escrow.
-- `QuantstampAuditView.sol` provides view functionality for the state of the protocol.
+- `QuantstampAuditView.sol` provides view functionality for the state of the protocol. It is used for querying other contracts.
 
 ### Interactions among Contracts and Nodes
+
+![Alt text](./doc/auditRequest.svg)
+<img src="./doc/auditRequest.svg">
 
 ## Access deployed contracts
 
