@@ -12,7 +12,7 @@ as it will establish a common ground and facilitate discussion about the project
 
 First of all, if you find a security vulnerability or suspect a problem to be security-related, 
 please do NOT open an issue and do NOT discuss it in anywhere public. 
-Email {"gitdown": "variable", "name": "generic.security_bug_email"} instead.
+Email dev-support@quantstamp.com instead.
 
 In other cases, 
 please follow the steps that will certainly help us and will also help you solve the bug faster:
@@ -22,7 +22,7 @@ please follow the steps that will certainly help us and will also help you solve
 
 
 Once you're certain that you should submit the bug, 
-we highly recommend filing an issue through github to get a timely response. 
+we highly recommend filing an issue through Github to get a timely response. 
 
 To submit an issue, please include the following information in your post:
 1. What is the version that you are using?
@@ -50,7 +50,7 @@ We'll track the suggestion using Github issues, to make an effective suggestion:
 
 ## Pull Request Guideline
 
-[Guidelines for github contribution](https://www.gun.io/blog/how-to-github-fork-branch-and-pull-request)
+[Guidelines for github contribution](https://gist.github.com/Chaser324/ce0505fbed06b947d962)
 
 To make a pull request:
 1. Ensure that all tests have passed.
@@ -58,7 +58,7 @@ To make a pull request:
 2. Follow the coding guidelines using `.editorconfig` in the repository
 3. Update the documents accordingly to describe the interface and feature change
 
-We will review the pull requests on a regular basis and 
+We will review the pull requests when we have availability and 
 will give you feedback based on your changes. We expect responses of the feedback within 2 weeks.
 After 2 weeks, we may close the pull request due to inactivity.
 

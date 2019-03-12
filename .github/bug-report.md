@@ -38,3 +38,6 @@ assignees: ''
 * Python Version:
 * Version of this software:
 * Operating System and version:
+
+## Additional Comments
+<!--- Include other comments about the bug you experienced -->
