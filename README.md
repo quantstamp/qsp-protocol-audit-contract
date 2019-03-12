@@ -4,6 +4,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/quantstamp/qsp-protocol-audit-contract/badge.svg?branch=develop&t=kDg4aW)](https://coveralls.io/github/quantstamp/qsp-protocol-audit-contract)
 
 ## Coding Guidelines
+- We use 2 spaces instead of 4 for indentation.
 - For Solidity smart contracts, please follow the official Solidity [Style Guide](https://solidity.readthedocs.io/en/v0.4.24/style-guide.html).
 - For JavaScript code, please follow [Google JavaScript Style Guide](https://google.github.io/styleguide/javascriptguide.xml).
 - The project uses JavaScript for unit tests. We strive to have 100% Solidity code coverage. You can check the code coverage by generating a report via the command `npm run test-cov`.
