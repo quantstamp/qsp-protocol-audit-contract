@@ -12,7 +12,8 @@
     "coveralls-collect": "cat coverage/lcov.info | ./node_modules/.bin/coveralls",
     "command": "node ./scripts/command.js",
     "lint": "./node_modules/.bin/solhint contracts/Quantstamp*.sol",
-    "deploy": "node deployer.js"
+    "deploy": "node deployer.js",
+    "docs": "make docs"
   },
   "author": "",
   "license": "ISC",
