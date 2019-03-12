@@ -26,6 +26,7 @@ const replace = require('replace-in-file');
 const aws = require('aws-sdk');
 const s3 = new aws.S3(); 
 const definitions = require('./scripts/definitions.js')
+const truffle = require('./truffle.js')
 
 function getConfig() {
 try {
@@ -48,14 +49,14 @@ function getAllContractNames() {
     return files
 }
 
-function updateVersion(config) {
+function updateVersion(network, config) {
     let packageJson = editJsonFile('package.json')
     let version = packageJson.get("version")
     if (config.deploy.version >= version) {
         packageJson.set("version", config.deploy.version)
         packageJson.save()
-        console.log("Version in package.json updated to " + config.deploy.version)
-    } else throw Error("New version number should be greater than or equal to current version")
+        console.log(" - "  + network.name + " -- Version in package.json updated to " + config.deploy.version)
+    } else throw Error(" - " + network.name + " -- New version number should be greater than or equal to current version")
 }
 
 async function getCommitHash(currentVersion, network, contract) {
@@ -98,8 +99,8 @@ function getUpdatedContractNames(fileNames) {
     let sol = new RegExp('.sol$')
     let files = fileNames.filter(fileName => fileName.match(sol))
     let contractNames = files.map(file => path.parse(file).base.split(".")[0])
-    if (contractNames.length > 0) {
-        console.log("Found updated contracts")
+    if (contractNames.length <= 0) {
+        contractNames = []
     }
     return contractNames
 }
@@ -115,7 +116,6 @@ function updateTruffle(contractNames) {
         }
         try {
             const changes = replace.sync(options);
-            //console.log('Modified files:', changes.join(', '));
             if (changes.length > 0) {
                 console.log("Truffle.js modified for " + contract )
             }
@@ -127,7 +127,7 @@ function updateTruffle(contractNames) {
 }
 
 function writeTruffleCommands(network, deployScript) {
-    content= "#!/bin/bash\ntruffle migrate --network " + network + " --reset\n"
+    content= "#!/bin/bash\ntruffle migrate --network " + network + " --reset"
     return content
 }
 
@@ -151,17 +151,37 @@ function findWhiteListCommands(updatedContractNames) {
 }
 
 
-function writeWhiteListcommands(network, whiteListDefs) {
+function writeContractWhiteListCommands(network, whiteListDefs) {
     commands = []
     whiteListDefs.forEach(whitelistDef => {
-        commands.push("npm run command -- -n="  + network+ " -a=" + whitelistDef)
+        commands.push("\nnpm run command -- -n="  + network + " -a=" + whitelistDef)
     })
-    return commands.join("\n")
+    return commands.join("")
+}
+function findPoliceWhiteListCommands(network) {
+    policeNodes = truffle.networks[network].policeNodes
+    if (policeNodes === undefined) {
+        policeNodes = []
+    }
+    return policeNodes
+}
+
+function writePoliceWhiteListCommands(network, policeNodes) {
+    commands = []
+    policeNodes.forEach(policeNode => {
+        commands.push("\nnpm run command -- -n=" + network + " -a=whitelist-police-node -p " + policeNode)
+    })
+    return commands.join("")
 }
 
 function writeGitDiscardCommands() {
     content = "\ngit checkout -- truffle.js\n"
     return content
+}
+
+function IsValidNetwork(network) {
+    validNetworks = Object.keys(truffle.networks)
+    return validNetworks.includes(network)
 }
 
 function main() {
@@ -173,46 +193,51 @@ function main() {
     let allContracts = getAllContractNames()
 
     config.deploy.network.forEach(async (network) => {
+        if (!IsValidNetwork(network.name)) {
+            throw(" - "  + network.name + " -- Not a valid network: " + network.name)
+        }
         var updatedContractNames = []
         var currentVersion = getCurrentVersion()
-        var deployScript = fs.createWriteStream("deploy-" + network.name + ".sh",{mode: '744', flag: 'w'})
 
         writeTruffleCommands(network.name, deployScript)
 
+        console.log(" - "  + network.name + " -- Checking commit hashes...")
         for (i = 0; i < allContracts.length; i++) {
             contract = allContracts[i]
             let commitHash = await getCommitHash(currentVersion, network.name, contract)
-            console.log("=======\nChecking commit hash for " + contract + " for version: " + currentVersion)
-            console.log("Commit Hash is " + commitHash)
             if (commitHash !== null) {
                 let fileNames = getDiffFiles(commitHash)
                 updatedContractNames = updatedContractNames.concat(getUpdatedContractNames(fileNames))
             } else {
-                console.log("Could not find a commit hash for current major version")
+                console.log(" - "  + network.name + " -- Could not find a commit hash for current major version for contract: " + contract)
             }
         }
         if (updatedContractNames.length > 0) {
-            updatedContractNames = [...new Set(updatedContractNames)]
-            console.log("=======\nUpdated contracts are: " + updatedContractNames)
-            updateTruffle(updatedContractNames)
-            var whitelistDefs = findWhiteListCommands(updatedContractNames)
-            if (whitelistDefs.length > 0) {
-                console.log("=======\nFound following matching whitelisting definitions: " + whitelistDefs)
-            }
-
+            console.log(" - "  + network.name + " -- Found updated contracts...")
             try {
+                var deployScript = fs.createWriteStream("deploy-" + network.name + ".sh",{mode: '744', flag: 'w'})
+                updatedContractNames = [...new Set(updatedContractNames)]
+                updateTruffle(updatedContractNames)
                 deployScript.write(writeTruffleCommands(network.name))
-                console.log("Wrote truffle migrate command to " +  deployScript.path)
-                deployScript.write(writeWhiteListcommands(network.name, whitelistDefs))
-                console.log("=======\nWrote whitelist commands to "+  deployScript.path)
+                console.log(" - "  + network.name + " -- Wrote truffle migrate command to " +  deployScript.path)
+                var whitelistDefs = findWhiteListCommands(updatedContractNames)
+                if (whitelistDefs.length > 0) {
+                    deployScript.write(writeContractWhiteListCommands(network.name, whitelistDefs))
+                    console.log(" - "  + network.name + " -- Wrote whitelist commands to "+  deployScript.path)
+                }
+                var policeWhiteLists = findPoliceWhiteListCommands(network.name)
+                if (policeWhiteLists.length > 0) {
+                    deployScript.write(writePoliceWhiteListCommands(network.name, policeWhiteLists))
+                    console.log(" - "  + network.name + " -- Wrote police whitelist commands to "+  deployScript.path)
+                }
                 deployScript.write(writeGitDiscardCommands())
-                updateVersion(config)
-            } catch(err) {
+                updateVersion(network, config)
+            }catch(err) {
                 // undoAllChanges()
                 throw(err)
             }
         }
-        else console.log("No contract updated since last deploy")
+        else console.log(" - "  + network.name + " -- No contract updated since last deploy")
     })
 }
 
