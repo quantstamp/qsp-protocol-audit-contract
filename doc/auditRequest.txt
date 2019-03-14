@@ -1,0 +1,60 @@
+// https://sequencediagram.org
+
+title Audit Request (Happy Path)
+
+actor Audit Requestor
+participant QuantstampAudit
+participant QuantstampAuditData
+
+note over Audit Requestor,QuantstampAuditData:When a requestor asks for an audit,\n the contract QuantstampAudit adds a request\nand emits an event that Audit nodes listen to.
+
+	Audit Requestor->QuantstampAudit:requestAudit()
+
+    QuantstampAudit->QuantstampAuditData:addAuditRequest()
+
+entity Audit Node
+participant QuantstampAuditTokenEscrow
+participant QuantstampAuditReportData
+participant QuantstampAuditPolice
+
+note over QuantstampAudit,QuantstampAuditTokenEscrow:Only one node will get assigned the audit when they call\ngetNextAuditRequest(). The function will set the auditor in the contract\nand will lock the auditor node's funds.
+
+    QuantstampAudit<-Audit Node:getNextAuditRequest()
+
+    QuantstampAudit->QuantstampAuditData:setAuditAuditor()
+
+    QuantstampAudit->QuantstampAuditTokenEscrow:lockFunds()
+
+note over QuantstampAudit,QuantstampAuditReportData:The audit node submits a report and the report's information gets stored in\nthe contracts QuantstampAuditData and QuantstampAuditReportData.
+
+    QuantstampAudit<-Audit Node:submitReport()
+
+    QuantstampAudit->QuantstampAuditData:setAuditState()
+
+    QuantstampAudit->QuantstampAuditData:setAuditReportBlockNumber()
+
+    QuantstampAudit->QuantstampAuditReportData:setReport()
+
+    QuantstampAudit->QuantstampAuditPolice:assignPoliceToReport()
+
+entity Police Node
+
+note over QuantstampAudit,Police Node:The report gets assigned to police nodes. The police nodes check the report and submit their assessments.
+
+    QuantstampAudit<-Police Node:getNextPoliceAssignment()
+
+    QuantstampAudit->QuantstampAuditPolice:getNextPoliceAssignment()
+
+    QuantstampAudit<-Police Node:submitPoliceReport()
+
+    QuantstampAudit->QuantstampAuditPolice:submitPoliceReport()
+
+note over Audit Requestor,QuantstampAuditReportData:Finally, the report is ready and the requestor can read its content.
+
+	Audit Requestor->QuantstampAudit:getReport()
+
+    QuantstampAudit->QuantstampAuditReportData:getReport()
+
+QuantstampAudit<--QuantstampAuditReportData:report
+
+Audit Requestor<--QuantstampAudit:report
