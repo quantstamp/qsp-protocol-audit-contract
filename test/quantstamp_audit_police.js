@@ -579,7 +579,7 @@ contract('QuantstampAuditPolice', function(accounts) {
 
   });
 
-    it("should allow auditors to iteratively claim all rewards", async function() {
+  it("should allow auditors to iteratively claim all rewards", async function() {
     const HEAD = 0;
     let currentId = HEAD;
     let result;
@@ -593,7 +593,7 @@ contract('QuantstampAuditPolice', function(accounts) {
     await Util.mineNBlocks(num_blocks);
 
     // check that we can find all report IDs in the list
-    for(var i = 0; i < num_reports; i++) {
+    for(let i = 0; i < num_reports; i++) {
       result = await quantstamp_audit.getNextAvailableReward(currentId, {from: auditor});
       assert.isTrue(result[0]);
       currentId = result[1];
@@ -602,7 +602,7 @@ contract('QuantstampAuditPolice', function(accounts) {
     assert.isTrue(!result[0]);
     assert.equal(result[1], 0);
 
-    for(var i = 0; i < num_reports; i++) {
+    for(let i = 0; i < num_reports; i++) {
       result = await quantstamp_audit.getNextAvailableReward(HEAD, {from: auditor});
       assert.isTrue(result[0]);
       await quantstamp_audit.claimReward(result[1], {from: auditor});
