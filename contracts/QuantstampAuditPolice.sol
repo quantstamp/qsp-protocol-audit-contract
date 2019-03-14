@@ -262,7 +262,9 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
       // the police did not invalidate the report
       verifiedReports[requestId] != PoliceReportState.INVALID &&
       // the reward has not already been claimed
-      !rewardHasBeenClaimed[requestId];
+      !rewardHasBeenClaimed[requestId] &&
+      // the requestId is non-zero
+      requestId > 0;
   }
 
   /**
@@ -309,7 +311,7 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
    */
   function claimNextReward (address auditNode, uint256 requestId) public onlyWhitelisted returns (bool, uint256) {
     bool exists;
-    (exists, requestId) = pendingPayments[auditNode].getAdjacent(HEAD, NEXT);
+    (exists, requestId) = pendingPayments[auditNode].getAdjacent(requestId, NEXT);
     // NOTE: Do NOT short circuit this list based on timeouts.
     // The ordering may be broken if the owner changes the timeouts.
     while (exists && requestId != HEAD) {
