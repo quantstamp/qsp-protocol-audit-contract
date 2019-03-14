@@ -7,6 +7,7 @@ const Accounts = require('web3-eth-accounts');
 const utils = require('./migrations/utils');
 const truffle = require('./truffle.js');
 const command = require('./scripts/callmethod.js')
+const credentials = require("./credentials.js");
 
 
 AWS.config.update({region: 'us-east-1'});
@@ -112,7 +113,11 @@ async function getContractInstance(web3Provider, network, contractName) {
 
 return Promise.resolve()
     .then(async () => {
-        const infura_apikey = 'Q8s5h30iwksMCn9AhdmT'
+        const infura_apikey = credentials.infura_apikey
+        if (!infura_apikey) {
+            console.log("Infura key should not be empty. Please check credentials.js file.")
+            process.exit()
+        }
         const accounts = new Accounts(`https://ropsten.infura.io/${infura_apikey}`);
         const keystoreObject = await getKeystoreInfo(argv.network, argv.type, argv.address)
         const privateKey =  getPrivateKey(accounts, keystoreObject)
