@@ -1,6 +1,8 @@
 const truffle = require('../truffle.js');
 const AWS = require('aws-sdk');
 const web3 = require('web3');
+const BN = require('bn.js');
+const BigNumber = require('bignumber.js');
 const s3 = new AWS.S3({
   region: 'us-east-1'
 });
@@ -14,6 +16,7 @@ function tokenAddress(network, defaultArtifact) {
   // whose address will be used when deploying to other networks (e.g., Ganache)
   switch(network) {
     case 'dev':
+    case 'testnet':
     case 'ropsten':
       // 'ropsten' is useful for deploying to the Ropsten network separately,
       // without affecting Dev or Prod
@@ -40,6 +43,9 @@ function getBucketName() {
 }
 
 function getFileName(network, contractName, version, type) {
+  if (contractName === 'QuantstampToken') {
+    return `${network}/${contractName}.${type}.json`;
+  }
   return `${network}/${contractName}-v-${version}-${type}.json`;
 }
 
@@ -141,11 +147,16 @@ function canDeploy(network, contractName) {
   return true;
 }
 
+function toEther (n) {
+  return new BN(web3.utils.toWei(new BigNumber(n).toString(), "ether"));
+}
 module.exports = {
   updateAbiAndMetadata,
   tokenAddress,
   contractAddress,
   canDeploy,
   readAbi,
-  readAddressFromMetadata
+  readAddressFromMetadata,
+  toEther : toEther,
+  toQsp : toEther,
 };

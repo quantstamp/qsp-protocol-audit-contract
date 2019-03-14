@@ -37,7 +37,13 @@ module.exports = {
       network_id: 3,
       gas: 6712388,
       gasPrice: 110000000000,
-      account: '0x0283c049ed4705e2d98c807dbafdaf725f34b8d2'
+      account: '0x0283c049ed4705e2d98c807dbafdaf725f34b8d2',
+      policeNodes: [
+        '0x3dcad2ecba489945b6935b50c1657b20c00d3d4c'
+      ],
+      auditNodes: [
+        '0xc03038cb6725abdfb225ef10fda3cda3ac2ed3b5'
+      ]
     },
     testnet: {
       provider:  function() {
@@ -47,7 +53,13 @@ module.exports = {
       gas: 6712388,
       gasPrice: 110000000000,
       account: '0x0283c049ed4705e2d98c807dbafdaf725f34b8d2',
-      skipDryRun: true
+      skipDryRun: true,
+      policeNodes: [
+        '0x8F00010986cD2118579c3636EE0EC7810CFaf5D5'
+      ],
+      auditNodes: [
+        '0x2E827414F3a8bAF7d8Df88293B25F13b6cDA53d6'
+      ]
     },
     staging: {
       provider:  function() {

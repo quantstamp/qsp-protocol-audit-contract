@@ -755,5 +755,10 @@ contract('QuantstampAuditPolice', function(accounts) {
     await quantstamp_audit.submitReport(currentId, AuditState.Completed, Util.nonEmptyReport, {from : auditor});
     assert.equal(await quantstamp_audit.getReport(currentId), Util.nonEmptyReport);
   });
+
+  it("canClaimAuditReward should return false for index 0", async function() {
+    const result = await quantstamp_audit_police.canClaimAuditReward(auditor, 0);
+    assert.isTrue(!result);
+  });
 });
 
