@@ -262,6 +262,7 @@ contract QuantstampAudit is Pausable {
     reportData.setReport(requestId, report);
 
     emit LogAuditFinished(requestId, msg.sender, auditResult, report);
+
     if (auditResult == QuantstampAuditData.AuditState.Completed) {
       // alert the police to verify the report
       police.assignPoliceToReport(requestId);
