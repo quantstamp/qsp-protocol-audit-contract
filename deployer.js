@@ -260,8 +260,7 @@ function main() {
                 deployScript.write(writeGitDiscardCommands())
                 updateVersion(network, config)
             }catch(err) {
-                // fs.end(deployScript)
-                // fs.unlinkSync(deployScript)
+                fs.unlinkSync(deployScript.path)
                 throw(err)
             }
         }

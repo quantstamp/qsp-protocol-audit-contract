@@ -10,7 +10,7 @@ const command = require('./scripts/callmethod.js')
 
 
 AWS.config.update({region: 'us-east-1'});
-var argv = yargs
+const argv = yargs
         .option({
             a: {
                 demand: true,
@@ -44,7 +44,7 @@ var argv = yargs
             }
         })
         .check(function(argv) {
-            if (argv.approve!== undefined || argv.stake!==undefined){
+            if (argv.approve || argv.stake){
                 return true
             } else {
                 throw(new Error("One of the two is required: approve or stake"))
@@ -70,7 +70,7 @@ async function getKeystoreInfo(network, type, address) {
       };
     keystoreObject = await ddb.query(params).promise().catch(err => console.log(err))
     if (keystoreObject.Items === []) {
-        throw(new Error("Can not find matching keystore file in dynamo db"))
+        throw(new Error("Cannot find matching keystore file in dynamo db"))
     }
 
     return parseKeystoreInfo(keystoreObject.Items)
@@ -101,9 +101,6 @@ async function getContractAddress(network, contractName) {
     return address
 }
 async function getContractInstance(web3Provider, network, contractName) {
-    // if (contractName === 'QuantstampToken') {
-    //     const address = utils.tokenAddress(network, 'QuantstampToken')
-    // } else {
     const address = await getContractAddress(network, contractName)
     const abi = await utils.readAbi(network, contractName)
     const instance = new web3Provider.eth.Contract(abi, address, {
