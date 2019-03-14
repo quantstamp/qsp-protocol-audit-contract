@@ -9,9 +9,9 @@ participant QuantstampAuditData
 note over Audit Requestor,QuantstampAuditData:When a requestor asks for an audit,\n the contract QuantstampAudit adds a request\nand emits an event that Audit nodes listen to.
 
 	Audit Requestor->QuantstampAudit:requestAudit()
-    
+
     QuantstampAudit->QuantstampAuditData:addAuditRequest()
-    
+
 entity Audit Node
 participant QuantstampAuditTokenEscrow
 participant QuantstampAuditReportData
@@ -28,7 +28,7 @@ note over QuantstampAudit,QuantstampAuditTokenEscrow:Only one node will get assi
 note over QuantstampAudit,QuantstampAuditReportData:The audit node submits a report and the report's information gets stored in\nthe contracts QuantstampAuditData and QuantstampAuditReportData.
 
     QuantstampAudit<-Audit Node:submitReport()
-    
+
     QuantstampAudit->QuantstampAuditData:setAuditState()
 
     QuantstampAudit->QuantstampAuditData:setAuditReportBlockNumber()
@@ -36,10 +36,10 @@ note over QuantstampAudit,QuantstampAuditReportData:The audit node submits a rep
     QuantstampAudit->QuantstampAuditReportData:setReport()
 
     QuantstampAudit->QuantstampAuditPolice:assignPoliceToReport()
-        
+
 entity Police Node
 
-note over QuantstampAudit,Police Node:The report gets assigned to police nodes which are notified by events. The police nodes check the report and submit their assessments.
+note over QuantstampAudit,Police Node:The report gets assigned to police nodes. The police nodes check the report and submit their assessments.
 
     QuantstampAudit<-Police Node:getNextPoliceAssignment()
 
@@ -48,7 +48,7 @@ note over QuantstampAudit,Police Node:The report gets assigned to police nodes w
     QuantstampAudit<-Police Node:submitPoliceReport()
 
     QuantstampAudit->QuantstampAuditPolice:submitPoliceReport()
-    
+
 note over Audit Requestor,QuantstampAuditReportData:Finally, the report is ready and the requestor can read its content.
 
 	Audit Requestor->QuantstampAudit:getReport()
