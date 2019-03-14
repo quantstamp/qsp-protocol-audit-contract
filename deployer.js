@@ -55,8 +55,8 @@ function updateVersion(network, config) {
     if (config.deploy.version >= version) {
         packageJson.set("version", config.deploy.version)
         packageJson.save()
-        console.log(" - "  + network.name + " -- Version in package.json updated to " + config.deploy.version)
-    } else throw Error(" - " + network.name + " -- New version number should be greater than or equal to current version")
+        console.log(` - ${network.name} -- Version in package.json updated to ${config.deploy.version}`)
+    } else throw Error(` - ${network.name} -- New version number should be greater than or equal to current version`)
 }
 
 async function getCommitHash(currentVersion, network, contract) {
@@ -117,7 +117,7 @@ function updateTruffle(contractNames) {
         try {
             const changes = replace.sync(options);
             if (changes.length > 0) {
-                console.log("Truffle.js modified for " + contract )
+                console.log(`Truffle.js modified for ${contract}`)
             }
           }
           catch (error) {
@@ -154,18 +154,30 @@ function findWhiteListCommands(updatedContractNames) {
 function writeContractWhiteListCommands(network, whiteListDefs) {
     commands = []
     whiteListDefs.forEach(whitelistDef => {
-        commands.push("\nnpm run command -- -n="  + network + " -a=" + whitelistDef)
+        commands.push(`\nnpm run command -- -n=${network} -a=${whitelistDef}`)
     })
     return commands.join("")
 }
-function findPoliceWhiteListCommands(network) {
+
+function getNodes(network, type) {
+    if (type === 'police') {
+        nodes = truffle.networks[network].policeNodes
+    } else if (type === 'audit') {
+        nodes = truffle.networks[network].auditNodes
+    }
+    if (!nodes) {
+        nodes = []
+    }
+    return nodes
+}
+
+function getPoliceNodes(network) {
     policeNodes = truffle.networks[network].policeNodes
     if (policeNodes === undefined) {
         policeNodes = []
     }
     return policeNodes
 }
-
 function writePoliceWhiteListCommands(network, policeNodes) {
     commands = []
     policeNodes.forEach(policeNode => {
@@ -184,6 +196,13 @@ function IsValidNetwork(network) {
     return validNetworks.includes(network)
 }
 
+function writeApproveAndStakeCommands(network, nodes, type) {
+    commands = []
+    nodes.forEach(node => {
+        commands.push(`\nnode ./approve-and-stake.js -a ${node} --approve 10000 --stake 10000 -n ${network} -t ${type}`)
+    })
+    return commands.join("")
+}
 function main() {
     let config = getConfig()
     if (!config) {
@@ -194,14 +213,14 @@ function main() {
 
     config.deploy.network.forEach(async (network) => {
         if (!IsValidNetwork(network.name)) {
-            throw(" - "  + network.name + " -- Not a valid network: " + network.name)
+            throw(` - ${network.name} --  Not a valid network: ${network.name}`)
         }
         var updatedContractNames = []
         var currentVersion = getCurrentVersion()
 
         writeTruffleCommands(network.name, deployScript)
 
-        console.log(" - "  + network.name + " -- Checking commit hashes...")
+        console.log(` - ${network.name} -- Checking commit hashes...`)
         for (i = 0; i < allContracts.length; i++) {
             contract = allContracts[i]
             let commitHash = await getCommitHash(currentVersion, network.name, contract)
@@ -209,35 +228,44 @@ function main() {
                 let fileNames = getDiffFiles(commitHash)
                 updatedContractNames = updatedContractNames.concat(getUpdatedContractNames(fileNames))
             } else {
-                console.log(" - "  + network.name + " -- Could not find a commit hash for current major version for contract: " + contract)
+                console.log(` - ${network.name} -- Could not find a commit hash for current major version for contract: ${contract}`)
             }
         }
         if (updatedContractNames.length > 0) {
-            console.log(" - "  + network.name + " -- Found updated contracts...")
+            console.log(` - ${network.name} -- Found updated contracts...`)
             try {
                 var deployScript = fs.createWriteStream("deploy-" + network.name + ".sh",{mode: '744', flag: 'w'})
                 updatedContractNames = [...new Set(updatedContractNames)]
                 updateTruffle(updatedContractNames)
                 deployScript.write(writeTruffleCommands(network.name))
-                console.log(" - "  + network.name + " -- Wrote truffle migrate command to " +  deployScript.path)
+                console.log(` - ${network.name} -- Wrote truffle migrate command to ${deployScript.path}`)
                 var whitelistDefs = findWhiteListCommands(updatedContractNames)
                 if (whitelistDefs.length > 0) {
                     deployScript.write(writeContractWhiteListCommands(network.name, whitelistDefs))
-                    console.log(" - "  + network.name + " -- Wrote whitelist commands to "+  deployScript.path)
+                    console.log(` - ${network.name} -- Wrote whitelist commands to ${deployScript.path}`)
                 }
-                var policeWhiteLists = findPoliceWhiteListCommands(network.name)
-                if (policeWhiteLists.length > 0) {
-                    deployScript.write(writePoliceWhiteListCommands(network.name, policeWhiteLists))
-                    console.log(" - "  + network.name + " -- Wrote police whitelist commands to "+  deployScript.path)
+                var policeNodes = getNodes(network.name, 'police')
+                if (policeNodes.length > 0) {
+                    deployScript.write(writePoliceWhiteListCommands(network.name, policeNodes))
+                    console.log(` - ${network.name} -- Wrote police whitelist commands to ${deployScript.path}`)
+                    deployScript.write(writeApproveAndStakeCommands(network.name, policeNodes, 'police'))
+                    console.log(` - ${network.name} -- Wrote approve and stake commands to ${deployScript.path} for police nodes`)
+                }
+
+                var auditNodes = getNodes(network.name, 'audit')
+                if (auditNodes.length > 0) {
+                    deployScript.write(writeApproveAndStakeCommands(network.name, auditNodes, 'audit'))
+                    console.log(` - ${network.name} -- Wrote approve and stake commands to ${deployScript.path} for audit nodes`)
                 }
                 deployScript.write(writeGitDiscardCommands())
                 updateVersion(network, config)
             }catch(err) {
-                // undoAllChanges()
+                // fs.end(deployScript)
+                // fs.unlinkSync(deployScript)
                 throw(err)
             }
         }
-        else console.log(" - "  + network.name + " -- No contract updated since last deploy")
+        else console.log(` - ${network.name} -- No contract updated since last deploy`)
     })
 }
 
