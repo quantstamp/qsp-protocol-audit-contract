@@ -82,6 +82,7 @@ contract QuantstampAudit is Pausable {
   event LogAuditAssignmentError_ExceededMaxAssignedRequests(address auditor);
   event LogAuditAssignmentError_Understaked(address auditor, uint256 stake);
   event LogAuditAssignmentUpdate_Expired(uint256 requestId, uint256 allowanceBlockNumber);
+  event LogClaimRewardsReachedGasLimit(address auditor);
 
   /* solhint-enable event-name-camelcase */
 
@@ -353,23 +354,34 @@ contract QuantstampAudit is Pausable {
 
   /**
    * @dev Claim all pending rewards for the audit node.
-   * @return The total amount of rewards paid.
+   * @return Returns true if the operation ran to completion, or false if the loop exits due to gas limits.
    */
   function claimRewards () public returns (bool) {
     // Yet another list iteration. Could ignore this check, but makes testing painful.
     require(hasAvailableRewards());
     bool exists;
     uint256 requestId = HEAD;
+    uint256 remainingGasBeforeCall;
+    uint256 remainingGasAfterCall;
+    bool loopExitedDueToGasLimit;
     // This loop occurs here (not in QuantstampAuditPolice) due to requiring the audit price,
     // as otherwise we require more dependencies/mappings in QuantstampAuditPolice.
     while (true) {
+      remainingGasBeforeCall = gasleft();
       (exists, requestId) = police.claimNextReward(msg.sender, HEAD);
       if (!exists) {
         break;
       }
       transferReward(requestId);
+      remainingGasAfterCall = gasleft();
+      // multiplying by 2 to leave a bit of extra leeway, particularly due to the while-loop in claimNextReward
+      if (remainingGasAfterCall < remainingGasBeforeCall.sub(remainingGasAfterCall).mul(2)) {
+        loopExitedDueToGasLimit = true;
+        emit LogClaimRewardsReachedGasLimit(msg.sender);
+        break;
+      }
     }
-    return true;
+    return loopExitedDueToGasLimit;
   }
 
   /**
