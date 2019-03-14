@@ -333,7 +333,20 @@ contract QuantstampAudit is Pausable {
    * @dev Determines whether the address (of an audit node) can claim any audit rewards.
    */
   function hasAvailableRewards () public view returns (bool) {
-    return police.hasAvailableRewards(msg.sender);
+    bool exists;
+    uint256 next;
+    (exists, next) = police.getNextAvailableReward(msg.sender, HEAD);
+    return exists;
+  }
+
+  /**
+   * @dev Given a requestId, returns the next pending available reward for the audit node.
+   *      This can be used in conjunction with claimReward() if claimRewards fails due to gas limits.
+   * @param requestId The ID of the current linked list node
+   * @return true if the next reward exists, and the corresponding requestId in the linked list
+   */
+  function getNextAvailableReward (uint256 requestId) public view returns(bool, uint256) {
+    return police.getNextAvailableReward(msg.sender, requestId);
   }
 
   /**

@@ -266,22 +266,23 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
   }
 
   /**
-   * @dev Determines whether an audit node has any pending rewards available.
+   * @dev Given a requestId, returns the next pending available reward for the audit node.
    * @param auditNode The address of the audit node.
+   * @param requestId The ID of the current linked list node
+   * @return true if the next reward exists, and the corresponding requestId in the linked list
    */
-  function hasAvailableRewards (address auditNode) public view returns (bool) {
+  function getNextAvailableReward (address auditNode, uint256 requestId) public view returns (bool, uint256) {
     bool exists;
-    uint256 requestId = HEAD;
-    (exists, requestId) = pendingPayments[auditNode].getAdjacent(HEAD, NEXT);
+    (exists, requestId) = pendingPayments[auditNode].getAdjacent(requestId, NEXT);
     // NOTE: Do NOT short circuit this list based on timeouts.
     // The ordering may be broken if the owner changes the timeouts.
     while (exists && requestId != HEAD) {
       if (canClaimAuditReward(auditNode, requestId)) {
-        return true;
+        return (true, requestId);
       }
       (exists, requestId) = pendingPayments[auditNode].getAdjacent(requestId, NEXT);
     }
-    return false;
+    return (false, 0);
   }
 
   /**
