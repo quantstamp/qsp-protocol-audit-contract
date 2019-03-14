@@ -22,8 +22,7 @@ This repository contains contracts for interfacing with the QSP audit protocol.
 
 ### Interactions among Contracts and Nodes
 
-![Alt text](./doc/auditRequest.svg)
-<img src="./doc/auditRequest.svg">
+![Audit request](./doc/auditRequest.svg)
 
 ## Access deployed contracts
 
