@@ -38,6 +38,7 @@ module.exports = {
       gas: 6712388,
       gasPrice: 110000000000,
       account: '0x0283c049ed4705e2d98c807dbafdaf725f34b8d2',
+      skipDryRun: true,
       policeNodes: [
         '0x3dcad2ecba489945b6935b50c1657b20c00d3d4c'
       ],

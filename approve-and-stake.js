@@ -94,7 +94,7 @@ function getWeb3Provider(provider) {
 }
 
 function getPrivateKey(accounts, keystoreObject) {
-  return accounts.decrypt(keystoreObject.keystore, keystoreObject.passphrase);
+  return accounts.decrypt(keystoreObject.keystore.toLowerCase(), keystoreObject.passphrase);
 }
 
 async function getContractAddress(network, contractName) {
