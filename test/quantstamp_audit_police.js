@@ -617,6 +617,43 @@ contract('QuantstampAuditPolice', function(accounts) {
 
   });
 
+  it("should allow auditors to claim many rewards with multiple calls", async function() {
+    let balance_before;
+    let balance_after;
+    let result;
+    let hasRewards;
+    let loopIterations = 0;
+    const num_reports = 10;
+    for(var i = 0; i < num_reports; i++) {
+      await submitNewReport();
+    }
+    const num_blocks = police_timeout + 1;
+    await Util.mineNBlocks(num_blocks);
+
+    balance_before = await Util.balanceOf(quantstamp_token, auditor);
+
+    while(true) {
+      loopIterations = loopIterations + 1;
+
+      // changing the gas to speed up the test suite, otherwise we'd need to submit around 50 reports
+      result = await quantstamp_audit.claimRewards({from: auditor, gas: 1000000});
+
+      // check that LogClaimRewardsReachedGasLimit was emitted in the first call
+      if (loopIterations == 1) {
+        assert.equal(result.logs[result.logs.length - 1]["event"], "LogClaimRewardsReachedGasLimit");
+      }
+
+      hasRewards = await quantstamp_audit.hasAvailableRewards({from: auditor});
+      if (!hasRewards) {
+        break;
+      }
+    }
+
+    balance_after = await Util.balanceOf(quantstamp_token, auditor);
+    assert.isTrue(new BN(balance_before).add(new BN(price * num_reports)).eq(balance_after));
+    assert.isTrue(loopIterations >= 2);
+  });
+
   it("should allow the police to slash auditors for multiple pending audits", async function() {
     police_timeout = 50;
     await quantstamp_audit_police.setPoliceTimeoutInBlocks(police_timeout);
