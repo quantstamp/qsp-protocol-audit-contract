@@ -579,6 +579,44 @@ contract('QuantstampAuditPolice', function(accounts) {
 
   });
 
+  it("should allow auditors to iteratively claim all rewards", async function() {
+    const HEAD = 0;
+    let currentId = HEAD;
+    let result;
+    const num_reports = 5;
+    for(var i = 0; i < num_reports; i++) {
+      await submitNewReport();
+    }
+    const balance_before = await Util.balanceOf(quantstamp_token, auditor);
+
+    const num_blocks = police_timeout + 1;
+    await Util.mineNBlocks(num_blocks);
+
+    // check that we can find all report IDs in the list
+    for(let i = 0; i < num_reports; i++) {
+      result = await quantstamp_audit.getNextAvailableReward(currentId, {from: auditor});
+      assert.isTrue(result[0]);
+      currentId = result[1];
+    }
+    result = await quantstamp_audit.getNextAvailableReward(currentId, {from: auditor});
+    assert.isTrue(!result[0]);
+    assert.equal(result[1], 0);
+
+    for(let i = 0; i < num_reports; i++) {
+      result = await quantstamp_audit.getNextAvailableReward(HEAD, {from: auditor});
+      assert.isTrue(result[0]);
+      await quantstamp_audit.claimReward(result[1], {from: auditor});
+      currentId = result[1];
+    }
+    result = await quantstamp_audit.getNextAvailableReward(HEAD, {from: auditor});
+    assert.isTrue(!result[0]);
+    assert.equal(result[1], 0);
+
+    const balance_after = await Util.balanceOf(quantstamp_token, auditor);
+    assert.isTrue(new BN(balance_before).add(new BN(price * num_reports)).eq(balance_after));
+
+  });
+
   it("should allow auditors to claim many rewards with multiple calls", async function() {
     let balance_before;
     let balance_after;
@@ -615,7 +653,6 @@ contract('QuantstampAuditPolice', function(accounts) {
     assert.isTrue(new BN(balance_before).add(new BN(price * num_reports)).eq(balance_after));
     assert.isTrue(loopIterations >= 2);
   });
-
 
   it("should allow the police to slash auditors for multiple pending audits", async function() {
     police_timeout = 50;
