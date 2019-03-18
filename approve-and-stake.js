@@ -118,15 +118,16 @@ return Promise.resolve()
       console.log("Infura key should not be empty. Please check credentials.js file.")
       process.exit()
     }
+    const nodeAdress = argv.address.toLowerCase()
     const accounts = new Accounts(`https://ropsten.infura.io/${infura_apikey}`);
-    const keystoreObject = await getKeystoreInfo(argv.network, argv.type, argv.address)
+    const keystoreObject = await getKeystoreInfo(argv.network, argv.type, nodeAdress)
     const privateKey = getPrivateKey(accounts, keystoreObject)
     const provider = getProvider(privateKey.privateKey, `https://ropsten.infura.io/${infura_apikey}`)
     const web3Provider = getWeb3Provider(provider)
     const auditContractAddress = await getContractAddress(argv.network, 'QuantstampAudit')
 
     if (argv.approve) {
-      console.log(`Approve audit contract ${auditContractAddress} to spend ${argv.approve} QSP for ${argv.address}`)
+      console.log(`Approve audit contract ${auditContractAddress} to spend ${argv.approve} QSP for ${nodeAdress}`)
       await command.callMethod({
         provider: provider,
         network: argv.network,
@@ -134,14 +135,14 @@ return Promise.resolve()
         methodName: 'approve',
         methodArgsFn: () => { return [auditContractAddress, utils.toQsp(argv.approve)] },
         sendArgs: {
-          from: argv.address,
+          from: nodeAdress,
           gas: truffle.networks[argv.network].gas,
           gasPrice: truffle.networks[argv.network].gasPrice
         }
       })
     }
     if (argv.stake) {
-      console.log(`Stake ${argv.stake} QSP for ${argv.address}`)
+      console.log(`Stake ${argv.stake} QSP for ${nodeAdress}`)
       await command.callMethod({
         provider: provider,
         network: argv.network,
@@ -149,7 +150,7 @@ return Promise.resolve()
         methodName: 'stake',
         methodArgsFn: () => { return [utils.toQsp(argv.stake)] },
         sendArgs: {
-          from: argv.address,
+          from: nodeAdress,
           gas: truffle.networks[argv.network].gas,
           gasPrice: truffle.networks[argv.network].gasPrice
         }

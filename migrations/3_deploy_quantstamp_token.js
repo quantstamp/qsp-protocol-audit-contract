@@ -1,3 +1,4 @@
+
 const QuantstampToken = artifacts.require('test/QuantstampToken');
 
 module.exports = function(deployer, network, accounts) {
