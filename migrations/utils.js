@@ -157,25 +157,19 @@ async function updateAbiAndMetadata(network, contractName, contractAddress) {
 
 async function updateArtifact(network, contractName) {
   if (network === 'development'){
-    console.log(`${contractName}: Skipping metadata and ABI update: network "${network}" is not eligible`);
+    console.log(`${contractName}: Skipping artifact update: network "${network}" is not eligible`);
     return;
   }
-
-  const commitHash = require('child_process')
-    .execSync('git rev-parse HEAD')
-    .toString().trim();
-
-  const networkConfig = truffle.networks[network];
 
   const artifactContent = new Buffer(JSON.stringify(require(`../build/contracts/${contractName}.json`), null, 2));
 
   const latestArtifactFileName = getArtifactFileName(network, contractName, getMajorVersion());
   const versionedArtifactFileName = getArtifactFileName(network, contractName, getVersion());
 
-  const ArtifactUpdateResponse = await writeOnS3(getBucketName(), latestArtifactFileName, ArtifactContent);
-  console.log(`${contractName}: Artifact update response:`, JSON.stringify(ArtifactUpdateResponse, null, 2));
+  const artifactUpdateResponse = await writeOnS3(getBucketName(), latestArtifactFileName, artifactContent);
+  console.log(`${contractName}: Artifact update response:`, JSON.stringify(artifactUpdateResponse, null, 2));
 
-  const versionedArtifactUpdateResponse = await writeOnS3(getBucketName(), versionedArtifactFileName, ArtifactContent);
+  const versionedArtifactUpdateResponse = await writeOnS3(getBucketName(), versionedArtifactFileName, artifactContent);
   console.log(`${contractName}: versioned artifact update response:`, JSON.stringify(versionedArtifactUpdateResponse, null, 2));
 }
 
