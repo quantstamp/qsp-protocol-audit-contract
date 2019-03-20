@@ -8,8 +8,9 @@ module.exports = function(deployer, network) {
   if (!utils.canDeploy(network, 'LinkedListLib')) {
     return;
   }
-
+  
   deployer.deploy(LinkedListLib)
     .then(() => new Promise(resolve => setTimeout(() => resolve(), networkConfig.networks[network].delayBetweenDeploys)))
-    .then(async() => await utils.updateAbiAndMetadata(network, 'LinkedListLib', LinkedListLib.address));
+    .then(async() => await utils.updateAbiAndMetadata(network, 'LinkedListLib', LinkedListLib.address))
+    .then(async() => await utils.updateArtifact(network, 'LinkedListLib'));
 };
