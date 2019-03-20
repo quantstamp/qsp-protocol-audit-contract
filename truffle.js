@@ -16,6 +16,7 @@ module.exports = {
     }
   },
   deploy: {
+    LinkedListLib: false,
     QuantstampAuditData: false,
     QuantstampAuditReportData: false,
     QuantstampAuditTokenEscrow: false,
