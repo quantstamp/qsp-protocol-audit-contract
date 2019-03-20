@@ -27,6 +27,7 @@ const aws = require('aws-sdk');
 const s3 = new aws.S3();
 const definitions = require('./scripts/definitions.js')
 const truffle = require('./truffle.js')
+const utils = require('./migrations/utils.js')
 
 function getConfig() {
   try {
@@ -127,7 +128,7 @@ function updateTruffle(contractNames) {
 }
 
 function writeTruffleCommands(network, deployScript) {
-  content = "#!/bin/bash\ntruffle migrate --network " + network + " --reset"
+  content = "#!/bin/bash\nset -e\ntruffle migrate --network " + network + " --reset"
   return content
 }
 
@@ -259,6 +260,17 @@ function main() {
         }
         deployScript.write(writeGitDiscardCommands())
         updateVersion(network, config)
+        if (!updatedContractNames.includes('LinkedListLib')) {
+          Promise.resolve(utils.updateBuildContract(network.name, 'LinkedListLib'))
+          .then(result => {
+            if (result) {
+              console.log(` - ${network.name} -- Updated build contract for LinkedListLib`)
+          }})
+          .catch(err => {
+            console.log(` - ${network.name} -- Failed to update build contract for LinkedListLib`)
+            console.log(err)
+          })
+        }
       } catch (err) {
         fs.unlinkSync(deployScript.path)
         throw (err)
