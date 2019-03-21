@@ -53,6 +53,7 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
   event PoliceSlash(uint256 requestId, address policeNode, address auditNode, uint256 amount);
   event PoliceFeesClaimed(address policeNode, uint256 fee);
   event PoliceFeesCollected(uint256 requestId, uint256 fee);
+  event PoliceAssignmentExpiredAndCleared(uint256 requestId);
 
   // pointer to the police node that was last assigned to a report
   address private lastAssignedPoliceNode = address(HEAD);
@@ -137,6 +138,16 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
   }
 
   /**
+   * Cleans the list of assignments to police node (msg.sender), but checks only up to a limit
+   * of assignments. If the limit is 0, attempts to clean the entire list.
+   * @param limit The number of assigments to check.
+   * @return true if an expired assignment was removed.
+   */
+  function clearExpiredAssignments (uint256 limit) public {
+    removeExpiredAssignments(msg.sender, 0, limit);
+  }
+
+  /**
    * @dev Collects the police fee for checking a report.
    *      NOTE: this function assumes that the fee will be transferred by the calling contract.
    * @param requestId The ID of the audit request.
@@ -204,7 +215,7 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
     bytes report,
     bool isVerified) public onlyWhitelisted returns (bool, bool, uint256) {
     // remove expired assignments
-    bool hasRemovedCurrentId = removeExpiredAssignments(policeNode, requestId);
+    bool hasRemovedCurrentId = removeExpiredAssignments(policeNode, requestId, 0);
     // if the current request has timed out, return
     if (hasRemovedCurrentId) {
       emit PoliceSubmissionPeriodExceeded(requestId, policeTimeouts[requestId], block.number);
@@ -478,25 +489,29 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
    * Cleans the list of assignments to a given police node.
    * @param policeNode The address of the police node.
    * @param requestId The ID of the audit request.
+   * @param limit The number of assigments to check. Use 0 if the entire list should be checked.
    * @return true if the current request ID gets removed during cleanup.
    */
-  function removeExpiredAssignments (address policeNode, uint256 requestId) internal returns (bool) {
+  function removeExpiredAssignments (address policeNode, uint256 requestId, uint256 limit) internal returns (bool) {
     bool hasRemovedCurrentId = false;
     bool exists;
     uint256 potentialExpiredRequestId;
     uint256 nextExpiredRequestId;
+    uint256 iterationsLeft = limit;
     (exists, nextExpiredRequestId) = assignedReports[policeNode].getAdjacent(HEAD, NEXT);
     // NOTE: Do NOT short circuit this list based on timeouts.
     // The ordering may be broken if the owner changes the timeouts.
-    while (exists && nextExpiredRequestId != HEAD) {
+    while (exists && nextExpiredRequestId != HEAD && (limit == 0 || iterationsLeft > 0)) {
       potentialExpiredRequestId = nextExpiredRequestId;
       (exists, nextExpiredRequestId) = assignedReports[policeNode].getAdjacent(nextExpiredRequestId, NEXT);
       if (policeTimeouts[potentialExpiredRequestId] < block.number) {
         assignedReports[policeNode].remove(potentialExpiredRequestId);
+        emit PoliceAssignmentExpiredAndCleared(potentialExpiredRequestId);
         if (potentialExpiredRequestId == requestId) {
           hasRemovedCurrentId = true;
         }
       }
+      iterationsLeft -= 1;
     }
     return hasRemovedCurrentId;
   }
