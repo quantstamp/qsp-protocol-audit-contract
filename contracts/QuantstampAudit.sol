@@ -203,16 +203,16 @@ contract QuantstampAudit is Pausable {
    */
   function requestAudit(string contractUri, uint256 price) public returns(uint256) {
     // it passes HEAD as the existing price, therefore may result in extra gas needed for list iteration
-    return requestAudit(contractUri, price, HEAD);
+    return requestAuditWithPriceHint(contractUri, price, HEAD);
   }
 
   /**
    * @dev Submits audit request.
    * @param contractUri Identifier of the resource to audit.
    * @param price The total amount of tokens that will be paid for the audit.
-   * @param existingPrice Existing price in the list (optimization that can make insertion O(1)).
+   * @param existingPrice Existing price in the list (price hint allows for optimization that can make insertion O(1)).
    */
-  function requestAudit(string contractUri, uint256 price, uint256 existingPrice) public whenNotPaused returns(uint256) {
+  function requestAuditWithPriceHint(string contractUri, uint256 price, uint256 existingPrice) public whenNotPaused returns(uint256) {
     require(price > 0);
     // transfer tokens to the data contract
     require(auditData.token().transferFrom(msg.sender, address(auditData), price));
