@@ -499,8 +499,9 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
     uint256 nextExpiredRequestId;
     uint256 iterationsLeft = limit;
     (exists, nextExpiredRequestId) = assignedReports[policeNode].getAdjacent(HEAD, NEXT);
-    // NOTE: Do NOT short circuit this list based on timeouts.
-    // The ordering may be broken if the owner changes the timeouts.
+    // NOTE: Short circuiting this list may cause expired assignments to exist later in the list.
+    //       The may occur if the owner changes the global police timeout.
+    //       These expired assignments will be removed in subsequent calls.
     while (exists && nextExpiredRequestId != HEAD && (limit == 0 || iterationsLeft > 0)) {
       potentialExpiredRequestId = nextExpiredRequestId;
       (exists, nextExpiredRequestId) = assignedReports[policeNode].getAdjacent(nextExpiredRequestId, NEXT);
@@ -510,6 +511,9 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
         if (potentialExpiredRequestId == requestId) {
           hasRemovedCurrentId = true;
         }
+      }
+      else {
+        break;
       }
       iterationsLeft -= 1;
     }
