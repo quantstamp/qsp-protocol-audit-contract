@@ -511,8 +511,7 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
         if (potentialExpiredRequestId == requestId) {
           hasRemovedCurrentId = true;
         }
-      }
-      else {
+      } else {
         break;
       }
       iterationsLeft -= 1;
