@@ -676,8 +676,9 @@ contract QuantstampAudit is Pausable {
   function queueAuditRequest(uint256 requestId, uint256 existingPrice) internal {
     uint256 price = auditData.getAuditPrice(requestId);
     if (!priceList.nodeExists(price)) {
+      uint256 priceHint = priceList.nodeExists(existingPrice) ? existingPrice : HEAD;
       // if a price bucket doesn't exist, create it next to an existing one
-      priceList.insert(priceList.getSortedSpot(existingPrice, price, NEXT), price, PREV);
+      priceList.insert(priceList.getSortedSpot(priceHint, price, NEXT), price, PREV);
     }
     // push to the tail
     auditsByPrice[price].push(requestId, PREV);
