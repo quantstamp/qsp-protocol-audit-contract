@@ -167,12 +167,13 @@ contract('QuantstampAuditPolice', function(accounts) {
 
   it("should not allow the police to submit a report after the police timeout", async function() {
     const result = await quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, true, {from: police1});
-    Util.assertNestedEvent({
+    Util.assertNestedEventAtIndex({
       result: result,
       name: "PoliceSubmissionPeriodExceeded",
       args: (args) => {
         assert.equal(args.requestId, currentId);
-      }
+      },
+      index: 1
     });
 
     // check that the report map is still empty
@@ -205,12 +206,13 @@ contract('QuantstampAuditPolice', function(accounts) {
     await Util.mineNBlocks(num_blocks);
 
     const result = await quantstamp_audit.submitPoliceReport(currentId2, Util.nonEmptyReport, true, {from: police1});
-    Util.assertNestedEvent({
+    Util.assertNestedEventAtIndex({
       result: result,
       name: "PoliceSubmissionPeriodExceeded",
       args: (args) => {
         assert.equal(args.requestId, currentId2);
-      }
+      },
+      index: 2
     });
     await quantstamp_audit.claimRewards({from: auditor});
   });
