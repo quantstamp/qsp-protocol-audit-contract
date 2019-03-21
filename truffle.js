@@ -91,6 +91,23 @@ module.exports = {
       account: '0x8FD88a2457f74Ec62e6115B2Eb20f05F24B51c62',
       delayBetweenDeploys: 60000
     },
+    mainnet: {
+      provider: function() {
+        return TrezorWalletProvider.getInstance(`https://mainnet.infura.io/${credentials.infura_apikey}`);
+      },
+      network_id: 1,
+      gas: 4012388,
+      gasPrice: 14000000000,
+      account: '0x8FD88a2457f74Ec62e6115B2Eb20f05F24B51c62',
+      skipDryRun: true,
+      delayBetweenDeploys: 60000,
+      policeNodes: [
+        '0x66013071e12Cf90dF02F1B3C8149E00a16936f80'
+      ],
+      auditNodes: [
+        '0xB844483b5c833539Cdcc359792bBeae66D317058'
+      ]
+    },
     ropsten: {
       provider: function() {
         return TrezorWalletProvider.getInstance(`https://ropsten.infura.io/${credentials.infura_apikey}`);
