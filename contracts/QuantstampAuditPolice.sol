@@ -140,10 +140,11 @@ contract QuantstampAuditPolice is Whitelist {   // solhint-disable max-states-co
   /**
    * Cleans the list of assignments to police node (msg.sender), but checks only up to a limit
    * of assignments. If the limit is 0, attempts to clean the entire list.
+   * @param policeNode The node whose assignments should be cleared.
    * @param limit The number of assigments to check.
    */
-  function clearExpiredAssignments (uint256 limit) public {
-    removeExpiredAssignments(msg.sender, 0, limit);
+  function clearExpiredAssignments (address policeNode, uint256 limit) public {
+    removeExpiredAssignments(policeNode, 0, limit);
   }
 
   /**
