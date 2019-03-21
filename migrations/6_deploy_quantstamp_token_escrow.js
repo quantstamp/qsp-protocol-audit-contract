@@ -14,8 +14,7 @@ module.exports = function(deployer, network) {
   const tokenContractAddress = utils.tokenAddress(network, QuantstampToken);
   console.log('Token contract address:', tokenContractAddress);
 
-  deployer.deploy(LinkedListLib)
-    .then(() => deployer.link(LinkedListLib, QuantstampAuditTokenEscrow))
+  deployer.link(LinkedListLib, QuantstampAuditTokenEscrow)
     .then(() => new Promise(resolve => setTimeout(() => resolve(), networkConfig.networks[network].delayBetweenDeploys)))
     .then(() => deployer.deploy(QuantstampAuditTokenEscrow, tokenContractAddress))
     .then(() => new Promise(resolve => setTimeout(() => resolve(), networkConfig.networks[network].delayBetweenDeploys)))
