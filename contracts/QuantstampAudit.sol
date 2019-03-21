@@ -201,15 +201,25 @@ contract QuantstampAudit is Pausable {
    * @param contractUri Identifier of the resource to audit.
    * @param price The total amount of tokens that will be paid for the audit.
    */
-  function requestAudit(string contractUri, uint256 price) public whenNotPaused returns(uint256) {
+  function requestAudit(string contractUri, uint256 price) public returns(uint256) {
+    // it passes HEAD as the existing price, therefore may result in extra gas needed for list iteration
+    return requestAuditWithPriceHint(contractUri, price, HEAD);
+  }
+
+  /**
+   * @dev Submits audit request.
+   * @param contractUri Identifier of the resource to audit.
+   * @param price The total amount of tokens that will be paid for the audit.
+   * @param existingPrice Existing price in the list (price hint allows for optimization that can make insertion O(1)).
+   */
+  function requestAuditWithPriceHint(string contractUri, uint256 price, uint256 existingPrice) public whenNotPaused returns(uint256) {
     require(price > 0);
     // transfer tokens to the data contract
     require(auditData.token().transferFrom(msg.sender, address(auditData), price));
     // store the audit
     uint256 requestId = auditData.addAuditRequest(msg.sender, contractUri, price);
 
-    // TODO: use existing price instead of HEAD (optimization)
-    queueAuditRequest(requestId, HEAD);
+    queueAuditRequest(requestId, existingPrice);
 
     emit LogAuditRequested(requestId, msg.sender, contractUri, price); // solhint-disable-line not-rely-on-time
 
