@@ -14,8 +14,7 @@ module.exports = function(deployer, network, accounts) {
     return;
   }
   
-  deployer.deploy(LinkedListLib)
-    .then(() => deployer.link(LinkedListLib, QuantstampAudit))
+  deployer.link(LinkedListLib, QuantstampAudit)
     .then(() => new Promise(resolve => setTimeout(() => resolve(), networkConfig.networks[network].delayBetweenDeploys)))
     .then(
       async() => {

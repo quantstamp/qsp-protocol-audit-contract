@@ -3,6 +3,8 @@ const AWS = require('aws-sdk');
 const web3 = require('web3');
 const BN = require('bn.js');
 const BigNumber = require('bignumber.js');
+const fs = require('fs')
+
 const s3 = new AWS.S3({
   region: 'us-east-1'
 });
@@ -57,6 +59,10 @@ function getAbiFileName(network, contractName, version) {
   return getFileName(network, contractName, version, 'abi');
 }
 
+function getArtifactFileName(network, contractName, version) {
+  return getFileName(network, contractName, version, 'artifact');
+}
+
 async function readAddressFromMetadata(network, contractName) {
   const response = await s3.getObject({
     Bucket: getBucketName(),
@@ -77,6 +83,21 @@ async function readAbi(network, contractName) {
   }).promise();
 
   return JSON.parse(response.Body.toString());
+}
+
+async function readArtifact(network, contractName) {
+  const response = await s3.getObject({
+    Bucket: getBucketName(),
+    Key: getArtifactFileName(network, contractName, getMajorVersion())
+  }).promise();
+
+  return JSON.parse(response.Body.toString());
+}
+
+function readBuildContract(contractName) {
+  const contractRaw = fs.readFileSync(`./build/contracts/${contractName}.json`)
+  console.log(contractRaw)
+  return JSON.parse(contractRaw);
 }
 
 async function contractAddress(network, contractName,  defaultArtifact) {
@@ -134,6 +155,30 @@ async function updateAbiAndMetadata(network, contractName, contractAddress) {
   console.log(`${contractName}: versioned ABI update response:`, JSON.stringify(versionedAbiUpdateResponse, null, 2));
 }
 
+async function updateArtifact(network, contractName) {
+  if (network === 'development'){
+    console.log(`${contractName}: Skipping artifact update: network "${network}" is not eligible`);
+    return;
+  }
+
+  const artifactContent = new Buffer(JSON.stringify(require(`../build/contracts/${contractName}.json`), null, 2));
+
+  const latestArtifactFileName = getArtifactFileName(network, contractName, getMajorVersion());
+  const versionedArtifactFileName = getArtifactFileName(network, contractName, getVersion());
+
+  const artifactUpdateResponse = await writeOnS3(getBucketName(), latestArtifactFileName, artifactContent);
+  console.log(`${contractName}: Artifact update response:`, JSON.stringify(artifactUpdateResponse, null, 2));
+
+  const versionedArtifactUpdateResponse = await writeOnS3(getBucketName(), versionedArtifactFileName, artifactContent);
+  console.log(`${contractName}: versioned artifact update response:`, JSON.stringify(versionedArtifactUpdateResponse, null, 2));
+}
+
+async function updateBuildContract(network, contractName) {
+    const artifact = await readArtifact(network, contractName)
+    fs.writeFileSync(`./build/contracts/${contractName}.json`, JSON.stringify(artifact), {encoding:'utf8',flag:'w'})
+    return true
+}
+
 function canDeploy(network, contractName) {
   if (network === 'development') {
     return true;
@@ -152,10 +197,14 @@ function toEther (n) {
 }
 module.exports = {
   updateAbiAndMetadata,
+  updateArtifact,
   tokenAddress,
   contractAddress,
   canDeploy,
   readAbi,
+  readArtifact,
+  readBuildContract,
+  updateBuildContract,
   readAddressFromMetadata,
   toEther : toEther,
   toQsp : toEther,

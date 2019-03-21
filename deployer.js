@@ -27,6 +27,7 @@ const aws = require('aws-sdk');
 const s3 = new aws.S3();
 const definitions = require('./scripts/definitions.js')
 const truffle = require('./truffle.js')
+const utils = require('./migrations/utils.js')
 
 function getConfig() {
   try {
@@ -127,7 +128,7 @@ function updateTruffle(contractNames) {
 }
 
 function writeTruffleCommands(network, deployScript) {
-  content = "#!/bin/bash\ntruffle migrate --network " + network + " --reset"
+  content = "#!/bin/bash\nset -e\ntruffle migrate --network " + network + " --reset"
   return content
 }
 
@@ -203,6 +204,7 @@ function writeApproveAndStakeCommands(network, nodes, type) {
   })
   return commands.join("")
 }
+
 function main() {
   let config = getConfig()
   if (!config) {
@@ -212,28 +214,31 @@ function main() {
   let allContracts = getAllContractNames()
 
   config.deploy.network.forEach(async (network) => {
-    if (!IsValidNetwork(network.name)) {
-      throw (` - ${network.name} --  Not a valid network: ${network.name}`)
-    }
-    var updatedContractNames = []
-    var currentVersion = getCurrentVersion()
-
-    writeTruffleCommands(network.name, deployScript)
-
-    console.log(` - ${network.name} -- Checking commit hashes...`)
-    for (i = 0; i < allContracts.length; i++) {
-      contract = allContracts[i]
-      let commitHash = await getCommitHash(currentVersion, network.name, contract)
-      if (commitHash !== null) {
-        let fileNames = getDiffFiles(commitHash)
-        updatedContractNames = updatedContractNames.concat(getUpdatedContractNames(fileNames))
-      } else {
-        console.log(` - ${network.name} -- Could not find a commit hash for current major version for contract: ${contract}`)
+    try {
+      if (!IsValidNetwork(network.name)) {
+        throw (` - ${network.name} --  Not a valid network: ${network.name}`)
       }
-    }
-    if (updatedContractNames.length > 0) {
-      console.log(` - ${network.name} -- Found updated contracts...`)
-      try {
+      var updatedContractNames = []
+      var currentVersion = getCurrentVersion()
+
+      writeTruffleCommands(network.name, deployScript)
+
+      console.log(` - ${network.name} -- Checking commit hashes...`)
+      for (i = 0; i < allContracts.length; i++) {
+        contract = allContracts[i]
+        let commitHash = await getCommitHash(currentVersion, network.name, contract)
+        if (commitHash !== null) {
+          let fileNames = getDiffFiles(commitHash)
+          updatedContractNames = updatedContractNames.concat(getUpdatedContractNames(fileNames))
+        } else {
+          console.log(` - ${network.name} -- Could not find a commit hash for current major version for contract: ${contract}`)
+        }
+      }
+      if (!updatedContractNames.length > 0) {
+        console.log(` - ${network.name} -- No contract updated since last deploy`)
+      }  
+      else {
+        console.log(` - ${network.name} -- Found updated contracts...`)
         var deployScript = fs.createWriteStream("deploy-" + network.name + ".sh", { mode: '744', flag: 'w' })
         updatedContractNames = [...new Set(updatedContractNames)]
         updateTruffle(updatedContractNames)
@@ -259,12 +264,21 @@ function main() {
         }
         deployScript.write(writeGitDiscardCommands())
         updateVersion(network, config)
-      } catch (err) {
-        fs.unlinkSync(deployScript.path)
-        throw (err)
+        const linkedListLib = 'LinkedListLib'
+        if (!updatedContractNames.includes(linkedListLib)) {
+          try {
+            await utils.updateBuildContract(network.name, linkedListLib)
+            console.log(` - ${network.name} -- Updated build contract for ${linkedListLib}`)
+          } catch(err) {
+            console.log(` - ${network.name} -- Failed to update build contract for ${linkedListLib}`)
+            throw err
+          }
+        }
       }
+    } catch (err) {
+      fs.unlinkSync(deployScript.path)
+      console.log(err)
     }
-    else console.log(` - ${network.name} -- No contract updated since last deploy`)
   })
 }
 
