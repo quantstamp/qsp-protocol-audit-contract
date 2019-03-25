@@ -52,7 +52,7 @@ contract('QuantstampAuditView', function(accounts) {
     quantstamp_audit_police = await QuantstampAuditPolice.deployed();
     quantstamp_audit_token_escrow = await QuantstampAuditTokenEscrow.deployed();
 
-    await quantstamp_audit_view.setQuantstampAudit(quantstamp_audit);
+    await quantstamp_audit_view.setQuantstampAudit(quantstamp_audit.address);
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_report_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_police.addAddressToWhitelist(quantstamp_audit.address);
