@@ -52,6 +52,7 @@ contract('QuantstampAuditView', function(accounts) {
     quantstamp_audit_police = await QuantstampAuditPolice.deployed();
     quantstamp_audit_token_escrow = await QuantstampAuditTokenEscrow.deployed();
 
+    await quantstamp_audit_view.setQuantstampAudit(quantstamp_audit);
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_report_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_police.addAddressToWhitelist(quantstamp_audit.address);
@@ -74,7 +75,7 @@ contract('QuantstampAuditView', function(accounts) {
   });
 
   it("lets the owner change the QuantstampAudit address", async function () {
-    const audit = await quantstamp_audit_view.audit.call();
+    // const audit = await quantstamp_audit_view.audit.call();
     const another_quantstamp_audit_data = (await QuantstampAuditData.new(quantstamp_token.address)).address;
     const another_quantstamp_audit_report_data = (await QuantstampAuditReportData.new()).address;
     const another_quantstamp_audit_token_escrow = (await QuantstampAuditTokenEscrow.new(quantstamp_token.address)).address;
