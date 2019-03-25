@@ -35,7 +35,7 @@ contract QuantstampAuditView is Ownable {
     audit = QuantstampAudit(auditAddress);
     auditData = audit.auditData();
     reportData = audit.reportData();
-    tokenEscrow = audit.tokenEscrow()
+    tokenEscrow = audit.tokenEscrow();
   }
 
   /**
