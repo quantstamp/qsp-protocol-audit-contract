@@ -9,8 +9,7 @@ module.exports = function(deployer, network, accounts) {
     return;
   }
   
-  deployer
-    .then(async() => await utils.contractAddress(network, 'QuantstampAudit', QuantstampAudit))
-    .then(auditContractAddress => deployer.deploy(QuantstampAuditView, auditContractAddress))
+  deployer.deploy(QuantstampAuditView)
+    .then(() => new Promise(resolve => setTimeout(() => resolve(), networkConfig.networks[network].delayBetweenDeploys)))
     .then(async() => await utils.updateAbiAndMetadata(network, 'QuantstampAuditView', QuantstampAuditView.address));
 };
