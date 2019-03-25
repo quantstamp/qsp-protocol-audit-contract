@@ -99,6 +99,14 @@ module.exports = {
       return argv.p;
     }
   },
+  'set-audit-contract-address-in-view': {
+    contractName: 'QuantstampAuditView',
+    methodName: 'setQuantstampAudit',
+    gasLimit: 30000,
+    methodArgs: async(stage, argv) => {
+      return [await utils.readAddressFromMetadata(stage, 'QuantstampAudit')];
+    }
+  },
   'get-next-audit-request': {
     contractName: 'QuantstampAudit',
     methodName: 'getNextAuditRequest',
