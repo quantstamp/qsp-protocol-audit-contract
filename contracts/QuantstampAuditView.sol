@@ -26,18 +26,6 @@ contract QuantstampAuditView is Ownable {
     uint256 n;
   }
 
-  // /**
-  //  * @dev The constructor creates an audit contract.
-  //  * @param auditAddress The address of a QuantstampAudit that will be queried.
-  //  */
-  // constructor (address auditAddress) public {
-  //   require(auditAddress != address(0));
-  //   audit = QuantstampAudit(auditAddress);
-  //   auditData = audit.auditData();
-  //   reportData = audit.reportData();
-  //   tokenEscrow = audit.tokenEscrow();
-  // }
-
   /**
    * @dev The setter for changing the reference to QuantstampAudit.
    * @param auditAddress Address of a QuantstampAudit instance.
