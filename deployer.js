@@ -147,6 +147,9 @@ function findWhiteListCommands(updatedContractNames) {
   return whitelistDefs
 }
 
+function writeSetAuditAddressCommmand(network) {
+  return `\nnpm run command -- -n=${network} -a=set-audit-contract-address-in-view`
+}
 
 function writeContractWhiteListCommands(network, whiteListDefs) {
   commands = []
@@ -241,6 +244,7 @@ function main() {
         updateTruffle(updatedContractNames, network.name)
         deployScript.write(writeTruffleCommands(network.name))
         console.log(` - ${network.name} -- Wrote truffle migrate command to ${deployScript.path}`)
+        deployScript.write(writeSetAuditAddressCommmand(network.name))
         var whitelistDefs = findWhiteListCommands(updatedContractNames)
         if (whitelistDefs.length > 0) {
           deployScript.write(writeContractWhiteListCommands(network.name, whitelistDefs))

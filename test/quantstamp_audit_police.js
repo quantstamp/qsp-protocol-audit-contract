@@ -57,6 +57,7 @@ contract('QuantstampAuditPolice', function(accounts) {
     // used to decode events in QuantstampAuditTokenEscrow
     abiDecoder.addABI(quantstamp_audit_token_escrow.abi);
 
+    await quantstamp_audit_view.setQuantstampAudit(quantstamp_audit.address);
     await quantstamp_audit_report_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_police.addAddressToWhitelist(quantstamp_audit.address);
