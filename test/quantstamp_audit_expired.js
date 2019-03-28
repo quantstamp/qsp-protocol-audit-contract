@@ -144,7 +144,7 @@ contract('QuantstampAudit_expires', function(accounts) {
         assert.equal(args.requestId.toNumber(), requestedId);
         assert.equal(args.auditor, auditor);
         // one less due to new block for calling submitReport
-        const block = await web3.eth.getBlockNumber();
+        const block = await Util.getBlockNumber();
         assert.equal(args.allowanceBlockNumber.toNumber(), block - 1);
       }
     });

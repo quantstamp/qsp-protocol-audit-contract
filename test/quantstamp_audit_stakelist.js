@@ -71,7 +71,7 @@ contract('QuantstampAudit_stakedList', function(accounts) {
     await quantstamp_audit.stake(minAuditStake, {from: auditor});
     await quantstamp_audit.unstake({from: auditor});
 
-    assert.equal(0, web3.utils.toHex((await quantstamp_audit_token_escrow.getNextStakedNode.call(Util.zeroAddress))));
+    assert.equal(0, Util.toHex((await quantstamp_audit_token_escrow.getNextStakedNode.call(Util.zeroAddress))));
   });
 
   it ("should provide access to all staked addresses from head", async function () {
@@ -88,7 +88,7 @@ contract('QuantstampAudit_stakedList', function(accounts) {
     for (var current = Util.zeroAddress, i = 0;
          await quantstamp_audit_token_escrow.getNextStakedNode.call(current) != 0;
          current = await quantstamp_audit_token_escrow.getNextStakedNode.call(current), ++i) {
-      assert.equal(auditors[i].toLowerCase(), web3.utils.toHex(await quantstamp_audit_token_escrow.getNextStakedNode.call(current)));
+      assert.equal(auditors[i].toLowerCase(), Util.toHex(await quantstamp_audit_token_escrow.getNextStakedNode.call(current)));
     }
   });
 });
