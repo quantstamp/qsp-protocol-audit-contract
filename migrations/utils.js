@@ -128,7 +128,7 @@ async function updateAbiAndMetadata(network, contractName, contractAddress) {
 
   const networkConfig = truffle.networks[network];
   const metaContent = new Buffer(JSON.stringify({
-    "contractAddress": web3.toChecksumAddress(contractAddress),
+    "contractAddress": web3.utils.toChecksumAddress(contractAddress),
     "creatorAddress": networkConfig.account,
     "commitHash": commitHash,
     "version": getVersion()
@@ -193,7 +193,7 @@ function canDeploy(network, contractName) {
 }
 
 function toEther (n) {
-  return new BN(web3.toWei(new BigNumber(n).toString(), "ether"));
+  return new BN(web3.utils.toWei(new BigNumber(n).toString(), "ether"));
 }
 module.exports = {
   updateAbiAndMetadata,

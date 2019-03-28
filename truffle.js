@@ -4,6 +4,12 @@ const TrezorWalletProvider = require("@daonomic/trezor-wallet-provider/trezor_wa
 
 
 module.exports = {
+  solc: {
+    optimizer: {
+      enabled: true,
+      runs: 200,
+    },
+  },
   deploy: {
     LinkedListLib: false,
     QuantstampAuditData: false,
@@ -22,7 +28,7 @@ module.exports = {
     },
     dev: {
       provider:  function() {
-        return new HDWalletProvider(credentials.mnemonic, `https://ropsten.infura.io/${credentials.infura_apikey}`);
+        return new HDWalletProvider(credentials.mnemonic, `https://ropsten.infura.io/v3/${credentials.infura_apikey}`);
       },
       network_id: 3,
       gas: 6712388,
@@ -38,7 +44,7 @@ module.exports = {
     },
     testnet: {
       provider:  function() {
-        return new HDWalletProvider(credentials.mnemonic, `https://ropsten.infura.io/${credentials.infura_apikey}`);
+        return new HDWalletProvider(credentials.mnemonic, `https://ropsten.infura.io/v3/${credentials.infura_apikey}`);
       },
       network_id: 3,
       gas: 6712388,
@@ -54,7 +60,7 @@ module.exports = {
     },
     staging: {
       provider:  function() {
-        return new HDWalletProvider(credentials.mnemonic, `https://ropsten.infura.io/${credentials.infura_apikey}`);
+        return new HDWalletProvider(credentials.mnemonic, `https://ropsten.infura.io/v3/${credentials.infura_apikey}`);
       },
       network_id: 3,
       gas: 4007806,
@@ -63,7 +69,7 @@ module.exports = {
     },
     'dev-consensys': {
       provider:  function() {
-        return new HDWalletProvider(credentials.mnemonic, `https://ropsten.infura.io/${credentials.infura_apikey}`);
+        return new HDWalletProvider(credentials.mnemonic, `https://ropsten.infura.io/v3/${credentials.infura_apikey}`);
       },
       network_id: 3,
       gas: 4712388,
@@ -82,7 +88,7 @@ module.exports = {
     },
     ropsten: {
       provider: function() {
-        return TrezorWalletProvider.getInstance(`https://ropsten.infura.io/${credentials.infura_apikey}`);
+        return TrezorWalletProvider.getInstance(`https://ropsten.infura.io/v3/${credentials.infura_apikey}`);
       },
       network_id: 3,
       gas: 4712388,
