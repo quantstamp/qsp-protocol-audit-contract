@@ -4,17 +4,6 @@ const TrezorWalletProvider = require("@daonomic/trezor-wallet-provider/trezor_wa
 
 
 module.exports = {
-  compilers: {
-    solc: {
-      version: "0.4.25",
-      settings: {
-        optimizer: {
-	        enabled: true,
-	        runs: 200
-        }
-      }
-    }
-  },
   deploy: {
     LinkedListLib: false,
     QuantstampAuditData: false,
