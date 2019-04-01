@@ -350,13 +350,11 @@ contract('QuantstampAuditPolice', function(accounts) {
     assert.isTrue(police_report_state.eq(Util.PoliceReportState.Invalid));
   });
 
-/* this does not seem to be the expected behaviour - can anyone confirm?
   it("should not allow an auditor to claim the reward after the policing period when report is marked invalid", async function() {
     const num_blocks = police_timeout + 1;
     await Util.mineNBlocks(num_blocks);
-    await Util.assertTxFail(quantstamp_audit.claimRewards({from: auditor}));
+    await Util.assertTxFail(quantstamp_audit.claimReward(currentId, {from: auditor}));
   });
-*/
 
   it("should assign all police to a report if policeNodesPerReport == numPoliceNodes", async function() {
     currentId = await submitNewReport();

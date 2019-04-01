@@ -227,8 +227,7 @@ contract('QuantstampAudit', function(accounts) {
         assert.equal(args.requestId.toNumber(), requestId);
         assert.equal(args.auditor, auditor);
         assert.equal(args.auditResult, AuditState.Completed);
-        assert.equal(args.report, '0x');  // NOTE: for empty reports, the returned value is null, not "0x"
-        // UPDATE: in Truffle 4.x, the returned value is 0x
+        assert.equal(args.report, '0x');  // NOTE: for truffle 5.x, the returned value is null.
       },
       index: 0
     });
