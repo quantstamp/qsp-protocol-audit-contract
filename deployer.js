@@ -277,7 +277,7 @@ function main() {
         }
       }
     } catch (err) {
-      //fs.unlinkSync(deployScript.path)
+      fs.unlinkSync(deployScript.path)
       console.log(err)
     }
   })
