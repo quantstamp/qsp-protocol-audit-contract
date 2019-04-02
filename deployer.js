@@ -124,7 +124,7 @@ function updateTruffle(contractNames, network) {
 }
 
 function writeTruffleCommands(network, deployScript) {
-  content = "#!/bin/bash\nset -e\ntruffle migrate --network " + network + " --reset"
+  content = "#!/bin/bash\nset -e\n./node_modules/.bin/truffle migrate --network " + network + " --reset"
   return content
 }
 

@@ -36,7 +36,7 @@ const AuditAvailabilityState = Object.freeze({
 });
 
 function toEther (n) {
-  return new BN(web3.utils.toWei(new BigNumber(n).toString(), "ether"));
+  return convertBN(new BN(web3.toWei(new BigNumber(n).toString(), "ether")));
 }
 
 async function expectThrow (promise) {
@@ -94,7 +94,7 @@ function assertNestedEventHelper({log, name, args}) {
 // the event is not decoded automatically by truffle.
 // Must have previously called abiDecoder.addABI(contract_abi)
 function assertNestedEvent({result, name, args}) {
-  const decodedLogs = abiDecoder.decodeLogs(result.receipt.rawLogs);
+  const decodedLogs = abiDecoder.decodeLogs(result.receipt.logs);
   assert.equal(decodedLogs.length, 1);
   assertNestedEventHelper({
     log: decodedLogs[0],
@@ -103,7 +103,7 @@ function assertNestedEvent({result, name, args}) {
 }
 
 function assertNestedEventAtIndex({result, name, args, index}) {
-  const decodedLogs = abiDecoder.decodeLogs(result.receipt.rawLogs);
+  const decodedLogs = abiDecoder.decodeLogs(result.receipt.logs);
   assertNestedEventHelper({
     log: decodedLogs[index],
     name: name,
@@ -136,12 +136,12 @@ function extractRequestId (result) {
 }
 
 async function mineOneBlock () {
-  return new Promise(resolve => web3.currentProvider.send({
+  return web3.currentProvider.send({
     jsonrpc: '2.0',
     method: 'evm_mine',
     params: [],
     id: 0,
-  }, resolve));
+  });
 }
 
 async function mineNBlocks (n) {
@@ -150,7 +150,12 @@ async function mineNBlocks (n) {
   }
 }
 
-async function stakeAuditor(quantstamp_token, quantstamp_audit, addr, amount, owner) {
+function convertBN(bigNumber) {
+  return bigNumber.toString();
+}
+
+async function stakeAuditor(quantstamp_token, quantstamp_audit, addr, amountBN, owner) {
+    const amount = convertBN(amountBN);
     // transfer min_stake QSP tokens to the auditor
     await quantstamp_token.transfer(addr, amount, {from : owner});
     // approve the audit contract to use up to min_stake for staking
@@ -190,5 +195,8 @@ module.exports = {
   extractRequestId : extractRequestId,
   mineOneBlock: mineOneBlock,
   mineNBlocks: mineNBlocks,
-  stakeAuditor: stakeAuditor
+  stakeAuditor: stakeAuditor,
+  convertBN: convertBN,
+  toHex: web3.toHex,
+  getBlockNumber: () => web3.eth.blockNumber
 };
