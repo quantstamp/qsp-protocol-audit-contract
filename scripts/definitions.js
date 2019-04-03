@@ -99,10 +99,18 @@ module.exports = {
       return argv.p;
     }
   },
+  'set-min-stake': {
+    contractName: 'QuantstampAuditTokenEscrow',
+    methodName: 'setMinAuditStake',
+    gasLimit: 130000,
+    methodArgs: async(stage, argv) => {
+      return argv.p;
+    }
+  },
   'set-audit-contract-address-in-view': {
     contractName: 'QuantstampAuditView',
     methodName: 'setQuantstampAudit',
-    gasLimit: 30000,
+    gasLimit: 130000,
     methodArgs: async(stage, argv) => {
       return [await utils.readAddressFromMetadata(stage, 'QuantstampAudit')];
     }
