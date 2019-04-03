@@ -36,6 +36,7 @@ contract('QuantstampAudit_expires', function(accounts) {
     quantstamp_audit_police = await QuantstampAuditPolice.deployed();
     quantstamp_audit_token_escrow = await QuantstampAuditTokenEscrow.deployed();
 
+    await quantstamp_audit_view.setQuantstampAudit(quantstamp_audit.address);
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_report_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_police.addAddressToWhitelist(quantstamp_audit.address);
@@ -143,7 +144,7 @@ contract('QuantstampAudit_expires', function(accounts) {
         assert.equal(args.requestId.toNumber(), requestedId);
         assert.equal(args.auditor, auditor);
         // one less due to new block for calling submitReport
-        const block = await web3.eth.getBlockNumber();
+        const block = await Util.getBlockNumber();
         assert.equal(args.allowanceBlockNumber.toNumber(), block - 1);
       }
     });

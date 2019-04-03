@@ -38,6 +38,7 @@ contract('QuantstampAudit', function(accounts) {
     quantstamp_audit_police = await QuantstampAuditPolice.deployed();
     quantstamp_audit_token_escrow = await QuantstampAuditTokenEscrow.deployed();
 
+    await quantstamp_audit_view.setQuantstampAudit(quantstamp_audit.address);
     await quantstamp_audit_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_report_data.addAddressToWhitelist(quantstamp_audit.address);
     await quantstamp_audit_police.addAddressToWhitelist(quantstamp_audit.address);
@@ -215,7 +216,7 @@ contract('QuantstampAudit', function(accounts) {
 
   it("submits a report when audit is queued and auditor is correct", async function() {
     const requestId = requestCounter++;
-    await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
+    await quantstamp_audit.requestAudit(Util.uri, Util.convertBN(price), {from: requestor});
     await quantstamp_audit.getNextAuditRequest({from: auditor});
     const result = await quantstamp_audit.submitReport(requestId, AuditState.Completed, Util.emptyReport, {from: auditor});
 
@@ -226,7 +227,7 @@ contract('QuantstampAudit', function(accounts) {
         assert.equal(args.requestId.toNumber(), requestId);
         assert.equal(args.auditor, auditor);
         assert.equal(args.auditResult, AuditState.Completed);
-        assert.equal(args.report, null);  // NOTE: for empty reports, the returned value is null, not "0x"
+        assert.equal(args.report, '0x');  // NOTE: for truffle 5.x, the returned value is null.
       },
       index: 0
     });
