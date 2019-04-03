@@ -1,7 +1,7 @@
 const yargs = require('yargs');
+const AWS = require('aws-sdk');
 const HDWalletProvider = require("truffle-hdwallet-provider");
 const web3 = require('web3');
-const AWS = require('aws-sdk');
 const Accounts = require('web3-eth-accounts');
 
 const utils = require('./migrations/utils');
