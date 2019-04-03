@@ -254,8 +254,6 @@ function main() {
         if (policeNodes.length > 0) {
           deployScript.write(writePoliceWhiteListCommands(network.name, policeNodes))
           console.log(` - ${network.name} -- Wrote police whitelist commands to ${deployScript.path}`)
-          deployScript.write(writeApproveAndStakeCommands(network.name, policeNodes, 'police'))
-          console.log(` - ${network.name} -- Wrote approve and stake commands to ${deployScript.path} for police nodes`)
         }
 
         var auditNodes = getNodes(network.name, 'audit')

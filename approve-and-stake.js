@@ -1,7 +1,7 @@
 const yargs = require('yargs');
-const AWS = require('aws-sdk');
 const HDWalletProvider = require("truffle-hdwallet-provider");
 const web3 = require('web3');
+const AWS = require('aws-sdk');
 const Accounts = require('web3-eth-accounts');
 
 const utils = require('./migrations/utils');
@@ -9,8 +9,6 @@ const truffle = require('./truffle.js');
 const command = require('./scripts/callmethod.js')
 const credentials = require("./credentials.js");
 
-
-AWS.config.update({ region: 'us-east-1' });
 const argv = yargs
   .option({
     a: {
@@ -42,6 +40,12 @@ const argv = yargs
     stake: {
       describe: 'Amount to stake',
       type: 'number',
+    },
+    p: {
+      describe: 'AWS Profile',
+      string: true,
+      alias: 'profile',
+      default: 'default'
     }
   })
   .check(function (argv) {
@@ -55,6 +59,9 @@ const argv = yargs
   .alias('help', 'h')
   .argv;
 
+const awsCredentials = new AWS.SharedIniFileCredentials({profile: argv.profile});
+AWS.config.credentials = awsCredentials;
+AWS.config.update({ region: 'us-east-1' });
 
 async function getKeystoreInfo(network, type, address) {
   const ddb = new AWS.DynamoDB({ apiVersion: '2012-08-10' });
@@ -97,6 +104,14 @@ function getPrivateKey(accounts, keystoreObject) {
   return accounts.decrypt(keystoreObject.keystore.toLowerCase(), keystoreObject.passphrase);
 }
 
+function getInfuraEndpoint(network, infuraApikey) {
+  if (network === "prod" || network === "mainnet") {
+    return `https://mainnet.infura.io/${infuraApikey}`;
+  }
+  
+  return `https://ropsten.infura.io/${infuraApikey}`;
+}
+
 async function getContractAddress(network, contractName) {
   const address = await utils.readAddressFromMetadata(network, contractName)
   return address
@@ -113,16 +128,17 @@ async function getContractInstance(web3Provider, network, contractName) {
 
 return Promise.resolve()
   .then(async () => {
-    const infura_apikey = credentials.infura_apikey
-    if (!infura_apikey) {
+    const infuraApikey = credentials.infura_apikey
+    if (!infuraApikey) {
       console.log("Infura key should not be empty. Please check credentials.js file.")
       process.exit()
     }
     const nodeAdress = argv.address.toLowerCase()
-    const accounts = new Accounts(`https://ropsten.infura.io/${infura_apikey}`);
+    const infuraEndpoint = getInfuraEndpoint(argv.network, infuraApikey)
+    const accounts = new Accounts(infuraEndpoint);
     const keystoreObject = await getKeystoreInfo(argv.network, argv.type, nodeAdress)
     const privateKey = getPrivateKey(accounts, keystoreObject)
-    const provider = getProvider(privateKey.privateKey, `https://ropsten.infura.io/${infura_apikey}`)
+    const provider = getProvider(privateKey.privateKey, infuraEndpoint)
     const web3Provider = getWeb3Provider(provider)
     const auditContractAddress = await getContractAddress(argv.network, 'QuantstampAudit')
 
