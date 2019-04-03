@@ -190,9 +190,13 @@ function IsValidNetwork(network) {
 }
 
 function writeApproveAndStakeCommands(network, nodes, type) {
+  profile = 'default'
+  if (network === 'prod' || network === 'mainnet') {
+    profile = 'prod'
+  }
   commands = []
   nodes.forEach(node => {
-    commands.push(`\nnode ./approve-and-stake.js -a ${node} --approve 10000 --stake 10000 -n ${network} -t ${type}`)
+    commands.push(`\nnode ./approve-and-stake.js -a ${node} --approve 10000 --stake 10000 -n ${network} -t ${type} -p ${profile}`)
   })
   return commands.join("")
 }
@@ -254,8 +258,6 @@ function main() {
         if (policeNodes.length > 0) {
           deployScript.write(writePoliceWhiteListCommands(network.name, policeNodes))
           console.log(` - ${network.name} -- Wrote police whitelist commands to ${deployScript.path}`)
-          deployScript.write(writeApproveAndStakeCommands(network.name, policeNodes, 'police'))
-          console.log(` - ${network.name} -- Wrote approve and stake commands to ${deployScript.path} for police nodes`)
         }
 
         var auditNodes = getNodes(network.name, 'audit')
