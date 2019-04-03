@@ -44,7 +44,7 @@ module.exports = {
     },
     testnet: {
       provider:  function() {
-        return new HDWalletProvider(credentials.mnemonic, `https://ropsten.infura.io/v3/${credentials.infura_apikey}`);
+        return new HDWalletProvider(credentials.mnemonic, `https://ropsten.infura.io/${credentials.infura_apikey}`);
       },
       network_id: 3,
       gas: 6712388,
@@ -60,11 +60,11 @@ module.exports = {
     },
     mainnet: {
       provider: function() {
-        return TrezorWalletProvider.getInstance(`https://mainnet.infura.io/v3/${credentials.infura_apikey}`);
+        return TrezorWalletProvider.getInstance(`https://mainnet.infura.io/${credentials.infura_apikey}`);
       },
       network_id: 1,
-      gas: 4012388,
-      gasPrice: 14000000000,
+      gas: 6712388,
+      gasPrice: 9000000000,
       account: '0x8FD88a2457f74Ec62e6115B2Eb20f05F24B51c62',
       skipDryRun: true,
       delayBetweenDeploys: 60000,
