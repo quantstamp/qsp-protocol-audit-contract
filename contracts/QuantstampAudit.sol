@@ -650,6 +650,14 @@ contract QuantstampAudit is Pausable {
   }
 
   /**
+   * @dev Given a price finds where it should be placed to build a sorted list.
+   * @return next First existing price higher than the passed price.
+   */
+  function findPrecedingPrice(uint256 price) public view returns(uint256) {
+    return priceList.getSortedSpot(HEAD, price, NEXT);
+  }
+
+  /**
    * @dev Given a requestId, the function removes it from the list of audits and decreases the number of assigned
    * audits of the associated audit node.
    * @param requestId Unique ID of a requested audit.
