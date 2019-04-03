@@ -190,9 +190,13 @@ function IsValidNetwork(network) {
 }
 
 function writeApproveAndStakeCommands(network, nodes, type) {
+  profile = 'default'
+  if (network === 'prod' || network === 'mainnet') {
+    profile = 'prod'
+  }
   commands = []
   nodes.forEach(node => {
-    commands.push(`\nnode ./approve-and-stake.js -a ${node} --approve 10000 --stake 10000 -n ${network} -t ${type}`)
+    commands.push(`\nnode ./approve-and-stake.js -a ${node} --approve 10000 --stake 10000 -n ${network} -t ${type} -p ${profile}`)
   })
   return commands.join("")
 }
