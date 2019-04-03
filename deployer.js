@@ -45,7 +45,7 @@ function getCurrentVersion() {
 }
 
 function getAllContractNames() {
-  var files = fs.readdirSync('./contracts/').filter(file => file.startsWith('Quantstamp'))
+  var files = fs.readdirSync('./contracts/').filter(file => file.endsWith('.sol') && !file.startsWith('Migrations'))
   files = files.map(file => file.split('.')[0])
   return files
 }
@@ -56,8 +56,8 @@ function updateVersion(network, config) {
   if (config.deploy.version >= version) {
     packageJson.set("version", config.deploy.version)
     packageJson.save()
-    console.log(` - ${network.name} -- Version in package.json updated to ${config.deploy.version}`)
-  } else throw Error(` - ${network.name} -- New version number should be greater than or equal to current version`)
+    console.log(` - ${network} -- Version in package.json updated to ${config.deploy.version}`)
+  } else throw Error(` - ${network} -- New version number should be greater than or equal to current version`)
 }
 
 async function getCommitHash(currentVersion, network, contract) {
@@ -96,17 +96,13 @@ function getDiffFiles(commitHash) {
   return files
 }
 
-function getUpdatedContractNames(fileNames) {
-  let sol = new RegExp('.sol$')
+function contractIsUpdated(contractName, fileNames) {
+  let sol = new RegExp(`${contractName}.sol$`)
   let files = fileNames.filter(fileName => fileName.match(sol))
-  let contractNames = files.map(file => path.parse(file).base.split(".")[0])
-  if (contractNames.length <= 0) {
-    contractNames = []
-  }
-  return contractNames
+  return files.length > 0
 }
 
-function updateTruffle(contractNames) {
+function updateTruffle(contractNames, network) {
   contractNames.forEach(contract => {
     r = '\\s' + contract + '\\s?:\\s?false'
     f = new RegExp(r, 'g')
@@ -118,7 +114,7 @@ function updateTruffle(contractNames) {
     try {
       const changes = replace.sync(options);
       if (changes.length > 0) {
-        console.log(`Truffle.js modified for ${contract}`)
+        console.log(` - ${network} --  Truffle.js modified for ${contract}`)
       }
     }
     catch (error) {
@@ -175,13 +171,6 @@ function getNodes(network, type) {
   return nodes
 }
 
-function getPoliceNodes(network) {
-  policeNodes = truffle.networks[network].policeNodes
-  if (policeNodes === undefined) {
-    policeNodes = []
-  }
-  return policeNodes
-}
 function writePoliceWhiteListCommands(network, policeNodes) {
   commands = []
   policeNodes.forEach(policeNode => {
@@ -232,7 +221,15 @@ function main() {
         let commitHash = await getCommitHash(currentVersion, network.name, contract)
         if (commitHash !== null) {
           let fileNames = getDiffFiles(commitHash)
-          updatedContractNames = updatedContractNames.concat(getUpdatedContractNames(fileNames))
+          if (contractIsUpdated(contract, fileNames)) {
+            console.log(` - ${network.name} -- Updated Contract: ${contract}`)
+            if (contract === 'QuantstampAudit') {
+              updatedContractNames = updatedContractNames.concat(contract)
+            } else {
+              updatedContractNames = allContracts
+              break
+            }
+          }
         } else {
           console.log(` - ${network.name} -- Could not find a commit hash for current major version for contract: ${contract}`)
         }
@@ -244,7 +241,7 @@ function main() {
         console.log(` - ${network.name} -- Found updated contracts...`)
         var deployScript = fs.createWriteStream("deploy-" + network.name + ".sh", { mode: '744', flag: 'w' })
         updatedContractNames = [...new Set(updatedContractNames)]
-        updateTruffle(updatedContractNames)
+        updateTruffle(updatedContractNames, network.name)
         deployScript.write(writeTruffleCommands(network.name))
         console.log(` - ${network.name} -- Wrote truffle migrate command to ${deployScript.path}`)
         deployScript.write(writeSetAuditAddressCommmand(network.name))
@@ -267,7 +264,7 @@ function main() {
           console.log(` - ${network.name} -- Wrote approve and stake commands to ${deployScript.path} for audit nodes`)
         }
         deployScript.write(writeGitDiscardCommands())
-        updateVersion(network, config)
+        updateVersion(network.name, config)
         const linkedListLib = 'LinkedListLib'
         if (!updatedContractNames.includes(linkedListLib)) {
           try {

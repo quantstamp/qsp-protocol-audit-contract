@@ -44,7 +44,7 @@ module.exports = {
     },
     testnet: {
       provider:  function() {
-        return new HDWalletProvider(credentials.mnemonic, `https://ropsten.infura.io/v3/${credentials.infura_apikey}`);
+        return new HDWalletProvider(credentials.mnemonic, `https://ropsten.infura.io/${credentials.infura_apikey}`);
       },
       network_id: 3,
       gas: 6712388,
@@ -58,42 +58,22 @@ module.exports = {
         '0x2E827414F3a8bAF7d8Df88293B25F13b6cDA53d6'
       ]
     },
-    staging: {
-      provider:  function() {
-        return new HDWalletProvider(credentials.mnemonic, `https://ropsten.infura.io/v3/${credentials.infura_apikey}`);
-      },
-      network_id: 3,
-      gas: 4007806,
-      gasPrice: 110000000000,
-      account: '0x0283c049ed4705e2d98c807dbafdaf725f34b8d2'
-    },
-    'dev-consensys': {
-      provider:  function() {
-        return new HDWalletProvider(credentials.mnemonic, `https://ropsten.infura.io/v3/${credentials.infura_apikey}`);
-      },
-      network_id: 3,
-      gas: 4712388,
-      gasPrice: 110000000000,
-      account: '0x0283c049ed4705e2d98c807dbafdaf725f34b8d2'
-    },
-    prod: {
+    mainnet: {
       provider: function() {
         return TrezorWalletProvider.getInstance(`https://mainnet.infura.io/${credentials.infura_apikey}`);
       },
       network_id: 1,
-      gas: 4012388,
-      gasPrice: 14000000000,
+      gas: 6712388,
+      gasPrice: 9000000000,
       account: '0x8FD88a2457f74Ec62e6115B2Eb20f05F24B51c62',
-      delayBetweenDeploys: 60000
-    },
-    ropsten: {
-      provider: function() {
-        return TrezorWalletProvider.getInstance(`https://ropsten.infura.io/v3/${credentials.infura_apikey}`);
-      },
-      network_id: 3,
-      gas: 4712388,
-      gasPrice: 110000000000,
-      account: '0x0283c049ed4705e2d98c807dbafdaf725f34b8d2'
+      skipDryRun: true,
+      delayBetweenDeploys: 60000,
+      policeNodes: [
+        '0x66013071e12Cf90dF02F1B3C8149E00a16936f80'
+      ],
+      auditNodes: [
+        '0xB844483b5c833539Cdcc359792bBeae66D317058'
+      ]
     }
   }
 };
