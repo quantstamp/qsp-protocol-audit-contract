@@ -105,7 +105,7 @@ function getPrivateKey(accounts, keystoreObject) {
 }
 
 function getInfuraEndpoint(network, infuraApikey) {
-  if (network === "prod" || network === "mainnet") {
+  if (network === "mainnet") {
     return `https://mainnet.infura.io/${infuraApikey}`;
   }
   
