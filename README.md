@@ -26,7 +26,7 @@ This repository contains contracts for interfacing with the QSP audit protocol.
 
 ## Access deployed contracts
 
-QSP token contract: https://ropsten.etherscan.io/address/0xc1220b0ba0760817a9e8166c114d3eb2741f5949 (Ropsten) and https://etherscan.io/address/0x99ea4db9ee77acd40b119bd1dc4e33e1c070b80d (Mainnet)
+QSP Token contract: https://ropsten.etherscan.io/address/0xc1220b0ba0760817a9e8166c114d3eb2741f5949 (Ropsten) and https://etherscan.io/address/0x99ea4db9ee77acd40b119bd1dc4e33e1c070b80d (Mainnet)
 
 QSP Audit contract's metadata and ABI are automatically stored in the following locations. Note: `QuantstampAudit` in the path can be substituted with another contract name, e.g., `QuantstampAuditTokenEscrow`, to get its corresponding metadata and ABI.
 
