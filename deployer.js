@@ -191,7 +191,7 @@ function IsValidNetwork(network) {
 
 function writeApproveAndStakeCommands(network, nodes, type) {
   profile = 'default'
-  if (network === 'prod' || network === 'mainnet') {
+  if (network === 'mainnet') {
     profile = 'prod'
   }
   commands = []
