@@ -475,6 +475,7 @@ contract QuantstampAudit is Pausable {
    */
   function anyRequestAvailable() public view returns(AuditAvailabilityState) {
     uint256 requestId;
+    
     // check that the audit node's stake is large enough
     if (!hasEnoughStake(msg.sender)) {
       return AuditAvailabilityState.Understaked;
