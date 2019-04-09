@@ -463,7 +463,8 @@ contract('QuantstampAudit', function(accounts) {
     // the queue is supposed to be empty for this test-case
     assert.equal(await quantstamp_audit_view.getQueueLength.call(), 0);
     assert.equal((await quantstamp_audit.anyRequestAvailable({from: auditor2})).toNumber(), 2);
-    assert.equal((await quantstamp_audit.anyRequestAvailable({from: auditor3})).toNumber(), 2);
+    // since auditor3 is not staked, the error corresponds to Understaked
+    assert.equal((await quantstamp_audit.anyRequestAvailable({from: auditor3})).toNumber(), 5);
     await quantstamp_audit_data.setMaxAssignedRequests(1);
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     assert.equal((await quantstamp_audit.anyRequestAvailable({from: auditor2})).toNumber(), 1);
