@@ -124,10 +124,12 @@ async function updateAbiAndMetadata(network, contractName, contractAddress) {
     .toString().trim();
 
   const networkConfig = truffle.networks[network];
+  const creationTransaction = require(`../build/contracts/${contractName}.json`).networks[networkConfig.network_id].transactionHash;
   const metaContent = new Buffer(JSON.stringify({
     "contractAddress": web3.utils.toChecksumAddress(contractAddress),
     "creatorAddress": networkConfig.account,
     "commitHash": commitHash,
+    "creationTransaction": creationTransaction,
     "version": getVersion()
   }, null, 2));
 
