@@ -476,6 +476,11 @@ contract QuantstampAudit is Pausable {
   function anyRequestAvailable() public view returns(AuditAvailabilityState) {
     uint256 requestId;
 
+    // check that the audit node's stake is large enough
+    if (!hasEnoughStake(msg.sender)) {
+      return AuditAvailabilityState.Understaked;
+    }
+
     // there are no audits in the queue
     if (!auditQueueExists()) {
       return AuditAvailabilityState.Empty;
@@ -484,11 +489,6 @@ contract QuantstampAudit is Pausable {
     // check if the audit node's assignment count is not exceeded
     if (assignedRequestCount[msg.sender] >= auditData.maxAssignedRequests()) {
       return AuditAvailabilityState.Exceeded;
-    }
-
-    // check that the audit node's stake is large enough
-    if (!hasEnoughStake(msg.sender)) {
-      return AuditAvailabilityState.Understaked;
     }
 
     requestId = anyAuditRequestMatchesPrice(auditData.getMinAuditPrice(msg.sender));
