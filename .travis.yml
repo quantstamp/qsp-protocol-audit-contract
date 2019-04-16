@@ -2,7 +2,6 @@ dist: xenial
 language: node_js
 node_js:
   - 8.11.4
-cache: npm
 install:
   - npm install
 before_script:
