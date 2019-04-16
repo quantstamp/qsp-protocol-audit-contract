@@ -78,7 +78,6 @@ contract('QuantstampAudit_resolution', function(accounts) {
     await quantstamp_audit.getNextAuditRequest({from:auditor});
     await quantstamp_audit.submitReport(requestId, AuditState.Error, Util.emptyReport, {from: auditor});
     assert.isTrue((await Util.balanceOf(quantstamp_token, auditor)).eq(balanceOfAuditorBeforeAudit));
-
     Util.assertEvent({
       result: await quantstamp_audit.resolveErrorReport(requestId, false),
       name: "LogErrorReportResolved",
@@ -91,9 +90,11 @@ contract('QuantstampAudit_resolution', function(accounts) {
 
     assert.isTrue((await Util.balanceOf(quantstamp_token, auditor)).eq(balanceOfAuditorBeforeAudit.add(price)));
     assert.isTrue((await Util.balanceOf(quantstamp_token, requestor)).eq(balanceOfRequesterBeforeAudit));
+    // no slash occurred
+    assert.isTrue(await quantstamp_audit.hasEnoughStake(auditor));
   });
 
-  it("should resolve an error report in favor of the requester given owner's wish", async function () {
+  it("should resolve an error report in favor of the requester given owner's wish, but not slash", async function () {
     const price = Util.toQsp(35);
     const result = await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
     const requestId = Util.extractRequestId(result);
@@ -162,5 +163,32 @@ contract('QuantstampAudit_resolution', function(accounts) {
         assert.equal(args.requestId, requestId);
       }
     });
+  });
+
+  it("should resolve an error report and slash the auditor", async function () {
+    const price = Util.toQsp(35);
+    const result = await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
+    const requestId = Util.extractRequestId(result);
+    const balanceOfAuditorBeforeAudit = await Util.balanceOf(quantstamp_token, auditor);
+    const balanceOfRequesterBeforeAudit = await Util.balanceOf(quantstamp_token, requestor);
+    await quantstamp_audit.getNextAuditRequest({from:auditor});
+    await quantstamp_audit.submitReport(requestId, AuditState.Error, Util.emptyReport, {from: auditor});
+    const stakeBeforeSlash = await quantstamp_audit.totalStakedFor(auditor);
+    assert.isTrue((await Util.balanceOf(quantstamp_token, auditor)).eq(balanceOfAuditorBeforeAudit));
+    Util.assertEvent({
+      result: await quantstamp_audit.resolveErrorReportWithSlash(requestId, false, true),
+      name: "LogErrorReportResolved",
+      args: (args) => {
+        assert.equal(args.requestId, requestId);
+        assert.equal(args.receiver, auditor);
+        assert.isTrue(args.auditPrice.eq(price));
+      }
+    });
+
+    assert.isTrue((await Util.balanceOf(quantstamp_token, auditor)).eq(balanceOfAuditorBeforeAudit.add(price)));
+    assert.isTrue((await Util.balanceOf(quantstamp_token, requestor)).eq(balanceOfRequesterBeforeAudit));
+    // slash occurred
+    const stakeAfterSlash = await quantstamp_audit.totalStakedFor(auditor);
+    assert.isTrue(stakeBeforeSlash.gt(stakeAfterSlash));
   });
 });
