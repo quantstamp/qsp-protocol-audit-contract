@@ -1,0 +1,15 @@
+language: node_js
+node_version:
+  - "8.11.4"
+cache: npm
+install:
+  - npm install
+before_script:
+  - export PATH="$PATH:./node_modules/.bin"
+  - truffle version
+script:
+  - npm run lint
+  - npm run test-cov
+  - npm run coveralls-collect
+after_script:
+  - echo Build completed on `date`
