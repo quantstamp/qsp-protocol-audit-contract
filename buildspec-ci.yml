@@ -12,7 +12,6 @@ phases:
     commands:
       - npm run lint
       - npm run test-cov
-      - npm run coveralls-collect
   post_build:
     commands:
       - echo Build completed on `date`
