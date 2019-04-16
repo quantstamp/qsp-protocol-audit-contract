@@ -3,8 +3,10 @@ language: node_js
 node_version:
   - "8.11.4"
 cache: npm
+before_install:
+  - npm i -g npm@5.6.0
 install:
-  - npm ci
+  - npm install
 before_script:
   - export PATH="$PATH:./node_modules/.bin"
   - truffle version
