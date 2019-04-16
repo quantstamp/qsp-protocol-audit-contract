@@ -4,6 +4,7 @@ cache: npm
 install:
   - nvm install 8.11.4
   - nvm use 8.11.4
+  - npm install
 before_script:
   - export PATH="$PATH:./node_modules/.bin"
   - truffle version
