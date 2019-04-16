@@ -10,9 +10,9 @@ before_script:
 script:
   - npm run lint
   - npm run test-cov
-  - npm run coveralls-collect
 after_script:
   - echo Build completed on `date`
+  - npm run coveralls-collect
 branches:
   only:
   - develop
