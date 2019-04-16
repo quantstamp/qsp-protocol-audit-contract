@@ -3,7 +3,7 @@ node_version:
   - "8.11.4"
 cache: npm
 install:
-  - npm install
+  - npm ci
 before_script:
   - export PATH="$PATH:./node_modules/.bin"
   - truffle version
@@ -13,3 +13,6 @@ script:
   - npm run coveralls-collect
 after_script:
   - echo Build completed on `date`
+branches:
+  only:
+  - develop
