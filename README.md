@@ -392,7 +392,7 @@ This includes running Truffle tests and collecting coverage report for [Coverall
 1. `npm run command -- -n=dev -a=set-min-price-to-accept-any-request --p 0x123456789` sets the min price of the given whitelisted node to 0 enabling the [cleanup process](https://quantstamp.atlassian.net/wiki/spaces/QUAN/pages/95354881/Monitoring+Resources#MonitoringResources-Cleaningupauditrequests)
 1. `npm run command -- -n=dev -a=set-max-assigned --p 100` sets "maximum assigned nodes"
 1. `npm run command -- -n=dev -a=get-next-audit-request` calls `getNextAuditRequest()` on the contract. May be useful for cleaning up the audit waiting queue.
-1. `npm run command -- -n=dev -a=resolve --p 1 false` calls `resolveErrorReport()` on the contract to resolve the incentive of a given requestId. If the second parameter is true, the requester is paid; otherwise, the audit node. 
+1. `npm run command -- -n=dev -a=resolve --p 1 false false` calls `resolveErrorReport()` on the contract to resolve the incentive of a given requestId. If the second parameter is true, the requester is paid; otherwise, the audit node. If the third parameter is true, also slash the audit node. 
 
 ## Deploy to Ganache
 

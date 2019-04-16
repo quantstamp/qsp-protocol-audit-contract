@@ -79,7 +79,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
     await quantstamp_audit.submitReport(requestId, AuditState.Error, Util.emptyReport, {from: auditor});
     assert.isTrue((await Util.balanceOf(quantstamp_token, auditor)).eq(balanceOfAuditorBeforeAudit));
     Util.assertEvent({
-      result: await quantstamp_audit.resolveErrorReport(requestId, false),
+      result: await quantstamp_audit.resolveErrorReport(requestId, false, false),
       name: "LogErrorReportResolved",
       args: (args) => {
         assert.equal(args.requestId, requestId);
@@ -105,7 +105,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
     assert.isTrue((await Util.balanceOf(quantstamp_token, auditor)).eq(balanceOfAuditorBeforeAudit));
 
     Util.assertEvent({
-      result: await quantstamp_audit.resolveErrorReport(requestId, true),
+      result: await quantstamp_audit.resolveErrorReport(requestId, true, false),
       name: "LogErrorReportResolved",
       args: (args) => {
         assert.equal(args.requestId, requestId);
@@ -129,7 +129,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
     assert.isTrue((await Util.balanceOf(quantstamp_token, auditor)).eq(balanceOfAuditorBeforeAudit));
 
     Util.assertEvent({
-      result: await quantstamp_audit.resolveErrorReport(requestId, true),
+      result: await quantstamp_audit.resolveErrorReport(requestId, true, false),
       name: "LogInvalidResolutionCall",
       args: (args) => {
         assert.equal(args.requestId, requestId);
@@ -147,7 +147,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
     await quantstamp_audit.submitReport(requestId, AuditState.Error, Util.emptyReport, {from: auditor});
 
     Util.assertEvent({
-      result: await quantstamp_audit.resolveErrorReport(requestId, true),
+      result: await quantstamp_audit.resolveErrorReport(requestId, true, false),
       name: "LogErrorReportResolved",
       args: (args) => {
         assert.equal(args.requestId, requestId);
@@ -157,7 +157,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
     });
 
     Util.assertEvent({
-      result: await quantstamp_audit.resolveErrorReport(requestId, true),
+      result: await quantstamp_audit.resolveErrorReport(requestId, true, false),
       name: "LogInvalidResolutionCall",
       args: (args) => {
         assert.equal(args.requestId, requestId);
@@ -176,7 +176,7 @@ contract('QuantstampAudit_resolution', function(accounts) {
     const stakeBeforeSlash = await quantstamp_audit.totalStakedFor(auditor);
     assert.isTrue((await Util.balanceOf(quantstamp_token, auditor)).eq(balanceOfAuditorBeforeAudit));
     Util.assertEvent({
-      result: await quantstamp_audit.resolveErrorReportWithSlash(requestId, false, true),
+      result: await quantstamp_audit.resolveErrorReport(requestId, false, true),
       name: "LogErrorReportResolved",
       args: (args) => {
         assert.equal(args.requestId, requestId);

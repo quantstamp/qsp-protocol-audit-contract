@@ -413,7 +413,7 @@ contract QuantstampAudit is Pausable {
    * @param toRequester The audit price goes to the requester or the audit node.
    * @param slashAuditor If true, also slash the stake of the auditor.
    */
-  function resolveErrorReportWithSlash(uint256 requestId, bool toRequester, bool slashAuditor) public onlyOwner {
+  function resolveErrorReport(uint256 requestId, bool toRequester, bool slashAuditor) public onlyOwner {
     QuantstampAuditData.AuditState auditState = auditData.getAuditState(requestId);
     address auditor = auditData.getAuditAuditor(requestId);
     if (auditState != QuantstampAuditData.AuditState.Error) {
@@ -430,15 +430,6 @@ contract QuantstampAudit is Pausable {
     auditData.setAuditState(requestId, QuantstampAuditData.AuditState.Resolved);
     safeTransferFromDataContract(receiver, auditPrice);
     emit LogErrorReportResolved(requestId, receiver, auditPrice);
-  }
-
-  /**
-   * @dev Determines who has to be paid for a given requestId recorded with an error status.
-   * @param requestId Unique identifier of the audit request.
-   * @param toRequester The audit price goes to the requester or the audit node.
-   */
-  function resolveErrorReport(uint256 requestId, bool toRequester) public onlyOwner {
-    resolveErrorReportWithSlash(requestId, toRequester, false);
   }
 
   /**
