@@ -1,6 +1,6 @@
 ## qsp-protocol-audit-contract
 
-![Build status](https://codebuild.us-east-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiZmNQeU81OEExcy8zZS9vdkpWU3NNQUJDNnVYYTRTbHQvaGE4TExaZXhVcnFFWXY3VjdJRGxyU3IrTk9UNTQzMWJJNk5rdThNZEE4SVUxS3h0QkNPZG0wPSIsIml2UGFyYW1ldGVyU3BlYyI6IkhmZUo3c005aHZRdUdjTloiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=develop)
+[![Build Status](https://travis-ci.com/quantstamp/qsp-protocol-audit-contract.svg?token=99JaZsF6mzdz1szXGqFH&branch=develop)](https://travis-ci.com/quantstamp/qsp-protocol-audit-contract)
 [![Coverage Status](https://coveralls.io/repos/github/quantstamp/qsp-protocol-audit-contract/badge.svg?branch=develop&t=kDg4aW)](https://coveralls.io/github/quantstamp/qsp-protocol-audit-contract)
 
 ## Coding Guidelines
@@ -377,7 +377,7 @@ where:
 
 ## CI Tests
 
-The file `buildspec-ci.yml` contains the commands to run on each push.
+The file `.travis.yml` contains the commands to run on each push.
 This includes running Truffle tests and collecting coverage report for [Coveralls](https://coveralls.io/github/quantstamp/qsp-protocol-audit-contract).
 
 
@@ -407,13 +407,6 @@ This includes running Truffle tests and collecting coverage report for [Coverall
 1. `docker run -d -p 7545:8545 trufflesuite/ganache-cli:latest`
 1. `truffle test --network development`
 1. `truffle migrate --network development`
-
-## Deploy to other networks
-1. Specify the network names( as defined in truffle.js ) and the version that you want to deploy in deploy.yml
-1. Run `npm run deploy`
-1. If successful, you should now have a `deployer-<network-name>.sh` file
-for each network.
-1. Execute the files 
 
 ## Calculating Minimum Audit Price
 
