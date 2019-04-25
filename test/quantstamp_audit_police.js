@@ -556,12 +556,29 @@ contract('QuantstampAuditPolice', function(accounts) {
     assert.isTrue(balance_before.add(new BN(price)).eq(balance_after));
   });
 
-  it("should not allow auditors to claim rewards for reports not marked completed", async function() {
+  it("should allow auditors to claim rewards for reports marked as error", async function() {
     await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
-    const result = await quantstamp_audit.getNextAuditRequest({from: auditor});
-    const requestId = Util.extractRequestId(result);
-    await quantstamp_audit.submitReport(requestId, AuditState.Error, Util.emptyReport, {from : auditor});
-    await Util.assertTxFail(quantstamp_audit.claimRewards({from: auditor}));
+    const balance_before = await Util.balanceOf(quantstamp_token, auditor);
+    let result = await quantstamp_audit.getNextAuditRequest({from: auditor});
+    currentId = Util.extractRequestId(result);
+    await quantstamp_audit.submitReport(currentId, AuditState.Error, Util.emptyReport, {from : auditor});
+
+    const num_blocks = police_timeout + 1;
+    await Util.mineNBlocks(num_blocks);
+
+    result = await quantstamp_audit.claimRewards({from: auditor});
+    Util.assertEvent({
+      result: result,
+      name: "LogPayAuditor",
+      args: (args) => {
+        assert.equal(args.requestId.toNumber(), currentId);
+        assert.equal(args.auditor, auditor);
+        assert.isTrue(args.amount.eq(price));
+      }
+    });
+
+    const balance_after = await Util.balanceOf(quantstamp_token, auditor);
+    assert.isTrue(balance_before.plus(price).eq(balance_after));
   });
 
   it("should allow auditors to claim multiple rewards at the same time", async function() {
