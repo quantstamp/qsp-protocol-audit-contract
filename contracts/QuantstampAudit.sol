@@ -553,6 +553,7 @@ contract QuantstampAudit is Pausable {
    * @param price The minimum price.
    */
   function setAuditNodePrice(uint256 price) public {
+    require(price <= auditData.token().totalSupply());
     auditData.setMinAuditPrice(msg.sender, price);
     emit LogAuditNodePriceChanged(msg.sender, price);
   }

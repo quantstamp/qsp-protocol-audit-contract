@@ -23,6 +23,7 @@ contract QuantstampAuditView is Ownable {
     uint256 sum;
     uint256 max;
     uint256 min;
+    uint256 median;
     uint256 n;
   }
 
@@ -75,6 +76,14 @@ contract QuantstampAuditView is Ownable {
   }
 
   /**
+   * @dev Returns min of min audit prices.
+   */
+  function getMinAuditPriceMedian() public view returns (uint256) {
+    return findMinAuditPricesStats().median;
+  }
+
+
+  /**
    * @dev Returns the number of unassigned audit requests in the queue.
    */
   function getQueueLength() public view returns(uint256) {
@@ -103,26 +112,53 @@ contract QuantstampAuditView is Ownable {
     uint256 n;
     uint256 min = MAX_INT;
     uint256 max;
+    uint256 median;
+    uint256[] memory minPriceArray = new uint256[](tokenEscrow.stakedNodesCount());
 
     address currentStakedAddress = tokenEscrow.getNextStakedNode(address(HEAD));
     while (currentStakedAddress != address(HEAD)) {
       uint256 minPrice = auditData.minAuditPrice(currentStakedAddress);
-      if (minPrice != MAX_INT) {
-        n++;
-        sum = sum.add(minPrice);
-        if (minPrice < min) {
-          min = minPrice;
-        }
-        if (minPrice > max) {
-          max = minPrice;
-        }
+      minPriceArray[n] = minPrice;
+      n++;
+      sum = sum.add(minPrice);
+      if (minPrice < min) {
+        min = minPrice;
+      }
+      if (minPrice > max) {
+        max = minPrice;
       }
       currentStakedAddress = tokenEscrow.getNextStakedNode(currentStakedAddress);
     }
 
     if (n == 0) {
       min = 0;
+      median = 0;
+    } else {
+      minPriceArray = sort_array(minPriceArray);
+      if(n % 2 == 1) {
+        median = minPriceArray[n / 2];
+      } else {
+        median = (minPriceArray[n / 2] + minPriceArray[(n / 2) - 1]) / 2;
+      }
     }
-    return AuditPriceStat(sum, max, min, n);
+
+    return AuditPriceStat(sum, max, min, median, n);
+  }
+
+  /**
+   * @dev Very simple approach for sorting small arrays.
+   */
+  function sort_array(uint256[] memory arr) internal pure returns (uint256[]) {
+      uint256 temp;
+      for(uint256 i = 0; i < arr.length; i++) {
+          for(uint256 j = i+1; j < arr.length ;j++) {
+              if(arr[i] > arr[j]) {
+                  temp = arr[i];
+                  arr[i] = arr[j];
+                  arr[j] = temp;
+              }
+          }
+      }
+      return arr;
   }
 }
