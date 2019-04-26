@@ -43,6 +43,18 @@ contract('QuantstampAuditView', function(accounts) {
     await quantstamp_audit.unstake({from: auditor});
   }
 
+  function median(numbers) {
+    var numsLen = numbers.length;
+    numbers = numbers.sort((a, b) => a - b);
+    if (numsLen % 2 === 0) {
+        // average of two middle numbers
+        return (numbers[numsLen / 2 - 1] + numbers[numsLen / 2]) / 2;
+    } else { // is odd
+        // middle number only
+        return numbers[(numsLen - 1) / 2];
+    }
+  }
+
   beforeEach(async function () {
     quantstamp_token = await QuantstampToken.deployed();
     quantstamp_audit_data = await QuantstampAuditData.deployed();
@@ -106,8 +118,8 @@ contract('QuantstampAuditView', function(accounts) {
     assert.equal(await quantstamp_audit_view.getMinAuditPriceCount(), 0);
     assert.equal(await quantstamp_audit_view.getMinAuditPriceMin(), 0);
     assert.equal(await quantstamp_audit_view.getMinAuditPriceMax(), 0);
+    assert.equal(await quantstamp_audit_view.getMinAuditPriceMedian(), 0);
   });
-
 
   it("returns proper stat for advertised minPrice", async function () {
     const prices = [8, 5, 6];
@@ -122,24 +134,24 @@ contract('QuantstampAuditView', function(accounts) {
     assert.equal(await quantstamp_audit_view.getMinAuditPriceCount(), prices.length);
     assert.equal(await quantstamp_audit_view.getMinAuditPriceMin(), Math.min(...prices));
     assert.equal(await quantstamp_audit_view.getMinAuditPriceMax(), Math.max(...prices));
+    assert.equal(await quantstamp_audit_view.getMinAuditPriceMedian(), Math.floor(median(prices)));
+
+    // remove auditors from the staked list
+    for (i in auditors) {
+      await quantstamp_audit.unstake({from: auditors[i]});
+    }
   });
 
-  it("should exclude prices with max integer", async function () {
-    let maxUint256 = new BN(0).notn(256).toString();
-    const prices = [maxUint256, 1, maxUint256];
-    // adding accounts to the whitelist
-    const auditors = [auditor, accounts[4], accounts[5]];
+  it("returns proper median for an even number of auditors", async function () {
+    const prices = [20, 3, 5, 10];
+    const auditors = [auditor, accounts[4], accounts[5], accounts[6]];
     for (i in auditors) {
       // stake auditor
       await Util.stakeAuditor(quantstamp_token, quantstamp_audit, auditors[i], minAuditStake, owner);
       // advertise min price
       await quantstamp_audit.setAuditNodePrice(prices[i], {from: auditors[i]});
     }
-
-    assert.equal(await quantstamp_audit_view.getMinAuditPriceSum(), 1);
-    assert.equal(await quantstamp_audit_view.getMinAuditPriceCount(), 1);
-    assert.equal(await quantstamp_audit_view.getMinAuditPriceMin(), 1);
-    assert.equal(await quantstamp_audit_view.getMinAuditPriceMax(), 1);
+    assert.equal(await quantstamp_audit_view.getMinAuditPriceMedian(), Math.floor(median(prices)));
 
     // remove auditors from the staked list
     for (i in auditors) {
