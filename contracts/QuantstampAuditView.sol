@@ -151,7 +151,7 @@ contract QuantstampAuditView is Ownable {
   function sort_array(uint256[] memory arr) internal pure returns (uint256[]) {
       uint256 temp;
       for(uint256 i = 0; i < arr.length; i++) {
-          for(uint256 j = i+1; j < arr.length ;j++) {
+          for(uint256 j = i+1; j < arr.length; j++) {
               if(arr[i] > arr[j]) {
                   temp = arr[i];
                   arr[i] = arr[j];
