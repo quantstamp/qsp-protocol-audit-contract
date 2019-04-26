@@ -133,7 +133,7 @@ contract QuantstampAuditView is Ownable {
       min = 0;
       median = 0;
     } else {
-      minPriceArray = sort_array(minPriceArray);
+      minPriceArray = sortArray(minPriceArray);
       if (n % 2 == 1) {
         median = minPriceArray[n / 2];
       } else {
