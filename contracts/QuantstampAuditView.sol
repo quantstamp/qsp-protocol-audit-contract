@@ -82,7 +82,6 @@ contract QuantstampAuditView is Ownable {
     return findMinAuditPricesStats().median;
   }
 
-
   /**
    * @dev Returns the number of unassigned audit requests in the queue.
    */
@@ -135,7 +134,7 @@ contract QuantstampAuditView is Ownable {
       median = 0;
     } else {
       minPriceArray = sort_array(minPriceArray);
-      if(n % 2 == 1) {
+      if (n % 2 == 1) {
         median = minPriceArray[n / 2];
       } else {
         median = (minPriceArray[n / 2] + minPriceArray[(n / 2) - 1]) / 2;
@@ -148,17 +147,17 @@ contract QuantstampAuditView is Ownable {
   /**
    * @dev Very simple approach for sorting small arrays.
    */
-  function sort_array(uint256[] memory arr) internal pure returns (uint256[]) {
-      uint256 temp;
-      for(uint256 i = 0; i < arr.length; i++) {
-          for(uint256 j = i+1; j < arr.length; j++) {
-              if(arr[i] > arr[j]) {
-                  temp = arr[i];
-                  arr[i] = arr[j];
-                  arr[j] = temp;
-              }
-          }
+  function sortArray(uint256[] memory arr) internal pure returns (uint256[]) {
+    uint256 temp;
+    for (uint256 i = 0; i < arr.length; i++) {
+      for (uint256 j = i+1; j < arr.length; j++) {
+        if (arr[i] > arr[j]) {
+          temp = arr[i];
+          arr[i] = arr[j];
+          arr[j] = temp;
+        }
       }
-      return arr;
+    }
+    return arr;
   }
 }
