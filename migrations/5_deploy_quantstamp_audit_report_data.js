@@ -11,5 +11,5 @@ module.exports = function(deployer, network) {
 
   deployer.deploy(QuantstampAuditReportData)
     .then(() => new Promise(resolve => setTimeout(() => resolve(), networkConfig.networks[network].delayBetweenDeploys)))
-    .then(async() => await utils.updateAbiAndMetadata(network, 'QuantstampAuditReportData', QuantstampAuditReportData.address));
+    .then(async() => await utils.updateAbiAndMetadata(network, 'QuantstampAuditReportData', QuantstampAuditReportData));
 };

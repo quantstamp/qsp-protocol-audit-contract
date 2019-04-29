@@ -113,7 +113,10 @@ async function writeOnS3(bucketName, key, content) {
   }).promise();
 }
 
-async function updateAbiAndMetadata(network, contractName, contractAddress) {
+async function updateAbiAndMetadata(network, contractName, artifact) {
+  const contractAddress = artifact.address;
+  const transactionHash = artifact.transactionHash;
+
   if (network === 'development'){
     console.log(`${contractName}: Skipping metadata and ABI update: network "${network}" is not eligible`);
     return;
@@ -124,12 +127,11 @@ async function updateAbiAndMetadata(network, contractName, contractAddress) {
     .toString().trim();
 
   const networkConfig = truffle.networks[network];
-  const creationTransaction = require(`../build/contracts/${contractName}.json`).networks[networkConfig.network_id].transactionHash;
   const metaContent = new Buffer(JSON.stringify({
     "contractAddress": web3.utils.toChecksumAddress(contractAddress),
     "creatorAddress": networkConfig.account,
     "commitHash": commitHash,
-    "creationTransaction": creationTransaction,
+    "creationTransaction": transactionHash,
     "version": getVersion()
   }, null, 2));
 
