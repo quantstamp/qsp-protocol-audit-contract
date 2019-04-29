@@ -196,7 +196,8 @@ function writeApproveAndStakeCommands(network, nodes, type) {
   }
   commands = []
   nodes.forEach(node => {
-    commands.push(`\nnode ./approve-and-stake.js -a ${node} --approve 10000 --stake 10000 -n ${network} -t ${type} -p ${profile}`)
+    commands.push(`\nnode ./approve-and-stake.js -a ${node} --approve 10000 -n ${network} -t ${type} -p ${profile}`)
+    commands.push(`\nnode ./approve-and-stake.js -a ${node} --stake 10000 -n ${network} -t ${type} -p ${profile}`)
   })
   return commands.join("")
 }
