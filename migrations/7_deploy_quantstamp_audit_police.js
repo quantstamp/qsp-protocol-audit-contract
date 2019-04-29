@@ -26,5 +26,5 @@ module.exports = function(deployer, network) {
       dataContractsAddresses.dataContractAddress,
       dataContractsAddresses.tokenEscrowContractAddress))
     .then(() => new Promise(resolve => setTimeout(() => resolve(), networkConfig.networks[network].delayBetweenDeploys)))
-    .then(async() => await utils.updateAbiAndMetadata(network, 'QuantstampAuditPolice', QuantstampAuditPolice.address));
+    .then(async() => await utils.updateAbiAndMetadata(network, 'QuantstampAuditPolice', QuantstampAuditPolice));
 };
