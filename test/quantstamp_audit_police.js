@@ -345,6 +345,7 @@ contract('QuantstampAuditPolice', function(accounts) {
 
   it("should allow the police to submit a negative report when slash percentage is set to zero", async function() {
     currentId = await submitNewReport();
+    const existing_slash_percentage = await quantstamp_audit_police.slashPercentage();
     slash_percentage = await quantstamp_audit_police.setSlashPercentage(0);
 
     // check that the report is not currently in the map
@@ -415,8 +416,8 @@ contract('QuantstampAuditPolice', function(accounts) {
     // check that the individual police gained QSP
     await checkPoliceBalances(police_balances_before, expectedAuditorPayment);
 
-    // reset slash percentage back to 20 percent
-    await quantstamp_audit_police.setSlashPercentage(20);
+    // reset slash percentage back to its original value
+    await quantstamp_audit_police.setSlashPercentage(existing_slash_percentage);
   });
 
   it("the report should remain invalid even if a positive report is received after a negative report", async function() {
