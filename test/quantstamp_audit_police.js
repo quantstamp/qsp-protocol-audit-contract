@@ -342,6 +342,83 @@ contract('QuantstampAuditPolice', function(accounts) {
     await stakeAuditor(slash_amount);
   });
 
+
+  it("should allow the police to submit a negative report when slash percentage is set to zero", async function() {
+    currentId = await submitNewReport();
+    slash_percentage = await quantstamp_audit_police.setSlashPercentage(0);
+
+    // check that the report is not currently in the map
+    const existing_report = await quantstamp_audit_police.getPoliceReport(currentId, police1);
+    assert.equal(existing_report, Util.emptyReport);
+
+    const auditor_deposits_before = await quantstamp_audit_token_escrow.depositsOf(auditor);
+    const police_balances_before = await getPoliceBalances();
+
+    assert.equal(await quantstamp_audit_police.getPoliceReportResult(currentId, police1), Util.PoliceReportState.Unverified);
+
+    const result = await quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, false, {from: police1});
+
+    Util.assertNestedEventAtIndex({
+      result: result,
+      name: "Slashed",
+      args: (args) => {
+        assert.equal(args.addr, auditor.toLowerCase());
+        assert.equal(args.amount,0);
+      },
+      index: 0
+    });
+
+    Util.assertNestedEventAtIndex({
+      result: result,
+      name: "PoliceSlash",
+      args: (args) => {
+        assert.equal(args.requestId, currentId);
+        assert.equal(args.policeNode, police1.toLowerCase());
+        assert.equal(args.auditNode, auditor.toLowerCase());
+        assert.equal(args.amount,0);
+      },
+      index: 2
+    });
+
+    Util.assertEventAtIndex({
+      result: result,
+      name: "LogPoliceAuditFinished",
+      args: (args) => {
+        assert.equal(args.policeNode, police1);
+        assert.equal(args.requestId, currentId);
+        assert.isTrue(!args.isVerified);
+        assert.equal(args.report, Util.nonEmptyReport);
+      },
+      index: 0
+    });
+
+    assert.equal(await quantstamp_audit_police.getPoliceReportResult(currentId, police1), Util.PoliceReportState.Invalid);
+
+    const auditor_deposits_after = await quantstamp_audit_token_escrow.depositsOf(auditor);
+    const police_balance_after = await Util.balanceOf(quantstamp_token, quantstamp_audit_police.address);
+
+    // the auditor has not been slashed since the slash percentage is zero
+    assert.isTrue(auditor_deposits_before.eq(auditor_deposits_after));
+
+    // the police contract does not gain any tokens
+    const expected_police_balance = 0;
+    assert.equal(expected_police_balance, police_balance_after);
+
+    // the police report state has been updated
+    const police_report_state = await quantstamp_audit_police.verifiedReports(currentId);
+    assert.equal(police_report_state, Util.PoliceReportState.Invalid);
+
+    // check that the report is added to the map
+    const report = await quantstamp_audit_police.getPoliceReport(currentId, police1);
+    assert.equal(report, Util.nonEmptyReport);
+
+    // check that the individual police gained QSP
+    await checkPoliceBalances(police_balances_before, expectedAuditorPayment);
+
+    // reset slash percentage back to 20 percent
+    await quantstamp_audit_police.setSlashPercentage(20);
+  });
+
   it("the report should remain invalid even if a positive report is received after a negative report", async function() {
     const result = await quantstamp_audit.submitPoliceReport(currentId, Util.nonEmptyReport, true, {from: police2});
 
