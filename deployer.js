@@ -151,6 +151,10 @@ function writeSetAuditAddressCommmand(network) {
   return `\nnpm run command -- -n=${network} -a=set-audit-contract-address-in-view`
 }
 
+function writeSetSlashPercentageCommmand(network) {
+  return `\nnpm run command -- -n=${network} -a=set-slash-percentage -p=${truffle.networks[network].slashPercentage}`
+}
+
 function writeContractWhiteListCommands(network, whiteListDefs) {
   commands = []
   whiteListDefs.forEach(whitelistDef => {
@@ -267,6 +271,7 @@ function main() {
           console.log(` - ${network.name} -- Wrote approve and stake commands to ${deployScript.path} for audit nodes`)
         }
         deployScript.write(writeGitDiscardCommands())
+        deployScript.write(writeSetSlashPercentageCommmand(network))
         updateVersion(network.name, config)
         const linkedListLib = 'LinkedListLib'
         if (!updatedContractNames.includes(linkedListLib)) {

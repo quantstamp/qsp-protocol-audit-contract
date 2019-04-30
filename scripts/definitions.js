@@ -107,6 +107,14 @@ module.exports = {
       return argv.p;
     }
   },
+  'set-slash-percentage': {
+    contractName: 'QuantstampAuditPolice',
+    methodName: 'setSlashPercentage',
+    gasLimit: 130000,
+    methodArgs: async(stage, argv) => {
+      return argv.p;
+    }
+  },
   'set-audit-contract-address-in-view': {
     contractName: 'QuantstampAuditView',
     methodName: 'setQuantstampAudit',
