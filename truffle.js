@@ -35,6 +35,7 @@ module.exports = {
       gasPrice: 110000000000,
       account: '0x0283c049ed4705e2d98c807dbafdaf725f34b8d2',
       skipDryRun: true,
+      slashPercentage: 20,
       policeNodes: [
         '0x3dcad2ecba489945b6935b50c1657b20c00d3d4c'
       ],
@@ -51,6 +52,7 @@ module.exports = {
       gasPrice: 110000000000,
       account: '0x0283c049ed4705e2d98c807dbafdaf725f34b8d2',
       skipDryRun: true,
+      slashPercentage: 0,
       policeNodes: [
         '0x8F00010986cD2118579c3636EE0EC7810CFaf5D5'
       ],
@@ -68,6 +70,7 @@ module.exports = {
       account: '0x8FD88a2457f74Ec62e6115B2Eb20f05F24B51c62',
       skipDryRun: true,
       delayBetweenDeploys: 60000,
+      slashPercentage: 0,
       policeNodes: [
         '0x66013071e12Cf90dF02F1B3C8149E00a16936f80'
       ],
