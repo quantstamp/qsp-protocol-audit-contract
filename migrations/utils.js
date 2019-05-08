@@ -17,18 +17,15 @@ function tokenAddress(network, defaultArtifact) {
   // (output of artifacts.require('<contract-name'))
   // whose address will be used when deploying to other networks (e.g., Ganache)
   switch(network) {
-    case 'dev':
-    case 'testnet':
-    case 'ropsten':
-      // 'ropsten' is useful for deploying to the Ropsten network separately,
-      // without affecting Dev or Prod
-      return QSP_TOKEN_ADDRESS_ROPSTEN;
-    case 'prod':
-      return QSP_TOKEN_ADDRESS_MAINNET;
     case 'development':
       return defaultArtifact.address;
-    default:
+    case 'dev':
+    case 'testnet':
       return QSP_TOKEN_ADDRESS_ROPSTEN;
+    case 'mainnet':
+      return QSP_TOKEN_ADDRESS_MAINNET;
+    default:
+      throw new Error ('Unknown stage! Please add support for the stage to tokenAddress(...)');
   }
 }
 
@@ -116,7 +113,10 @@ async function writeOnS3(bucketName, key, content) {
   }).promise();
 }
 
-async function updateAbiAndMetadata(network, contractName, contractAddress) {
+async function updateAbiAndMetadata(network, contractName, artifact) {
+  const contractAddress = artifact.address;
+  const transactionHash = artifact.transactionHash;
+
   if (network === 'development'){
     console.log(`${contractName}: Skipping metadata and ABI update: network "${network}" is not eligible`);
     return;
@@ -131,6 +131,7 @@ async function updateAbiAndMetadata(network, contractName, contractAddress) {
     "contractAddress": web3.utils.toChecksumAddress(contractAddress),
     "creatorAddress": networkConfig.account,
     "commitHash": commitHash,
+    "creationTransaction": transactionHash,
     "version": getVersion()
   }, null, 2));
 

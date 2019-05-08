@@ -1,0 +1,18 @@
+dist: xenial
+language: node_js
+node_js:
+  - 8.11.4
+install:
+  - npm install
+before_script:
+  - export PATH="$PATH:./node_modules/.bin"
+  - truffle version
+script:
+  - npm run lint
+  - npm run test-cov
+after_script:
+  - echo Build completed on `date`
+  - npm run coveralls-collect
+branches:
+  only:
+  - develop

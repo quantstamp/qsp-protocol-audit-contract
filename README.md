@@ -1,6 +1,6 @@
 ## qsp-protocol-audit-contract
 
-![Build status](https://codebuild.us-east-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiZmNQeU81OEExcy8zZS9vdkpWU3NNQUJDNnVYYTRTbHQvaGE4TExaZXhVcnFFWXY3VjdJRGxyU3IrTk9UNTQzMWJJNk5rdThNZEE4SVUxS3h0QkNPZG0wPSIsIml2UGFyYW1ldGVyU3BlYyI6IkhmZUo3c005aHZRdUdjTloiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=develop)
+[![Build Status](https://travis-ci.com/quantstamp/qsp-protocol-audit-contract.svg?token=99JaZsF6mzdz1szXGqFH&branch=develop)](https://travis-ci.com/quantstamp/qsp-protocol-audit-contract)
 [![Coverage Status](https://coveralls.io/repos/github/quantstamp/qsp-protocol-audit-contract/badge.svg?branch=develop&t=kDg4aW)](https://coveralls.io/github/quantstamp/qsp-protocol-audit-contract)
 
 ## Coding Guidelines
@@ -26,45 +26,23 @@ This repository contains contracts for interfacing with the QSP audit protocol.
 
 ## Access deployed contracts
 
-The addresses of the deployed contracts could be fetched from these locations that persist across deployments. 
-Considering the version from `package.json`, the addresses are stored in two locations which are labeled by
-major version and full version. The one with major version contains the lasted addresses of the all minor versions.
-For example, considering three files `QuantstampAuditData-v-0.1.1-meta.json`, 
-`QuantstampAuditData-v-0.1.0-meta.json`, and `QuantstampAuditData-v-0-meta.json`, the last one has the same content
-as the first one.
+QSP Token contract: https://ropsten.etherscan.io/address/0xc1220b0ba0760817a9e8166c114d3eb2741f5949 (Ropsten) and https://etherscan.io/address/0x99ea4db9ee77acd40b119bd1dc4e33e1c070b80d (Mainnet)
 
-Below is the list of links associated for _V0_. To retrieve the minor versions, replace major version with full 
-version in each path. For example, if you want to retrieve address of `QuantstampAudit` for _v0.1.0_, 
-change `QuantstampAudit-v-0-meta.json` to `QuantstampAudit-v-0.1.0-meta.json` in the appropriate uri.
+QSP Audit contract's metadata and ABI are automatically stored in the following locations. Note: `QuantstampAudit` in the path can be substituted with another contract name, e.g., `QuantstampAuditTokenEscrow`, to get its corresponding metadata and ABI.
 
-### Dev (Ropsten)
+### Testnet (Ropsten)
 
-1. Audit contract:
-    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract/dev/QuantstampAudit-v-0-meta.json
-    - ABI: https://s3.amazonaws.com/qsp-protocol-contract/dev/QuantstampAudit-v-0-abi.json
-1. Audit Data contract:
-    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract/dev/QuantstampAuditData-v-0-meta.json
-    - ABI: https://s3.amazonaws.com/qsp-protocol-contract/dev/QuantstampAuditData-v-0-abi.json
-1. Audit View contract:
-    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract/dev/QuantstampAuditView-v-0-meta.json
-    - ABI: https://s3.amazonaws.com/qsp-protocol-contract/dev/QuantstampAuditView-v-0-abi.json
-1. QSP Token contract address `0xc1220b0bA0760817A9E8166C114D3eb2741F5949`, ABI: http://api-ropsten.etherscan.io/api?module=contract&action=getabi&address=0xc1220b0bA0760817A9E8166C114D3eb2741F5949&format=raw
+- Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract/testnet/QuantstampAudit-v-2-meta.json
+- ABI: https://s3.amazonaws.com/qsp-protocol-contract/testnet/QuantstampAudit-v-2-abi.json
+- For querying, go to: https://ropsten.etherscan.io/address/{address}#readContract , where `{address}` is `contractAddress` copied from the corresponding metadata file
+- For live network, go to https://protocol-staging.quantstamp.com
 
-For querying, go to: https://ropsten.etherscan.io/address/{address}#readContract , where `{address}` is `contractAddress` copied from the corresponding metadata file.
+### Mainnet
 
-### Prod (Main Net)
-1. Audit contract:
-    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract/prod/QuantstampAudit-v-0-meta.json
-    - ABI: https://s3.amazonaws.com/qsp-protocol-contract/prod/QuantstampAudit-v-0-abi.json
-1. Audit Data contract:
-    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract/prod/QuantstampAuditData-v-0-meta.json
-    - ABI: https://s3.amazonaws.com/qsp-protocol-contract/prod/QuantstampAuditData-v-0-abi.json
-1. Audit View contract:
-    - Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract/prod/QuantstampAuditView-v-0-meta.json
-    - ABI: https://s3.amazonaws.com/qsp-protocol-contract/prod/QuantstampAuditView-v-0-abi.json
-1. QSP Token contract address `0x99ea4db9ee77acd40b119bd1dc4e33e1c070b80d`, ABI: http://api.etherscan.io/api?module=contract&action=getabi&address=0x99ea4db9ee77acd40b119bd1dc4e33e1c070b80d&format=raw
-
-For querying, go to: https://etherscan.io/address/{address}#readContract , where `{address}` is `contractAddress` copied from the corresponding metadata file.
+- Metadata (owner and contract address): https://s3.amazonaws.com/qsp-protocol-contract/mainnet/QuantstampAudit-v-2-meta.json
+- ABI: https://s3.amazonaws.com/qsp-protocol-contract/mainnet/QuantstampAudit-v-2-abi.json
+- For querying, go to: https://etherscan.io/address/{address}#readContract , where `{address}` is `contractAddress` copied from the corresponding metadata file
+- For live network, go to https://protocol.quantstamp.com
 
 ## Interaction with the protocol (for audit requestor)
 
@@ -399,22 +377,23 @@ where:
 
 ## CI Tests
 
-The file `buildspec-ci.yml` contains the commands to run on each push.
+The file `.travis.yml` contains the commands to run on each push.
 This includes running Truffle tests and collecting coverage report for [Coveralls](https://coveralls.io/github/quantstamp/qsp-protocol-audit-contract).
 
 
 
 ## Commands
 
-**Note**: These commands are intenteded for the contract owner only. The description is left here as it relates to the code present in this repository. Before running a command, setup the credentials as described in the internal wiki.
+**Note**: These commands are intended for the contract owner only. The description is left here as it relates to the code present in this repository. Before running a command, setup the credentials as described in the internal wiki.
 
-1. `npm run command -- -n=dev -a=whitelist-police-node --p 0x123456789` whitelists a node defined by a given address
-1. `npm run command -- -n=dev -a=whitelist-owner-in-data-contract` whitelists the owner of the QuantstampAuditData contract (required for updating nodes' min audit price)
-1. `npm run command -- -n=dev -a=reset-min-price --p 0x123456789` resets the min price of the given node address to max-uint256
-1. `npm run command -- -n=dev -a=set-min-price-to-accept-any-request --p 0x123456789` sets the min price of the given whitelisted node to 0 enabling the [cleanup process](https://quantstamp.atlassian.net/wiki/spaces/QUAN/pages/95354881/Monitoring+Resources#MonitoringResources-Cleaningupauditrequests)
-1. `npm run command -- -n=dev -a=set-max-assigned --p 100` sets "maximum assigned nodes"
+1. `npm run command -- -n=dev -a=whitelist-police-node -p 0x123456789` whitelists a police node defined by a given address
+1. `npm run command -- -n=dev -a=reset-min-price -p 0x123456789` resets the min price of the given node address to max-uint256
+1. `npm run command -- -n=dev -a=set-min-price-to-accept-any-request -p 0x123456789` sets the min price of the given node to 0 enabling the [cleanup process](https://quantstamp.atlassian.net/wiki/spaces/QUAN/pages/95354881/Monitoring+Resources#MonitoringResources-Cleaningupauditrequests)
+1. `npm run command -- -n=dev -a=set-max-assigned -p 100` sets "maximum assigned nodes"
+1. `npm run command -- -n=dev -a=set-min-stake -p 2000000000000000000` sets minimum staking amount to 2 QSP
+1. `npm run command -- -n=dev -a=set-slash-percentage -p 20` sets the slash percentage to 20%
+1. `npm run command -- -n=dev -a=set-max-assigned -p 100` sets "maximum assigned requests"
 1. `npm run command -- -n=dev -a=get-next-audit-request` calls `getNextAuditRequest()` on the contract. May be useful for cleaning up the audit waiting queue.
-1. `npm run command -- -n=dev -a=resolve --p 1 false` calls `resolveErrorReport()` on the contract to resolve the incentive of a given requestId. If the second parameter is true, the requester is paid; otherwise, the audit node. 
 
 ## Deploy to Ganache
 
@@ -429,13 +408,6 @@ This includes running Truffle tests and collecting coverage report for [Coverall
 1. `docker run -d -p 7545:8545 trufflesuite/ganache-cli:latest`
 1. `truffle test --network development`
 1. `truffle migrate --network development`
-
-## Deploy to other networks
-1. Specify the network names( as defined in truffle.js ) and the version that you want to deploy in deploy.yml
-1. Run `npm run deploy`
-1. If successful, you should now have a `deployer-<network-name>.sh` file
-for each network.
-1. Execute the files 
 
 ## Calculating Minimum Audit Price
 

@@ -15,6 +15,10 @@ contract QuantstampAuditTokenEscrow is ConditionalTokenEscrow {
   bool constant internal PREV = false;
   bool constant internal NEXT = true;
 
+  // maintain the number of staked nodes
+  // saves gas cost over needing to call stakedNodesList.sizeOf()
+  uint256 public stakedNodesCount = 0;
+
   // the minimum amount of wei-QSP that must be staked in order to be a node
   uint256 public minAuditStake = 10000 * (10 ** 18);
 
@@ -163,6 +167,7 @@ contract QuantstampAuditTokenEscrow is ConditionalTokenEscrow {
    */
   function addNodeToStakedList(address addr) internal returns(bool success) {
     if (stakedNodesList.insert(HEAD, uint256(addr), PREV)) {
+      stakedNodesCount++;
       emit StakedNodeAdded(addr);
       success = true;
     }
@@ -175,6 +180,7 @@ contract QuantstampAuditTokenEscrow is ConditionalTokenEscrow {
    */
   function removeNodeFromStakedList(address addr) internal returns(bool success) {
     if (stakedNodesList.remove(uint256(addr)) != 0) {
+      stakedNodesCount--;
       emit StakedNodeRemoved(addr);
       success = true;
     }

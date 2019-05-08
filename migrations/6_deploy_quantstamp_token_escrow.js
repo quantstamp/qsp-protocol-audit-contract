@@ -18,5 +18,5 @@ module.exports = function(deployer, network) {
     .then(() => new Promise(resolve => setTimeout(() => resolve(), networkConfig.networks[network].delayBetweenDeploys)))
     .then(() => deployer.deploy(QuantstampAuditTokenEscrow, tokenContractAddress))
     .then(() => new Promise(resolve => setTimeout(() => resolve(), networkConfig.networks[network].delayBetweenDeploys)))
-    .then(async() => await utils.updateAbiAndMetadata(network, 'QuantstampAuditTokenEscrow', QuantstampAuditTokenEscrow.address));
+    .then(async() => await utils.updateAbiAndMetadata(network, 'QuantstampAuditTokenEscrow', QuantstampAuditTokenEscrow));
 };

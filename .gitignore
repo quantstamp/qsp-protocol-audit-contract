@@ -9,3 +9,4 @@ coverage.json
 scTopics
 coverageEnv
 deploy*.sh
+.DS_Store

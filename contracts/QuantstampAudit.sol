@@ -100,9 +100,6 @@ contract QuantstampAudit is Pausable {
   // amount corresponds to the current minPrice of the audit node
   event LogAuditNodePriceHigherThanRequests(address auditor, uint256 amount);
 
-  event LogInvalidResolutionCall(uint256 requestId);
-  event LogErrorReportResolved(uint256 requestId, address receiver, uint256 auditPrice);
-
   enum AuditAvailabilityState {
     Error,
     Ready,      // an audit is available to be picked up
@@ -274,17 +271,15 @@ contract QuantstampAudit is Pausable {
 
     emit LogAuditFinished(requestId, msg.sender, auditResult, report);
 
-    if (auditResult == QuantstampAuditData.AuditState.Completed) {
-      // alert the police to verify the report
-      police.assignPoliceToReport(requestId);
-      // add the requestId to the pending payments that should be paid to the audit node after policing
-      police.addPendingPayment(msg.sender, requestId);
-      // pay fee to the police
-      if (police.reportProcessingFeePercentage() > 0 && police.numPoliceNodes() > 0) {
-        uint256 policeFee = police.collectFee(requestId);
-        safeTransferFromDataContract(address(police), policeFee);
-        police.splitPayment(policeFee);
-      }
+    // alert the police to verify the report
+    police.assignPoliceToReport(requestId);
+    // add the requestId to the pending payments that should be paid to the audit node after policing
+    police.addPendingPayment(msg.sender, requestId);
+    // pay fee to the police
+    if (police.reportProcessingFeePercentage() > 0 && police.numPoliceNodes() > 0) {
+      uint256 policeFee = police.collectFee(requestId);
+      safeTransferFromDataContract(address(police), policeFee);
+      police.splitPayment(policeFee);
     }
   }
 
@@ -408,25 +403,6 @@ contract QuantstampAudit is Pausable {
   }
 
   /**
-   * @dev Determines who has to be paid for a given requestId recorded with an error status.
-   * @param requestId Unique identifier of the audit request.
-   * @param toRequester The audit price goes to the requester or the audit node.
-   */
-  function resolveErrorReport(uint256 requestId, bool toRequester) public onlyOwner {
-    QuantstampAuditData.AuditState auditState = auditData.getAuditState(requestId);
-    if (auditState != QuantstampAuditData.AuditState.Error) {
-      emit LogInvalidResolutionCall(requestId);
-      return;
-    }
-
-    uint256 auditPrice = auditData.getAuditPrice(requestId);
-    address receiver = toRequester ? auditData.getAuditRequestor(requestId) : auditData.getAuditAuditor(requestId);
-    auditData.setAuditState(requestId, QuantstampAuditData.AuditState.Resolved);
-    safeTransferFromDataContract(receiver, auditPrice);
-    emit LogErrorReportResolved(requestId, receiver, auditPrice);
-  }
-
-  /**
    * @dev Returns the total stake deposited by an address.
    * @param addr The address to check.
    */
@@ -476,6 +452,11 @@ contract QuantstampAudit is Pausable {
   function anyRequestAvailable() public view returns(AuditAvailabilityState) {
     uint256 requestId;
 
+    // check that the audit node's stake is large enough
+    if (!hasEnoughStake(msg.sender)) {
+      return AuditAvailabilityState.Understaked;
+    }
+
     // there are no audits in the queue
     if (!auditQueueExists()) {
       return AuditAvailabilityState.Empty;
@@ -484,11 +465,6 @@ contract QuantstampAudit is Pausable {
     // check if the audit node's assignment count is not exceeded
     if (assignedRequestCount[msg.sender] >= auditData.maxAssignedRequests()) {
       return AuditAvailabilityState.Exceeded;
-    }
-
-    // check that the audit node's stake is large enough
-    if (!hasEnoughStake(msg.sender)) {
-      return AuditAvailabilityState.Understaked;
     }
 
     requestId = anyAuditRequestMatchesPrice(auditData.getMinAuditPrice(msg.sender));
@@ -577,6 +553,7 @@ contract QuantstampAudit is Pausable {
    * @param price The minimum price.
    */
   function setAuditNodePrice(uint256 price) public {
+    require(price <= auditData.token().totalSupply());
     auditData.setMinAuditPrice(msg.sender, price);
     emit LogAuditNodePriceChanged(msg.sender, price);
   }
