@@ -1,0 +1,31 @@
+---
+name: Bug Report
+about: Template for reporting bugs
+title: "[BUG]"
+labels: ''
+assignees: ''
+
+---
+
+!INCLUDEURL "https://raw.githubusercontent.com/quantstamp/opensource-doc-gen/master/github_template/bug_report.md/bug_report_header.md"
+
+## Expected Behavior
+!INCLUDEURL "https://raw.githubusercontent.com/quantstamp/opensource-doc-gen/master/github_template/bug_report.md/bug_report_expected_behavior.md"
+
+## Current Behavior
+!INCLUDEURL "https://raw.githubusercontent.com/quantstamp/opensource-doc-gen/master/github_template/bug_report.md/bug_report_current_behavior.md"
+
+## Possible Solution
+!INCLUDEURL "https://raw.githubusercontent.com/quantstamp/opensource-doc-gen/master/github_template/bug_report.md/bug_report_possible_solution.md"
+
+## Steps to Reproduce
+!INCLUDEURL "https://raw.githubusercontent.com/quantstamp/opensource-doc-gen/master/github_template/bug_report.md/bug_report_steps_to_reproduce.md"
+
+## Context
+!INCLUDEURL "https://raw.githubusercontent.com/quantstamp/opensource-doc-gen/master/github_template/bug_report.md/bug_report_context.md"
+
+## Your Environment
+!INCLUDEURL "https://raw.githubusercontent.com/quantstamp/opensource-doc-gen/master/github_template/bug_report.md/bug_report_your_environment.md"
+
+## Additional Comments
+!INCLUDEURL "https://raw.githubusercontent.com/quantstamp/opensource-doc-gen/master/github_template/bug_report.md/bug_report_additional_comments.md"
