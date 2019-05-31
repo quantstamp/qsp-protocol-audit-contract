@@ -161,7 +161,7 @@ contract('QuantstampAuditView', function(accounts) {
 
   it("returns proper median if some auditors are not fully staked", async function () {
     const allPrices = [20, 3, 5, 10];
-    const stakedPrices = [g3, 5, 10];
+    const stakedPrices = [3, 5, 10];
     const auditors = [auditor, accounts[4], accounts[5], accounts[6]];
     const stakedEnough = [false, true, true, true];
     let currentStake;
