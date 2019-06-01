@@ -154,7 +154,7 @@ function convertBN(bigNumber) {
   return bigNumber.toString();
 }
 
-async function stakeAuditor(quantstamp_token, quantstamp_audit, addr, amountBN, owner) {
+async function stakeAuditor(quantstamp_token, quantstamp_audit, addr, amountBN, owner, stakeCheck=true) {
     const amount = convertBN(amountBN);
     // transfer min_stake QSP tokens to the auditor
     await quantstamp_token.transfer(addr, amount, {from : owner});
@@ -162,7 +162,9 @@ async function stakeAuditor(quantstamp_token, quantstamp_audit, addr, amountBN, 
     await quantstamp_token.approve(quantstamp_audit.address, amount, {from : addr});
     // the auditor stakes enough tokens
     await quantstamp_audit.stake(amount, {from : addr});
-    assert.isTrue(await quantstamp_audit.hasEnoughStake(addr, {from: addr}));
+    if (stakeCheck) {
+      assert.isTrue(await quantstamp_audit.hasEnoughStake(addr, {from: addr}));
+    }
   }
 
 module.exports = {

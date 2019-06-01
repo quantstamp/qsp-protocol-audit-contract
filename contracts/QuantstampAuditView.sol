@@ -118,6 +118,7 @@ contract QuantstampAuditView is Ownable {
     address currentStakedAddress = tokenEscrow.getNextStakedNode(address(HEAD));
     while (currentStakedAddress != address(HEAD)) {
       numNodesWithEnoughStake++;
+      currentStakedAddress = tokenEscrow.getNextStakedNode(currentStakedAddress);
     }
 
     uint256[] memory minPriceArray = new uint256[](numNodesWithEnoughStake);

@@ -172,9 +172,15 @@ contract('QuantstampAuditView', function(accounts) {
       } else {
         currentStake = 1;
       }
-      await Util.stakeAuditor(quantstamp_token, quantstamp_audit, auditors[i], currentStake, owner);
+      await Util.stakeAuditor(
+        quantstamp_token,
+        quantstamp_audit,
+        auditors[i],
+        currentStake,
+        owner,
+        stakeCheck=stakedEnough[i]);
       // advertise min price
-      await quantstamp_audit.setAuditNodePrice(prices[i], {from: auditors[i]});
+      await quantstamp_audit.setAuditNodePrice(allPrices[i], {from: auditors[i]});
     }
     assert.equal(await quantstamp_audit_view.getMinAuditPriceMedian(), Math.floor(median(stakedPrices)));
 
