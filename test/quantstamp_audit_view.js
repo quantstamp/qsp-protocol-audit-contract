@@ -159,6 +159,37 @@ contract('QuantstampAuditView', function(accounts) {
     }
   });
 
+  it("returns proper median if some auditors are not fully staked", async function () {
+    const allPrices = [20, 3, 5, 10];
+    const stakedPrices = [3, 5, 10];
+    const auditors = [auditor, accounts[4], accounts[5], accounts[6]];
+    const stakedEnough = [false, true, true, true];
+    let currentStake;
+    for (var i = 0; i < auditors.length; i++) {
+      // stake auditor
+      if (stakedEnough[i]) {
+        currentStake = minAuditStake;
+      } else {
+        currentStake = 1;
+      }
+      await Util.stakeAuditor(
+        quantstamp_token,
+        quantstamp_audit,
+        auditors[i],
+        currentStake,
+        owner,
+        stakeCheck=stakedEnough[i]);
+      // advertise min price
+      await quantstamp_audit.setAuditNodePrice(allPrices[i], {from: auditors[i]});
+    }
+    assert.equal(await quantstamp_audit_view.getMinAuditPriceMedian(), Math.floor(median(stakedPrices)));
+
+    // remove auditors from the staked list
+    for (i in auditors) {
+      await quantstamp_audit.unstake({from: auditors[i]});
+    }
+  });
+
   it("counts queue size properly", async function () {
     assert.equal(await quantstamp_audit_view.getQueueLength(), 0);
     let prices = [1, 2];

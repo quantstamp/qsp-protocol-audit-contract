@@ -112,9 +112,17 @@ contract QuantstampAuditView is Ownable {
     uint256 min = MAX_INT;
     uint256 max;
     uint256 median;
-    uint256[] memory minPriceArray = new uint256[](tokenEscrow.stakedNodesCount());
+    uint256 numNodesWithEnoughStake;
 
+    // arrays in memory must have a fixed length, so first pre-compute how many staked nodes exist
     address currentStakedAddress = tokenEscrow.getNextStakedNode(address(HEAD));
+    while (currentStakedAddress != address(HEAD)) {
+      numNodesWithEnoughStake++;
+      currentStakedAddress = tokenEscrow.getNextStakedNode(currentStakedAddress);
+    }
+
+    uint256[] memory minPriceArray = new uint256[](numNodesWithEnoughStake);
+    currentStakedAddress = tokenEscrow.getNextStakedNode(address(HEAD));
     while (currentStakedAddress != address(HEAD)) {
       uint256 minPrice = auditData.minAuditPrice(currentStakedAddress);
       minPriceArray[n] = minPrice;
