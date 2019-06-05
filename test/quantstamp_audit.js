@@ -383,6 +383,45 @@ contract('QuantstampAudit', function(accounts) {
     });
   });
 
+  it("getNextAuditRequest() fails if min price lower cap is not met", async function() {
+    const auditor2 = accounts[4];
+    const pendingAuditsNum = (await quantstamp_audit.assignedRequestCount.call(auditor2)).toNumber();
+    await quantstamp_audit_data.setMaxAssignedRequests(pendingAuditsNum + 1);
+    await quantstamp_audit.requestAudit(Util.uri, price - 1, {from: requestor});
+    await quantstamp_audit.setAuditNodePrice(price - 1, {from: auditor2});
+    await quantstamp_audit.setMinAuditPriceLowerCap(price);
+    await Util.assertTxFail(quantstamp_audit.getNextAuditRequest({from: auditor2}));
+    await quantstamp_audit.setMinAuditPriceLowerCap(price - 1);
+
+    Util.assertEvent({
+      result: await quantstamp_audit.getNextAuditRequest({from: auditor2}),
+      name: "LogAuditAssigned",
+      args: (args) => {
+        assert.equal(args.auditor, auditor2);
+      }
+    });
+  });
+
+  it("requestAudit() fails if min price lower cap is not met", async function() {
+    const auditor2 = accounts[4];
+    const pendingAuditsNum = (await quantstamp_audit.assignedRequestCount.call(auditor2)).toNumber();
+    await quantstamp_audit_data.setMaxAssignedRequests(pendingAuditsNum + 1);
+    await quantstamp_audit.setMinAuditPriceLowerCap(price);
+    await Util.assertTxFail(quantstamp_audit.requestAudit(Util.uri, price - 1, {from: requestor}));
+    await quantstamp_audit.requestAudit(Util.uri, price, {from: requestor});
+    await quantstamp_audit.setAuditNodePrice(price, {from: auditor2});
+
+    Util.assertEvent({
+      result: await quantstamp_audit.getNextAuditRequest({from: auditor2}),
+      name: "LogAuditAssigned",
+      args: (args) => {
+        assert.equal(args.auditor, auditor2);
+      }
+    });
+
+    await quantstamp_audit.setMinAuditPriceLowerCap(0);
+  });
+
   it("should get a request after finishing the previous one", async function() {
     const auditor2 = accounts[4];
 

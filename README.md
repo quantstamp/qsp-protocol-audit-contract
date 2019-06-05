@@ -75,7 +75,8 @@ You can request an audit as follows:
 
 where:
 * `uri` is URI for the smart contract you wish to audit. This URI must ​not be a link to Etherscan, Etherchain, etc. It must be a web address which returns only​ plain Solidity source code, like this ​[URI example​](https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-solidity/1d2d18f9dab55b58802c3b1e70257183bb558aa2/contracts/math/SafeMath.sol). Do ​not​ enter a [​URL to a Github repo like this example​](https://github.com/OpenZeppelin/openzeppelin-solidity/blob/master/contracts/math/SafeMath.sol). We need the URI to the raw code, directly. Note that our protocol currently supports Solidity up to version 0.4.24, and that the version must be prefixed with the caret character (^) if it’s lower than 0.4.24.
-* `price` is the audit price. The audit price should be no higher than the amount you granted the Quantstamp protocol permission to withdraw in Step 1. As previously, you may find it handy to use the conversion function `web3.toWei(n, "ether")` (where `n` is the amount of QSP tokens) to obtain the correct QSP amount. Note that the price determines how quickly an audit request will be picked by some audit node.
+* `price` is the audit price. The audit price should be no higher than the amount you granted the Quantstamp protocol permission to withdraw in Step 1. As previously, you may find it handy to use the conversion function `web3.toWei(n, "ether")` (where `n` is the amount of QSP tokens) to obtain the correct QSP amount. Note that the price determines how quickly an audit request will be picked by some audit node. Note: the price must be equal or
+exceed the lower cap returned by `await quantstamp_audit.getMinAuditPriceLowerCap({from: auditor});`.
 * `requestId` is the Id of your request.
 
 ### Step 3: Check status of your audit and view your security report
@@ -168,7 +169,8 @@ Each audit node operator may choose their own minimum acceptable prices per audi
 `await quantstamp_audit.setAuditNodePrice(price, {from: auditor});`
 
 where
-* `price` is the minimum amount of QSP you want to charge per audit. Please note that this amount needs to be multiplied by 10^18 (similarly to how ETH gets converted into Wei). One way of doing the conversion is via `web3.toWei(n, "ether")`, where `n` is the amount of QSP tokens.
+* `price` is the minimum amount of QSP you want to charge per audit. Please note that this amount needs to be multiplied by 10^18 (similarly to how ETH gets converted into Wei). One way of doing the conversion is via `web3.toWei(n, "ether")`, where `n` is the amount of QSP tokens. Note: the price must be equal or
+exceed the lower cap returned by `await quantstamp_audit.getMinAuditPriceLowerCap({from: auditor});`.
 
 ### Step 4: Wait for any incoming audit requests.
 
@@ -390,6 +392,7 @@ This includes running Truffle tests and collecting coverage report for [Coverall
 1. `npm run command -- -n=dev -a=reset-min-price -p 0x123456789` resets the min price of the given node address to max-uint256
 1. `npm run command -- -n=dev -a=set-min-price-to-accept-any-request -p 0x123456789` sets the min price of the given node to 0 enabling the [cleanup process](https://quantstamp.atlassian.net/wiki/spaces/QUAN/pages/95354881/Monitoring+Resources#MonitoringResources-Cleaningupauditrequests)
 1. `npm run command -- -n=dev -a=set-max-assigned -p 100` sets "maximum assigned nodes"
+1. `npm run command -- -n=dev -a=set-min-audit-price-lower-cap -p 100000000000000000000` sets min audit price's lower cap to 1000 QSP
 1. `npm run command -- -n=dev -a=set-min-stake -p 2000000000000000000` sets minimum staking amount to 2 QSP
 1. `npm run command -- -n=dev -a=set-slash-percentage -p 20` sets the slash percentage to 20%
 1. `npm run command -- -n=dev -a=set-max-assigned -p 100` sets "maximum assigned requests"
