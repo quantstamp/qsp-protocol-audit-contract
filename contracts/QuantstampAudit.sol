@@ -221,7 +221,7 @@ contract QuantstampAudit is Pausable {
    */
   function requestAuditWithPriceHint(string contractUri, uint256 price, uint256 existingPrice) public whenNotPaused returns(uint256) {
     require(price > 0);
-    meetsLowerCap(price);
+    require(price >= minAuditPriceLowerCap);
 
     // transfer tokens to the data contract
     require(auditData.token().transferFrom(msg.sender, address(auditData), price));
@@ -533,7 +533,7 @@ contract QuantstampAudit is Pausable {
     }
 
     uint256 minPrice = auditData.getMinAuditPrice(msg.sender);
-    meetsLowerCap(minPrice);
+    require(minPrice >= minAuditPriceLowerCap);
 
     // check that the audit node has staked enough QSP
     if (isRequestAvailable == AuditAvailabilityState.Understaked) {
@@ -573,7 +573,7 @@ contract QuantstampAudit is Pausable {
    * @param price The minimum price.
    */
   function setAuditNodePrice(uint256 price) public {
-    meetsLowerCap(price);
+    require(price >= minAuditPriceLowerCap);
     require(price <= auditData.token().totalSupply());
     auditData.setMinAuditPrice(msg.sender, price);
     emit LogAuditNodePriceChanged(msg.sender, price);
@@ -671,13 +671,6 @@ contract QuantstampAudit is Pausable {
    */
   function auditQueueExists() internal view returns(bool) {
     return priceList.listExists();
-  }
-
-  function meetsLowerCap(uint256 price) internal view returns (bool) {
-    uint lowerCap = getMinAuditPriceLowerCap();
-    if (lowerCap != 0) {
-      require(price >= lowerCap);
-    }
   }
 
   /**
