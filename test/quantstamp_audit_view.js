@@ -227,4 +227,9 @@ contract('QuantstampAuditView', function(accounts) {
     assert.notEqual(hashOfNonExistedReport, hashOfReport);
   });
 
+  it("should return the lower cap", async function () {
+    const price = 123;
+    await quantstamp_audit.setMinAuditPriceLowerCap(price, {from: owner});
+    assert.equal(price, await quantstamp_audit_view.getMinAuditPriceLowerCap());
+  });
 });

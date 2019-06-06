@@ -46,6 +46,13 @@ contract QuantstampAuditView is Ownable {
   function getReportHash(uint256 requestId) public view returns (bytes32) {
     return keccak256(reportData.getReport(requestId));
   }
+
+  /**
+   * @dev Returns the lower cap of the audit prices.
+   */
+  function getMinAuditPriceLowerCap() public view returns (uint256) {
+    return audit.getMinAuditPriceLowerCap();
+  }
   
   /**
    * @dev Returns the sum of min audit prices.
