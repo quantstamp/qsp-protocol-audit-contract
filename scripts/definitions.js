@@ -107,6 +107,14 @@ module.exports = {
       return argv.p;
     }
   },
+  'set-min-audit-price-lower-cap': {
+    contractName: 'QuantstampAudit',
+    methodName: 'setMinAuditPriceLowerCap',
+    gasLimit: 130000,
+    methodArgs: async(stage, argv) => {
+      return argv.p;
+    }
+  },
   'set-slash-percentage': {
     contractName: 'QuantstampAuditPolice',
     methodName: 'setSlashPercentage',
