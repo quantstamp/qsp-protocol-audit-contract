@@ -271,7 +271,7 @@ function main() {
           console.log(` - ${network.name} -- Wrote approve and stake commands to ${deployScript.path} for audit nodes`)
         }
         deployScript.write(writeGitDiscardCommands())
-        deployScript.write(writeSetSlashPercentageCommmand(network))
+        deployScript.write(writeSetSlashPercentageCommmand(network.name))
         updateVersion(network.name, config)
         const linkedListLib = 'LinkedListLib'
         if (!updatedContractNames.includes(linkedListLib)) {
