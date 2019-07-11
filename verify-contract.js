@@ -37,15 +37,15 @@ async function getContractAddress(network, contractName) {
   const address = await utils.readAddressFromMetadata(network, contractName);
   return address;
 }
-async function getConstructorinputs(network, contractName) {
+
+async function getConstructorInputs(network, contractName) {
   const abi = await utils.readAbi(network, contractName);
-  for(var i = 0; i < abi.length; i++) {
-    if (abi[i].type === "constructor") {
-      return abi[i].inputs
-    }
+  const contructorObj = abi.find(function(c) {return c.type === "constructor"});
+  if (contructorObj) {
+    return contructorObj.inputs
   }
   console.log(`No constructor found for contract ${contractName}`);
-  return {}
+  return null;
 }
 
 async function getConstructorValue(network,argObj) {
@@ -61,11 +61,11 @@ async function getConstructorValue(network,argObj) {
     return await getContractAddress(network, contractName); 
   } 
 
-  return {}
+  return null;
 }
 
 async function getConstructor(network, contractName) {
-  var inputs = await getConstructorinputs(network, contractName);
+  var inputs = await getConstructorInputs(network, contractName);
   var constructorObj = {
     argValue: [],
     argName: [],
@@ -85,7 +85,7 @@ async function getConstructor(network, contractName) {
     return constructorObj;
 
   }
-  return {};
+  return null;
 }
 
 function abiEncodedConstructor(constructor) {
@@ -97,13 +97,6 @@ function fetchOptimizationInfo() {
     enabled: (truffle.solc.optimizer.enabled ? 1: 0),
     runs: truffle.solc.optimizer.runs
   };
-}
-
-function etherscanUrl(network) {
-  if (network == "mainnet") {
-    return "https://api.etherscan.io/api"
-  }
-  return "https://api-ropsten.etherscan.io/api"
 }
 
 function sleep(ms) {
@@ -122,12 +115,17 @@ async function checkVerificationStatus(data, uri) {
 
 return Promise.resolve()
   .then(async() => {
+    if (argv.network === "development") {
+      console.log("Skipping verification for development network");
+      return;
+    }
     let flat = await flatten([`./contracts/${argv.contract}.sol`])
     fs.writeFileSync('flat.sol', flat);
     const contractAddress = await getContractAddress(argv.network, argv.contract);
     const optimizationInfo = fetchOptimizationInfo();
-    const uri = etherscanUrl(argv.network);
+    const uri = truffle.networks[argv.network].etherscanUrl
     const compilerversion = 'v0.4.25+commit.59dbf8f1';
+
     console.log(`Contract Name: ${argv.contract}`);
     console.log(`Contract address: ${contractAddress}`);
     console.log(`Verifying contract on ${argv.network}`)
@@ -165,7 +163,7 @@ return Promise.resolve()
     } 
 
     const constructor = await getConstructor(argv.network, argv.contract);
-    if (constructor.argName.length > 0) {
+    if (constructor) {
       data.constructorArguements = abiEncodedConstructor(constructor);
       console.log(`ABI encoded constructor: ${data.constructorArguements}`);
     }
@@ -197,7 +195,7 @@ return Promise.resolve()
     }
     console.log(`Verification guid: ${result.result}`)
 
-    var count = 5;
+    var count = 10;
     while (count > 0) {
       await sleep(3000)
       const status = await checkVerificationStatus(verificationObj, uri)
