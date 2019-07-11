@@ -124,8 +124,6 @@ return Promise.resolve()
   .then(async() => {
     let flat = await flatten([`./contracts/${argv.contract}.sol`])
     fs.writeFileSync('flat.sol', flat);
-    //flat = flat.replace(/ /gm,"+");
-    //flat = flat.replace(/\n/gm, " ");
     const contractAddress = await getContractAddress(argv.network, argv.contract);
     const optimizationInfo = fetchOptimizationInfo();
     const uri = etherscanUrl(argv.network);
