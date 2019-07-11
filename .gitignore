@@ -10,3 +10,4 @@ scTopics
 coverageEnv
 deploy*.sh
 .DS_Store
+flat.sol

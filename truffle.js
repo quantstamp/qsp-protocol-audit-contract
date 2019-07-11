@@ -31,6 +31,7 @@ module.exports = {
         return new HDWalletProvider(credentials.mnemonic, `https://ropsten.infura.io/v3/${credentials.infura_apikey}`);
       },
       network_id: 3,
+      etherscanApiUrl: 'https://api-ropsten.etherscan.io/api',
       gas: 6712388,
       gasPrice: 110000000000,
       account: '0x0283c049ed4705e2d98c807dbafdaf725f34b8d2',
@@ -48,6 +49,7 @@ module.exports = {
         return new HDWalletProvider(credentials.mnemonic, `https://ropsten.infura.io/v3/${credentials.infura_apikey}`);
       },
       network_id: 3,
+      etherscanApiUrl: 'https://api-ropsten.etherscan.io/api',
       gas: 6712388,
       gasPrice: 110000000000,
       account: '0x0283c049ed4705e2d98c807dbafdaf725f34b8d2',
@@ -65,6 +67,7 @@ module.exports = {
         return TrezorWalletProvider.getInstance(`https://mainnet.infura.io/v3/${credentials.infura_apikey}`);
       },
       network_id: 1,
+      etherscanApiUrl: 'https://api.etherscan.io/api',
       gas: 6712388,
       gasPrice: 9000000000,
       account: '0x8FD88a2457f74Ec62e6115B2Eb20f05F24B51c62',

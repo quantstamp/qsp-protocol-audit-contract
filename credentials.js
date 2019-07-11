@@ -1,4 +1,5 @@
 module.exports = {
   infura_apikey : "",
-  mnemonic : ""
+  mnemonic : "",
+  etherscan_apikey: ""
 };
