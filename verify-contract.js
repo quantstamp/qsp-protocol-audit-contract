@@ -66,7 +66,7 @@ async function getConstructorValue(network,argObj) {
 
 async function getConstructor(network, contractName) {
   var inputs = await getConstructorInputs(network, contractName);
-  var constructorObj = {
+  var contractConstructor = {
     argValue: [],
     argName: [],
     argType: []
@@ -88,8 +88,8 @@ async function getConstructor(network, contractName) {
   return null;
 }
 
-function abiEncodedConstructor(constructor) {
-  return abi.rawEncode(constructor.argType, constructor.argValue).toString('hex')
+function abiEncodedConstructor(constructorObj) {
+  return abi.rawEncode(constructorObj.argType, constructorObj.argValue).toString('hex')
 }
 
 function fetchOptimizationInfo() {
@@ -123,7 +123,7 @@ return Promise.resolve()
     fs.writeFileSync('flat.sol', flat);
     const contractAddress = await getContractAddress(argv.network, argv.contract);
     const optimizationInfo = fetchOptimizationInfo();
-    const uri = truffle.networks[argv.network].etherscanUrl
+    const uri = truffle.networks[argv.network].etherscanApiUrl
     const compilerversion = 'v0.4.25+commit.59dbf8f1';
 
     console.log(`Contract Name: ${argv.contract}`);
@@ -162,9 +162,9 @@ return Promise.resolve()
       libraryaddress10: ""
     } 
 
-    const constructor = await getConstructor(argv.network, argv.contract);
-    if (constructor) {
-      data.constructorArguements = abiEncodedConstructor(constructor);
+    const contractConstructor = await getConstructor(argv.network, argv.contract);
+    if (contractConstructor) {
+      data.constructorArguements = abiEncodedConstructor(contractConstructor);
       console.log(`ABI encoded constructor: ${data.constructorArguements}`);
     }
     const contractSol = fs.readFileSync(`./contracts/${argv.contract}.sol`)
@@ -195,7 +195,7 @@ return Promise.resolve()
     }
     console.log(`Verification guid: ${result.result}`)
 
-    var count = 10;
+    let count = 10;
     while (count > 0) {
       await sleep(3000)
       const status = await checkVerificationStatus(verificationObj, uri)
