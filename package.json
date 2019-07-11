@@ -13,7 +13,8 @@
     "command": "node ./scripts/command.js",
     "lint": "./node_modules/.bin/solhint contracts/Quantstamp*.sol",
     "deploy": "node deployer.js",
-    "docs": "make docs"
+    "docs": "make docs",
+    "verify-contract": "node verify-contract"
   },
   "author": "",
   "license": "ISC",
@@ -37,6 +38,10 @@
   },
   "devDependencies": {
     "solhint": "1.2.1",
-    "yargs": "11.0.0"
+    "yargs": "11.0.0",
+    "request-promise": "4.2.4",
+    "truffle-flattener": "1.4.0",
+    "ethereumjs-abi": "0.6.7",
+    "jquery": "3.4.1"
   }
 }
