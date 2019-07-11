@@ -26,12 +26,6 @@ const argv = yargs
       describe: 'QSP network',
       choices: Object.keys(truffle.networks),
       string: true
-    },
-    p: {
-      describe: 'AWS Profile',
-      string: true,
-      alias: 'profile',
-      default: 'default'
     }
   })
   .help()
