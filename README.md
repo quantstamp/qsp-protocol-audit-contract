@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.com/quantstamp/qsp-protocol-audit-contract.svg?token=99JaZsF6mzdz1szXGqFH&branch=develop)](https://travis-ci.com/quantstamp/qsp-protocol-audit-contract)
 [![Coverage Status](https://coveralls.io/repos/github/quantstamp/qsp-protocol-audit-contract/badge.svg?branch=develop&t=kDg4aW)](https://coveralls.io/github/quantstamp/qsp-protocol-audit-contract)
+[![QuantstampScanned](https://protocol-staging.quantstamp.com/badge)](https://protocol-staging.quantstamp.com/report/749)
 
 ## Coding Guidelines
 - We use 2 spaces instead of 4 for indentation.
